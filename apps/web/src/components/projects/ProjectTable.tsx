@@ -1,6 +1,8 @@
 import {
   Chip,
   IconButton,
+  Menu,
+  MenuItem,
   Paper,
   Table,
   TableBody,
@@ -13,13 +15,17 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import { useState } from "react";
 import type { Project } from "../../types/project";
 
 interface ProjectTableProps {
   projects: Project[];
   onEdit: (project: Project) => void;
   onDelete: (project: Project) => void;
-  onExport: (project: Project) => void;
+  onExport: (
+  project: Project,
+  exportType: string,
+) => void;
 }
 
 export default function ProjectTable({
@@ -28,7 +34,27 @@ export default function ProjectTable({
   onDelete,
   onExport,
 }: ProjectTableProps) {
+
+    const [anchorEl, setAnchorEl] =
+    useState<null | HTMLElement>(null);
+
+  const [selectedProject, setSelectedProject] =
+    useState<Project | null>(null);
+
+  function handleOpenMenu(
+    event: React.MouseEvent<HTMLElement>,
+    project: Project,
+  ) {
+    setAnchorEl(event.currentTarget);
+    setSelectedProject(project);
+  }
+
+  function handleCloseMenu() {
+    setAnchorEl(null);
+    setSelectedProject(null);
+  }
   return (
+    <>
     <TableContainer component={Paper}>
       <Table>
         <TableHead>
@@ -113,7 +139,9 @@ export default function ProjectTable({
 
                 <IconButton
                   color="success"
-                  onClick={() => onExport(project)}
+                  onClick={(event) =>
+                    handleOpenMenu(event, project)
+                  }
                 >
                   <FileDownloadIcon />
                 </IconButton>
@@ -124,5 +152,95 @@ export default function ProjectTable({
         </TableBody>
       </Table>
     </TableContainer>
-  );
+        <Menu
+  anchorEl={anchorEl}
+  open={Boolean(anchorEl)}
+  onClose={handleCloseMenu}
+  slotProps={{
+    paper: {
+      sx: {
+        minWidth: 220,
+      },
+    },
+  }}
+>
+  <MenuItem
+  onClick={() => {
+    if (selectedProject) {
+      onExport(selectedProject, "project");
+    }
+    handleCloseMenu();
+  }}
+>
+  Project Summary
+  </MenuItem>
+
+  <MenuItem
+    onClick={() => {
+      if (selectedProject) {
+        onExport(selectedProject, "requirements");
+      }
+      handleCloseMenu();
+    }}
+  >
+    Requirements
+  </MenuItem>
+
+  <MenuItem
+    onClick={() => {
+      if (selectedProject) {
+        onExport(selectedProject, "scenarios");
+      }
+      handleCloseMenu();
+    }}
+  >
+    Test Scenarios
+  </MenuItem>
+
+  <MenuItem
+    onClick={() => {
+      if (selectedProject) {
+        onExport(selectedProject, "test-cases");
+      }
+      handleCloseMenu();
+    }}
+  >
+    Test Cases
+  </MenuItem>
+
+  <MenuItem
+    onClick={() => {
+      if (selectedProject) {
+        onExport(selectedProject, "test-suites");
+      }
+      handleCloseMenu();
+    }}
+  >
+    Test Suites
+  </MenuItem>
+
+  <MenuItem
+    onClick={() => {
+      if (selectedProject) {
+        onExport(selectedProject, "test-runs");
+      }
+      handleCloseMenu();
+    }}
+  >
+    Test Runs
+  </MenuItem>
+
+  <MenuItem
+    onClick={() => {
+      if (selectedProject) {
+        onExport(selectedProject, "bugs");
+      }
+      handleCloseMenu();
+    }}
+  >
+    Bug Report
+  </MenuItem>
+</Menu>
+</>
+);
 }

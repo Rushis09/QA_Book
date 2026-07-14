@@ -64,22 +64,105 @@ export default function ProjectsPage() {
     setConfirmOpen(true);
   }
 
-  async function handleExport(project: Project) {
+  async function handleExport(
+    project: Project,
+    exportType: string,
+  ) {
     try {
-      await exportService.exportRequirements(
-        project.id,
-        project.project_code,
-      );
+      switch (exportType) {
 
-      showNotification(
-        "Requirements exported successfully.",
-        "success",
-      );
+        case "project":
+          await exportService.exportProject(
+            project.id,
+            project.project_code,
+          );
+        
+          showNotification(
+            "Project Summary exported successfully.",
+            "success",
+          );
+          break;
+
+        case "requirements":
+          await exportService.exportRequirements(
+            project.id,
+            project.project_code,
+          );
+        
+          showNotification(
+            "Requirements exported successfully.",
+            "success",
+          );
+          break;
+
+        case "scenarios":
+          await exportService.exportScenarios(
+            project.id,
+            project.project_code,
+          );
+        
+          showNotification(
+            "Test Scenarios exported successfully.",
+            "success",
+          );
+          break;
+        
+        case "test-cases":
+          await exportService.exportTestCases(
+            project.id,
+            project.project_code,
+          );
+        
+          showNotification(
+            "Test Cases exported successfully.",
+            "success",
+          );
+          break;
+        
+        case "test-suites":
+          await exportService.exportTestSuites(
+            project.id,
+            project.project_code,
+          );
+        
+          showNotification(
+            "Test Suites exported successfully.",
+            "success",
+          );
+          break;
+        
+        case "test-runs":
+          await exportService.exportTestRuns(
+            project.id,
+            project.project_code,
+          );
+        
+          showNotification(
+            "Test Runs exported successfully.",
+            "success",
+          );
+          break;
+        
+        case "bugs":
+          await exportService.exportBugs(
+            project.id,
+            project.project_code,
+          );
+        
+          showNotification(
+            "Bug Report exported successfully.",
+            "success",
+          );
+          break;
+        
+        default:
+          return;
+      }
     } catch (error) {
       console.error(error);
-
+    
       showNotification(
-        "Failed to export requirements.",
+        "Failed to export.",
         "error",
       );
     }

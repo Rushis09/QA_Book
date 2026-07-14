@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session,selectinload
 
+from app.exports.project_exporter import ProjectExporter
 from app.db.session import get_db
 from app.exports.constants import ExportConstants
 from app.exports.requirement_exporter import RequirementExporter
@@ -26,6 +27,72 @@ router = APIRouter(
     tags=["Exports"],
 )
 
+@router.get("/project/{project_id}")
+def export_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+):
+    project = (
+        db.query(Project)
+        .filter(Project.id == project_id)
+        .first()
+    )
+
+    if not project:
+        raise HTTPException(
+            status_code=404,
+            detail="Project not found",
+        )
+
+    metadata = {
+        ExportConstants.PROJECT_NAME_LABEL: project.name,
+        ExportConstants.PROJECT_CODE_LABEL: project.project_code,
+        ExportConstants.GENERATED_BY_LABEL: "QABook",
+        ExportConstants.GENERATED_DATE_LABEL: datetime.now().strftime(
+            "%d-%b-%Y %H:%M"
+        ),
+        ExportConstants.VERSION_LABEL: ExportConstants.QDS_VERSION,
+    }
+    
+    exporter = ProjectExporter()
+    
+    excel_file = exporter.generate(
+        metadata=metadata,
+        project={
+            "project_code": project.project_code,
+            "name": project.name,
+            "status": project.status,
+            "version": project.version,
+            "start_date": (
+                str(project.start_date)
+                if project.start_date
+                else ""
+            ),
+            "end_date": (
+                str(project.end_date)
+                if project.end_date
+                else ""
+            ),
+            "description": project.description,
+        },
+    )
+
+    filename = (
+        f"{project.project_code}_ProjectSummary.xlsx"
+    )
+
+    return StreamingResponse(
+        excel_file,
+        media_type=(
+            "application/vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        ),
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{filename}"'
+            )
+        },
+    )
 
 @router.get("/requirements/{project_id}")
 def export_requirements(
