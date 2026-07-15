@@ -75,6 +75,8 @@ export function AuthProvider({
 
     setToken(token);
     setUsername(decoded.sub);
+
+    window.location.reload();
   }
 
   function logout() {
@@ -86,6 +88,8 @@ export function AuthProvider({
   
     setToken(null);
     setUsername(null);
+
+    window.location.reload();
   }
 
   return (

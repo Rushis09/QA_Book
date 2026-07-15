@@ -12,6 +12,16 @@ venv/
 
 # Environment Variables
 .env
+.env.*
+!.env.example
+
+apps/api/.env
+apps/api/.env.*
+!apps/api/.env.example
+
+apps/web/.env
+apps/web/.env.*
+!apps/web/.env.example
 
 # Python Tool Caches
 .pytest_cache/
