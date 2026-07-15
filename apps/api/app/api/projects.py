@@ -8,6 +8,10 @@ from app.schemas.project import (
     ProjectUpdate,
     ProjectResponse,
 )
+from app.auth.dependencies import get_current_admin
+from app.models.admin import Admin
+
+
 
 router = APIRouter(
     prefix="/projects",
@@ -24,6 +28,7 @@ def generate_project_code(db: Session) -> str:
 def create_project(
     project: ProjectCreate,
     db: Session = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
 ):
     db_project = Project(
         project_code=generate_project_code(db),
@@ -74,6 +79,7 @@ def update_project(
     project_id: int,
     project_data: ProjectUpdate,
     db: Session = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
 ):
     project = (
         db.query(Project)
@@ -104,6 +110,7 @@ def update_project(
 def delete_project(
     project_id: int,
     db: Session = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
 ):
     project = (
         db.query(Project)

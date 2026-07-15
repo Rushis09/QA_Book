@@ -3,12 +3,25 @@ import { Outlet } from "react-router-dom";
 
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
+
 export default function AppLayout() {
   return (
-    <Box sx={{ height: "100vh" }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+      }}
+    >
       <Header />
 
-      <Box sx={{ display: "flex" }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexGrow: 1,
+          overflow: "hidden",
+        }}
+      >
         <Sidebar />
 
         <Box
@@ -16,6 +29,7 @@ export default function AppLayout() {
           sx={{
             flexGrow: 1,
             p: 3,
+            overflow: "auto",
           }}
         >
           <Outlet />

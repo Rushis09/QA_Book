@@ -19,10 +19,12 @@ from app.models.suite_test_case import SuiteTestCase
 from app.models.test_run import TestRun
 from app.models.test_execution import TestExecution
 from app.models.bug import Bug
+from app.models.admin import Admin
 
 config = context.config
 
-load_dotenv()
+dotenv_file = os.getenv("DOTENV_FILE", ".env")
+load_dotenv(dotenv_file, override=True)
 
 config.set_main_option(
     "sqlalchemy.url",

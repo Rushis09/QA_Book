@@ -21,8 +21,11 @@ function NotFoundPage() {
 export default function App() {
   return (
     <Routes>
+
+       {/* Main Application */}
       <Route element={<AppLayout />}>
         <Route path="/" element={<DashboardPage />} />
+    
 
         <Route
           path="/projects"
