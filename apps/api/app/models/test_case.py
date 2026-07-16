@@ -33,14 +33,20 @@ class TestCase(Base):
         nullable=False,
     )
 
-    component = Column(
-        String(200),
+    module = Column(
+        String(100),
         nullable=False,
     )
 
     priority = Column(
         String(20),
         nullable=False,
+    )
+
+    status = Column(
+        String(20),
+        nullable=False,
+        default="Draft",
     )
 
     title = Column(

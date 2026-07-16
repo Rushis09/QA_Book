@@ -34,7 +34,7 @@ from app.api.ai_requirements import (
     router as ai_requirement_router,
 )
 from app.api import ai_scenarios
-
+from app.api import ai_test_cases
 
 
 app = FastAPI(
@@ -59,6 +59,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(ai_requirement_router)
 app.include_router(ai_scenarios.router)
+app.include_router(ai_test_cases.router)
 app.include_router(ai_router)
 app.include_router(exports.router)
 app.include_router(dashboard_router)

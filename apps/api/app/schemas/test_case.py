@@ -14,8 +14,9 @@ class TestCaseScenarioResponse(BaseModel):
 
 class TestCaseBase(BaseModel):
     scenario_id: int
-    component: str
+    module: str
     priority: str
+    status: str
     title: str
     description: str | None = None
     preconditions: str | None = None

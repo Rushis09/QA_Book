@@ -36,8 +36,9 @@ def create_test_case(
     db_test_case = TestCase(
         test_case_code=test_case_code,
         scenario_id=test_case.scenario_id,
-        component=test_case.component,
+        module=test_case.module,
         priority=test_case.priority,
+        status=test_case.status,
         title=test_case.title,
         description=test_case.description,
         preconditions=test_case.preconditions,
@@ -111,8 +112,9 @@ def update_test_case(
         )
 
     test_case.scenario_id = test_case_data.scenario_id
-    test_case.component = test_case_data.component
+    test_case.module = test_case_data.module
     test_case.priority = test_case_data.priority
+    test_case.status = test_case_data.status
     test_case.title = test_case_data.title
     test_case.description = test_case_data.description
     test_case.preconditions = test_case_data.preconditions

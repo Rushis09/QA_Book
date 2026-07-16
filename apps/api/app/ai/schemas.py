@@ -55,3 +55,34 @@ class GeneratedScenario(BaseModel):
     description: str = Field(
         min_length=5,
     )
+
+class GenerateTestCaseRequest(BaseModel):
+    scenario_id: int
+    manual_description: str = ""
+    number_of_test_cases: int
+
+
+class GeneratedTestCase(BaseModel):
+    title: str = Field(
+        min_length=3,
+    )
+
+    priority: str = Field(
+        pattern="^(High|Medium|Low)$",
+    )
+
+    preconditions: str = Field(
+        min_length=3,
+    )
+
+    test_data: str = Field(
+        min_length=1,
+    )
+
+    steps: str = Field(
+        min_length=5,
+    )
+
+    expected_result: str = Field(
+        min_length=5,
+    )

@@ -33,6 +33,12 @@ export default function TestCaseForm({
             scenario_id: Number(
               event.target.value,
             ),
+            module:
+              scenarios.find(
+                (scenario) =>
+                  scenario.id ===
+                  Number(event.target.value),
+              )?.module ?? "",
           })
         }
         fullWidth
@@ -50,17 +56,15 @@ export default function TestCaseForm({
       </TextField>
 
       <TextField
-        label="Component / Module"
-        value={value.component}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            component: event.target.value,
-          })
-        }
+        label="Module"
+        value={value.module}
         fullWidth
-        required
         margin="normal"
+        slotProps={{
+          input: {
+            readOnly: true,
+          },
+        }}
       />
 
       <TextField
@@ -105,6 +109,33 @@ export default function TestCaseForm({
         }
         margin="normal"
       />
+
+      <TextField
+        select
+        label="Status"
+        value={value.status}
+        onChange={(event) =>
+          onChange({
+            ...value,
+            status: event.target.value,
+          })
+        }
+        fullWidth
+        required
+        margin="normal"
+      >
+        <MenuItem value="Draft">
+          Draft
+        </MenuItem>
+      
+        <MenuItem value="Ready">
+          Ready
+        </MenuItem>
+      
+        <MenuItem value="Approved">
+          Approved
+        </MenuItem>
+      </TextField>
 
       <TextField
         label="Description"

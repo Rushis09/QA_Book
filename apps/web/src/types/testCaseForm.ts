@@ -1,7 +1,11 @@
 export interface TestCaseFormData {
   scenario_id: number;
-  component: string;
+
+  module: string;
+
   priority: string;
+  status: string;
+
   title: string;
   description: string;
   preconditions: string;

@@ -31,6 +31,23 @@ export interface GeneratedScenario {
   description: string;
 }
 
+/* ---------- Test Cases ---------- */
+
+export interface GenerateTestCaseRequest {
+  scenario_id: number;
+  manual_description: string;
+  number_of_test_cases: number;
+}
+
+export interface GeneratedTestCase {
+  title: string;
+  priority: string;
+  preconditions: string;
+  test_data: string;
+  steps: string;
+  expected_result: string;
+}
+
 export const aiService = {
   async generateRequirements(
     request: GenerateRequirementRequest,
@@ -50,6 +67,18 @@ export const aiService = {
     const { data } =
       await api.post<GeneratedScenario[]>(
         "/ai/scenarios/generate",
+        request,
+      );
+
+    return data;
+  },
+
+  async generateTestCases(
+    request: GenerateTestCaseRequest,
+  ): Promise<GeneratedTestCase[]> {
+    const { data } =
+      await api.post<GeneratedTestCase[]>(
+        "/ai/test-cases/generate",
         request,
       );
 

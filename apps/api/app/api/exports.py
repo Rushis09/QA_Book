@@ -285,8 +285,9 @@ def export_test_cases(
                 "scenario_code": (
                     test_case.scenario.scenario_code
                 ),
-                "component": test_case.component,
+                "module": test_case.module,
                 "priority": test_case.priority,
+                "status": test_case.status,
                 "title": test_case.title,
                 "preconditions": test_case.preconditions,
                 "test_data": test_case.test_data,

@@ -29,8 +29,9 @@ const createDefaultFormData = (
   scenarioId: number,
 ): TestCaseFormData => ({
   scenario_id: scenarioId,
-  component: "",
+  module: "",
   priority: "Medium",
+  status: "Draft",
   title: "",
   description: "",
   preconditions: "",
@@ -65,8 +66,9 @@ export default function TestCaseDialog({
     if (testCase) {
       setFormData({
         scenario_id: testCase.scenario_id,
-        component: testCase.component,
+        module: testCase.module,
         priority: testCase.priority,
+        status: testCase.status,
         title: testCase.title,
         description:
           testCase.description ?? "",

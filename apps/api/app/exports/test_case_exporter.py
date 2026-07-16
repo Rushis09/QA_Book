@@ -24,16 +24,14 @@ class TestCaseExporter(BaseExporter):
 
         self.set_column_widths(
             {
-                "A": 18,   # Test Case Code
-                "B": 18,   # Requirement Code
-                "C": 18,   # Scenario Code
-                "D": 25,   # Component
-                "E": 15,   # Priority
-                "F": 35,   # Title
-                "G": 35,   # Preconditions
-                "H": 40,   # Test Data
-                "I": 60,   # Steps
-                "J": 40,   # Expected Result
+                "D": 20,   # Module
+                "E": 12,   # Priority
+                "F": 15,   # Status
+                "G": 35,   # Title
+                "H": 35,   # Preconditions
+                "I": 40,   # Test Data
+                "J": 60,   # Steps
+                "K": 40,   # Expected Result
             }
         )
 
@@ -62,15 +60,15 @@ class TestCaseExporter(BaseExporter):
             "Test Case Code",
             "Requirement Code",
             "Scenario Code",
-            "Component",
+            "Module",
             "Priority",
+            "Status",
             "Title",
             "Preconditions",
             "Test Data",
             "Steps",
             "Expected Result",
         ]
-
         # Header Row
         for col, header in enumerate(headers, start=1):
             cell = ws.cell(
@@ -93,8 +91,9 @@ class TestCaseExporter(BaseExporter):
                 test_case.get("test_case_code", ""),
                 test_case.get("requirement_code", ""),
                 test_case.get("scenario_code", ""),
-                test_case.get("component", ""),
+                test_case.get("module", ""),
                 test_case.get("priority", ""),
+                test_case.get("status", ""),
                 test_case.get("title", ""),
                 test_case.get("preconditions", ""),
                 test_case.get("test_data", ""),
@@ -121,7 +120,7 @@ class TestCaseExporter(BaseExporter):
         data_end_row = row - 1
 
         ws.auto_filter.ref = (
-            f"A{self.current_row}:J{data_end_row}"
+            f"A{self.current_row}:K{data_end_row}"
         )
 
         self.current_row = row

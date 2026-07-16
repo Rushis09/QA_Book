@@ -44,6 +44,19 @@ export default function TestCaseTable({
     }
   }
 
+  function getStatusColor(
+    status: string,
+  ): "default" | "primary" | "success" {
+    switch (status) {
+      case "Approved":
+        return "primary";
+      case "Ready":
+        return "success";
+      default:
+        return "default";
+    }
+  }
+
   return (
     <TableContainer component={Paper}>
       <Table>
@@ -51,8 +64,9 @@ export default function TestCaseTable({
           <TableRow>
             <TableCell>Test Case Code</TableCell>
             <TableCell>Scenario</TableCell>
-            <TableCell>Component</TableCell>
+            <TableCell>Module</TableCell>
             <TableCell>Priority</TableCell>
+            <TableCell>Status</TableCell>
             <TableCell>Title</TableCell>
             <TableCell>Expected Result</TableCell>
             <TableCell align="right">
@@ -65,7 +79,7 @@ export default function TestCaseTable({
           {testCases.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={7}
+                colSpan={8}
                 align="center"
               >
                 No test cases found.
@@ -83,7 +97,7 @@ export default function TestCaseTable({
                 </TableCell>
 
                 <TableCell>
-                  {testCase.component}
+                  {testCase.module}
                 </TableCell>
 
                 <TableCell>
@@ -91,6 +105,16 @@ export default function TestCaseTable({
                     label={testCase.priority}
                     color={getPriorityColor(
                       testCase.priority,
+                    )}
+                    size="small"
+                  />
+                </TableCell>
+
+                <TableCell>
+                  <Chip
+                    label={testCase.status}
+                    color={getStatusColor(
+                      testCase.status,
                     )}
                     size="small"
                   />

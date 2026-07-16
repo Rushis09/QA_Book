@@ -9,12 +9,17 @@ import ConfirmDialog from "../../components/common/ConfirmDialog";
 import PageHeader from "../../components/common/PageHeader";
 import TestCaseDialog from "../../components/testCases/TestCaseDialog";
 import TestCaseTable from "../../components/testCases/TestCaseTable";
+import GenerateTestCaseDialog from "../../components/testCases/GenerateTestCaseDialog";
 
 import { useNotification } from "../../contexts/NotificationContext";
 
+import { projectService } from "../../services/projectService";
+import { requirementService } from "../../services/requirementService";
 import { testCaseService } from "../../services/testCaseService";
 import { testScenarioService } from "../../services/testScenarioService";
 
+import type { Project } from "../../types/project";
+import type { Requirement } from "../../types/requirement";
 import type { TestCase } from "../../types/testCase";
 import type { TestCaseFormData } from "../../types/testCaseForm";
 import type { TestScenario } from "../../types/testScenario";
@@ -26,6 +31,12 @@ export default function TestCasesPage() {
   const [scenarios, setScenarios] =
     useState<TestScenario[]>([]);
 
+  const [projects, setProjects] =
+    useState<Project[]>([]);
+
+  const [requirements, setRequirements] =
+    useState<Requirement[]>([]);
+
   const [loading, setLoading] =
     useState(true);
 
@@ -33,6 +44,9 @@ export default function TestCasesPage() {
     useState("");
 
   const [openDialog, setOpenDialog] =
+    useState(false);
+
+  const [openGenerateDialog, setOpenGenerateDialog] =
     useState(false);
 
   const [selectedTestCase, setSelectedTestCase] =
@@ -54,13 +68,19 @@ export default function TestCasesPage() {
       const [
         testCaseData,
         scenarioData,
+        projectData,
+        requirementData,
       ] = await Promise.all([
         testCaseService.getTestCases(),
         testScenarioService.getTestScenarios(),
+        projectService.getProjects(),
+        requirementService.getRequirements(),
       ]);
 
       setTestCases(testCaseData);
       setScenarios(scenarioData);
+      setProjects(projectData);
+      setRequirements(requirementData);
 
       setError("");
     } catch (error) {
@@ -137,13 +157,17 @@ export default function TestCasesPage() {
   return (
     <>
       <PageHeader
-        title="Test Cases"
-        actionLabel="New Test Case"
-        onAction={() =>
-          setOpenDialog(true)
-        }
-      >
-        <Typography
+          title="Test Cases"
+          actionLabel="New Test Case"
+          onAction={() =>
+            setOpenDialog(true)
+          }
+          secondaryActionLabel="✨ Generate with AI"
+          onSecondaryAction={() =>
+            setOpenGenerateDialog(true)
+          }
+        >
+         <Typography
           variant="body2"
           color="text.secondary"
           gutterBottom
@@ -158,6 +182,17 @@ export default function TestCasesPage() {
           onDelete={handleDelete}
         />
       </PageHeader>
+
+      <GenerateTestCaseDialog
+        open={openGenerateDialog}
+        projects={projects}
+        requirements={requirements}
+        scenarios={scenarios}
+        onClose={() =>
+          setOpenGenerateDialog(false)
+        }
+        onGenerated={loadData}
+      />
 
       <TestCaseDialog
         title={
