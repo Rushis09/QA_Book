@@ -29,6 +29,7 @@ from app.models.test_execution import TestExecution
 from app.models.bug import Bug
 from app.models.admin import Admin
 from app.auth.router import router as auth_router
+from app.ai.router import router as ai_router
 
 
 
@@ -52,6 +53,7 @@ app.add_middleware(
 
 # Routers
 app.include_router(auth_router)
+app.include_router(ai_router)
 app.include_router(exports.router)
 app.include_router(dashboard_router)
 app.include_router(project_router)

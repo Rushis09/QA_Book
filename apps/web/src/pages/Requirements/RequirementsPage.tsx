@@ -15,6 +15,7 @@ import { requirementService } from "../../services/requirementService";
 import type { Project } from "../../types/project";
 import type { RequirementFormData } from "../../types/requirementForm";
 import type { Requirement } from "../../types/requirement";
+import GenerateRequirementDialog from "../../components/requirements/GenerateRequirementDialog";
 
 export default function RequirementsPage() {
   const [requirements, setRequirements] = useState<Requirement[]>([]);
@@ -24,6 +25,8 @@ export default function RequirementsPage() {
   const [error, setError] = useState("");
 
   const [openDialog, setOpenDialog] = useState(false);
+  const [openGenerateDialog, setOpenGenerateDialog] =
+  useState(false);
   const [selectedRequirement, setSelectedRequirement] =
     useState<Requirement | null>(null);
 
@@ -112,6 +115,10 @@ export default function RequirementsPage() {
         title="Requirements"
         actionLabel="New Requirement"
         onAction={() => setOpenDialog(true)}
+        secondaryActionLabel="✨ Generate with AI"
+        onSecondaryAction={() =>
+          setOpenGenerateDialog(true)
+        }
       >
         <Typography
           variant="body2"
@@ -144,6 +151,14 @@ export default function RequirementsPage() {
           setOpenDialog(false);
         }}
         onSave={handleSaveRequirement}
+      />
+
+      <GenerateRequirementDialog
+        open={openGenerateDialog}
+        projects={projects}
+        onClose={() =>
+          setOpenGenerateDialog(false)
+        }
       />
 
       <ConfirmDialog
