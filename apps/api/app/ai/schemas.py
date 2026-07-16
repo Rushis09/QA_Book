@@ -30,3 +30,28 @@ class GeneratedRequirement(BaseModel):
     description: str = Field(
         min_length=5,
     )
+
+class GenerateScenarioRequest(BaseModel):
+    project_id: int
+    requirement_id: int | None = None
+    generate_for_all: bool = False
+    manual_description: str = ""
+    number_of_scenarios: int
+
+
+class GeneratedScenario(BaseModel):
+    title: str = Field(
+        min_length=3,
+    )
+
+    priority: str = Field(
+        pattern="^(High|Medium|Low)$",
+    )
+
+    status: str = Field(
+        pattern="^(Draft)$",
+    )
+
+    description: str = Field(
+        min_length=5,
+    )

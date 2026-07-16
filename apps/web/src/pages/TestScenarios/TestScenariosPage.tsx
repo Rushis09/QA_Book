@@ -16,6 +16,9 @@ import { testScenarioService } from "../../services/testScenarioService";
 import type { Requirement } from "../../types/requirement";
 import type { TestScenario } from "../../types/testScenario";
 import type { TestScenarioFormData } from "../../types/testScenarioForm";
+import GenerateScenarioDialog from "../../components/testScenarios/GenerateScenarioDialog";
+import { projectService } from "../../services/projectService";
+import type { Project } from "../../types/project";
 
 
 export default function TestScenariosPage() {
@@ -24,6 +27,12 @@ export default function TestScenariosPage() {
 
   const [requirements, setRequirements] =
     useState<Requirement[]>([]);
+
+  const [projects, setProjects] =
+    useState<Project[]>([]);
+
+  const [openGenerateDialog, setOpenGenerateDialog] =
+    useState(false);
 
   const [loading, setLoading] =
     useState(true);
@@ -50,16 +59,19 @@ export default function TestScenariosPage() {
     try {
       setLoading(true);
 
-      const [
+     const [
         testScenarioData,
         requirementData,
+        projectData,
       ] = await Promise.all([
         testScenarioService.getTestScenarios(),
         requirementService.getRequirements(),
+        projectService.getProjects(),
       ]);
 
       setTestScenarios(testScenarioData);
       setRequirements(requirementData);
+      setProjects(projectData);
 
       setError("");
     } catch (error) {
@@ -135,12 +147,16 @@ export default function TestScenariosPage() {
   return (
     <>
       <PageHeader
-        title="Test Scenarios"
-        actionLabel="New Test Scenario"
-        onAction={() =>
-          setOpenDialog(true)
-        }
-      >
+          title="Test Scenarios"
+          actionLabel="New Test Scenario"
+          onAction={() =>
+            setOpenDialog(true)
+          }
+          secondaryActionLabel="✨ Generate with AI"
+          onSecondaryAction={() =>
+            setOpenGenerateDialog(true)
+          }
+        >
         <Typography
           variant="body2"
           color="text.secondary"
@@ -174,6 +190,16 @@ export default function TestScenariosPage() {
           setOpenDialog(false);
         }}
         onSave={handleSave}
+      />
+
+      <GenerateScenarioDialog
+        open={openGenerateDialog}
+        projects={projects}
+        requirements={requirements}
+        onClose={() =>
+          setOpenGenerateDialog(false)
+        }
+        onGenerated={loadData}
       />
 
       <ConfirmDialog
