@@ -17,21 +17,28 @@ import {
 
 import type { Project } from "../../types/project";
 import { aiService } from "../../services/aiService";
+import { requirementService } from "../../services/requirementService";
+import { useNotification } from "../../contexts/NotificationContext";
+
 
 interface GenerateRequirementDialogProps {
   open: boolean;
   projects: Project[];
   onClose: () => void;
+  onGenerated: () => void;
 }
 
 export default function GenerateRequirementDialog({
   open,
   projects,
   onClose,
+  onGenerated,
 }: GenerateRequirementDialogProps) {
   const [projectId, setProjectId] = useState(
     projects.length > 0 ? projects[0].id : 0,
   );
+
+  const { showNotification } = useNotification();
 
   const [source, setSource] = useState<
     "project" | "manual"
@@ -46,16 +53,41 @@ export default function GenerateRequirementDialog({
   async function handleGenerate() {
     try {
       setLoading(true);
-
-      const response =
-        await aiService.generate(
-          "Say Hello from Gemini in exactly one sentence.",
-        );
-
-      alert(response);
+    
+      const requirements =
+        await aiService.generateRequirements({
+          project_id: projectId,
+          manual_description:
+            source === "manual"
+              ? manualPrompt
+              : "",
+          number_of_requirements: count,
+        });
+      
+      for (const requirement of requirements) {
+        await requirementService.createRequirement({
+          project_id: projectId,
+          module: requirement.module,
+          priority: requirement.priority,
+          status: "Draft",
+          description: requirement.description,
+        });
+      }
+    
+      showNotification(
+        `${requirements.length} requirements generated successfully.`,
+        "success",
+      );
+    
+      onGenerated();
+      onClose();
+    
     } catch (error) {
       console.error(error);
-      alert("Generation failed.");
+      showNotification(
+        "Failed to generate requirements.",
+        "error",
+      );
     } finally {
       setLoading(false);
     }

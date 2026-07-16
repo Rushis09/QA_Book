@@ -1,25 +1,27 @@
 import api from "./api";
 
-export interface GenerateAIRequest {
-  prompt: string;
+export interface GenerateRequirementRequest {
+  project_id: number;
+  manual_description: string;
+  number_of_requirements: number;
 }
 
-export interface GenerateAIResponse {
-  response: string;
+export interface GeneratedRequirement {
+  module: string;
+  priority: string;
+  description: string;
 }
 
 export const aiService = {
-  async generate(
-    prompt: string,
-  ): Promise<string> {
+  async generateRequirements(
+    request: GenerateRequirementRequest,
+  ): Promise<GeneratedRequirement[]> {
     const { data } =
-      await api.post<GenerateAIResponse>(
-        "/ai/generate",
-        {
-          prompt,
-        },
+      await api.post<GeneratedRequirement[]>(
+        "/ai/requirements/generate",
+        request,
       );
 
-    return data.response;
+    return data;
   },
 };

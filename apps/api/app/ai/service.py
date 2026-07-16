@@ -1,3 +1,4 @@
+import json
 import os
 
 from google import genai
@@ -24,7 +25,7 @@ class AIService:
 
         try:
             response = self.client.models.generate_content(
-                model="gemini-3.5-flash",
+                model="gemini-3.1-flash-lite",
                 contents=prompt,
             )
 
@@ -33,4 +34,29 @@ class AIService:
         except Exception as error:
             raise RuntimeError(
                 f"AI generation failed: {error}"
+            )
+
+    def generate_json(
+        self,
+        prompt: str,
+    ):
+        response = self.generate(prompt).strip()
+    
+        if response.startswith("```json"):
+            response = response[7:]
+    
+        if response.startswith("```"):
+            response = response[3:]
+    
+        if response.endswith("```"):
+            response = response[:-3]
+    
+        response = response.strip()
+    
+        try:
+            return json.loads(response)
+    
+        except json.JSONDecodeError as error:
+            raise ValueError(
+                f"AI returned invalid JSON: {error}"
             )

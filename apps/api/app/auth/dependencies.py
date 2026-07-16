@@ -19,7 +19,11 @@ def get_current_admin(
     ),
     db: Session = Depends(get_db),
 ):
+    print("=== AUTH START ===")
+
     token = credentials.credentials
+
+    print("Token:", token[:30], "...")
 
     try:
         payload = jwt.decode(
@@ -28,7 +32,11 @@ def get_current_admin(
             algorithms=[ALGORITHM],
         )
 
+        print("Payload:", payload)
+
         username = payload.get("sub")
+
+        print("Username:", username)
 
         if username is None:
             raise HTTPException(
@@ -47,6 +55,8 @@ def get_current_admin(
         .filter(Admin.username == username)
         .first()
     )
+
+    print("Admin:", admin)
 
     if admin is None:
         raise HTTPException(

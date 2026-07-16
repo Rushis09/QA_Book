@@ -159,6 +159,7 @@ export default function RequirementsPage() {
         onClose={() =>
           setOpenGenerateDialog(false)
         }
+         onGenerated={loadData}
       />
 
       <ConfirmDialog
