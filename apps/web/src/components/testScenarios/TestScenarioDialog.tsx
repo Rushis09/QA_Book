@@ -27,10 +27,14 @@ interface TestScenarioDialogProps {
 
 const createDefaultFormData = (
   requirementId: number,
+  module: string,
 ): TestScenarioFormData => ({
   requirement_id: requirementId,
+  module,
   title: "",
   description: "",
+  priority: "Medium",
+  status: "Draft",
 });
 
 export default function TestScenarioDialog({
@@ -42,9 +46,9 @@ export default function TestScenarioDialog({
   onSave,
 }: TestScenarioDialogProps) {
   const [formData, setFormData] =
-    useState<TestScenarioFormData>(
-      createDefaultFormData(0),
-    );
+  useState<TestScenarioFormData>(
+    createDefaultFormData(0, ""),
+  );
 
   const [saving, setSaving] =
     useState(false);
@@ -60,9 +64,12 @@ export default function TestScenarioDialog({
       setFormData({
         requirement_id:
           testScenario.requirement_id,
+        module: testScenario.module,
         title: testScenario.title,
         description:
           testScenario.description ?? "",
+        priority: testScenario.priority,
+        status: testScenario.status,
       });
     } else {
       setFormData(
@@ -70,6 +77,9 @@ export default function TestScenarioDialog({
           requirements.length > 0
             ? requirements[0].id
             : 0,
+          requirements.length > 0
+            ? requirements[0].module
+            : "",
         ),
       );
     }
@@ -107,6 +117,9 @@ export default function TestScenarioDialog({
         requirements.length > 0
           ? requirements[0].id
           : 0,
+        requirements.length > 0
+          ? requirements[0].module
+          : "",
       ),
     );
 

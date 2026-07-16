@@ -205,8 +205,10 @@ def export_test_scenarios(
             {
                 "scenario_code": scenario.scenario_code,
                 "requirement_code": scenario.requirement.requirement_code,
-                "module": scenario.requirement.module,
+                "module": scenario.module,
                 "title": scenario.title,
+                "priority": scenario.priority,
+                "status": scenario.status,
                 "description": scenario.description,
             }
             for scenario in scenarios

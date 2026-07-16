@@ -1,5 +1,8 @@
 export interface TestScenarioFormData {
+  requirement_id: number;
+  module: string;
   title: string;
   description: string;
-  requirement_id: number;
+  priority: string;
+  status: string;
 }

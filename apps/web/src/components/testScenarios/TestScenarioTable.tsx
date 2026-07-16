@@ -1,6 +1,7 @@
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
+  Chip,
   IconButton,
   Paper,
   Table,
@@ -19,6 +20,34 @@ interface TestScenarioTableProps {
   onDelete: (testScenario: TestScenario) => void;
 }
 
+function getPriorityColor(
+  priority: string,
+): "error" | "warning" | "success" | "default" {
+  switch (priority) {
+    case "High":
+      return "error";
+    case "Medium":
+      return "warning";
+    case "Low":
+      return "success";
+    default:
+      return "default";
+  }
+}
+
+function getStatusColor(
+  status: string,
+): "default" | "primary" | "success" {
+  switch (status) {
+    case "Approved":
+      return "primary";
+    case "Implemented":
+      return "success";
+    default:
+      return "default";
+  }
+}
+
 export default function TestScenarioTable({
   testScenarios,
   onEdit,
@@ -31,7 +60,10 @@ export default function TestScenarioTable({
           <TableRow>
             <TableCell>Scenario Code</TableCell>
             <TableCell>Requirement</TableCell>
+            <TableCell>Module</TableCell>
             <TableCell>Title</TableCell>
+            <TableCell>Priority</TableCell>
+            <TableCell>Status</TableCell>
             <TableCell>Description</TableCell>
             <TableCell align="right">
               Actions
@@ -43,7 +75,7 @@ export default function TestScenarioTable({
           {testScenarios.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={5}
+                colSpan={8}
                 align="center"
               >
                 No test scenarios found.
@@ -57,11 +89,35 @@ export default function TestScenarioTable({
                 </TableCell>
 
                 <TableCell>
-                  {`${testScenario.requirement.requirement_code} - ${testScenario.requirement.module}`}
+                  {testScenario.requirement.requirement_code}
+                </TableCell>
+
+                <TableCell>
+                  {testScenario.module}
                 </TableCell>
 
                 <TableCell>
                   {testScenario.title}
+                </TableCell>
+
+                <TableCell>
+                  <Chip
+                    label={testScenario.priority}
+                    color={getPriorityColor(
+                      testScenario.priority,
+                    )}
+                    size="small"
+                  />
+                </TableCell>
+
+                <TableCell>
+                  <Chip
+                    label={testScenario.status}
+                    color={getStatusColor(
+                      testScenario.status,
+                    )}
+                    size="small"
+                  />
                 </TableCell>
 
                 <TableCell>

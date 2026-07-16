@@ -23,11 +23,28 @@ class TestScenario(Base):
         nullable=False,
     )
 
+    module = Column(
+        String(100),
+        nullable=False,
+    )
+
     title = Column(String(100), nullable=False)
 
     description = Column(
         String(500),
         nullable=True,
+    )
+
+    priority = Column(
+        String(20),
+        nullable=False,
+        default="Medium",
+    )
+
+    status = Column(
+        String(20),
+        nullable=False,
+        default="Draft",
     )
 
     created_at = Column(

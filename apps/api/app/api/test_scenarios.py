@@ -35,9 +35,12 @@ def create_test_scenario(
 
     db_test_scenario = TestScenario(
         scenario_code=scenario_code,
+        requirement_id=test_scenario.requirement_id,
+        module=test_scenario.module,
         title=test_scenario.title,
         description=test_scenario.description,
-        requirement_id=test_scenario.requirement_id,
+        priority=test_scenario.priority,
+        status=test_scenario.status,
     )
 
     db.add(db_test_scenario)
@@ -104,9 +107,24 @@ def update_test_scenario(
             detail="Test Scenario not found",
         )
 
-    test_scenario.title = test_scenario_data.title
-    test_scenario.description = test_scenario_data.description
-    test_scenario.requirement_id = test_scenario_data.requirement_id
+    test_scenario.requirement_id = (
+    test_scenario_data.requirement_id
+)
+    test_scenario.module = (
+        test_scenario_data.module
+    )
+    test_scenario.title = (
+        test_scenario_data.title
+    )
+    test_scenario.description = (
+        test_scenario_data.description
+    )
+    test_scenario.priority = (
+        test_scenario_data.priority
+    )
+    test_scenario.status = (
+        test_scenario_data.status
+    )
 
     db.commit()
     db.refresh(test_scenario)

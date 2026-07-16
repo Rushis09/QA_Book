@@ -1,7 +1,6 @@
 from io import BytesIO
 
 from app.exports.base_exporter import BaseExporter
-from app.exports.constants import ExportConstants
 from app.exports.styles import ExportStyles
 
 
@@ -48,6 +47,8 @@ class ScenarioExporter(BaseExporter):
             "Requirement Code",
             "Module",
             "Title",
+            "Priority",
+            "Status",
             "Description",
         ]
 
@@ -74,6 +75,8 @@ class ScenarioExporter(BaseExporter):
                 scenario.get("requirement_code", ""),
                 scenario.get("module", ""),
                 scenario.get("title", ""),
+                scenario.get("priority", ""),
+                scenario.get("status", ""),
                 scenario.get("description", ""),
             ]
 
@@ -93,10 +96,19 @@ class ScenarioExporter(BaseExporter):
 
             row += 1
 
+        ws.column_dimensions["A"].width = 18
+        ws.column_dimensions["B"].width = 20
+        ws.column_dimensions["C"].width = 18
+        ws.column_dimensions["D"].width = 25
+        ws.column_dimensions["E"].width = 15
+        ws.column_dimensions["F"].width = 15
+        ws.column_dimensions["G"].width = 50
+
+        data_end_row = row - 1
         data_end_row = row - 1
 
         ws.auto_filter.ref = (
-            f"A{self.current_row}:E{data_end_row}"
+            f"A{self.current_row}:G{data_end_row}"
         )
 
         self.current_row = row

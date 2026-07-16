@@ -13,9 +13,12 @@ class TestScenarioRequirementResponse(BaseModel):
 
 
 class TestScenarioBase(BaseModel):
+    requirement_id: int
+    module: str
     title: str
     description: str | None = None
-    requirement_id: int
+    priority: str
+    status: str
 
 
 class TestScenarioCreate(TestScenarioBase):
