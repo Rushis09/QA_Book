@@ -12,8 +12,19 @@ interface RequirementRequest {
 }
 
 export const requirementService = {
-  async getRequirements(): Promise<Requirement[]> {
-    const response = await api.get<Requirement[]>(BASE_URL);
+  
+  async getRequirements(
+    projectId?: number
+  ): Promise<Requirement[]> {
+    const response = await api.get<Requirement[]>(
+      BASE_URL,
+      {
+        params: projectId
+          ? { project_id: projectId }
+          : undefined,
+      }
+    );
+  
     return response.data;
   },
 

@@ -15,30 +15,28 @@ import {
   Typography,
 } from "@mui/material";
 
-import type { Project } from "../../types/project";
+
 import { aiService } from "../../services/aiService";
 import { requirementService } from "../../services/requirementService";
 import { useNotification } from "../../contexts/NotificationContext";
-
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 
 interface GenerateRequirementDialogProps {
   open: boolean;
-  projects: Project[];
   onClose: () => void;
   onGenerated: () => void;
 }
 
 export default function GenerateRequirementDialog({
   open,
-  projects,
   onClose,
   onGenerated,
 }: GenerateRequirementDialogProps) {
-  const [projectId, setProjectId] = useState(
-    projects.length > 0 ? projects[0].id : 0,
-  );
-
+  
   const { showNotification } = useNotification();
+  const { selectedProject } = useWorkspace();
+  
+  const projectId = selectedProject?.id ?? 0;
 
   const [source, setSource] = useState<
     "project" | "manual"
@@ -114,26 +112,19 @@ export default function GenerateRequirementDialog({
           }}
         >
           <TextField
-            select
             label="Project"
-            value={projectId}
-            onChange={(event) =>
-              setProjectId(
-                Number(event.target.value),
-              )
+            value={
+              selectedProject
+                ? `${selectedProject.project_code} - ${selectedProject.name}`
+                : ""
             }
             fullWidth
-          >
-            {projects.map((project) => (
-              <MenuItem
-                key={project.id}
-                value={project.id}
-              >
-                {project.project_code} -{" "}
-                {project.name}
-              </MenuItem>
-            ))}
-          </TextField>
+            slotProps={{
+              input: {
+                readOnly: true,
+              },
+            }}
+          />
 
           <FormControl>
             <RadioGroup

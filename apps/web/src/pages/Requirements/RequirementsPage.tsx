@@ -7,19 +7,22 @@ import {
 
 import ConfirmDialog from "../../components/common/ConfirmDialog";
 import PageHeader from "../../components/common/PageHeader";
+import DataGridLayout from "../../components/common/DataGridLayout";
+
 import RequirementDialog from "../../components/requirements/RequirementDialog";
 import RequirementTable from "../../components/requirements/RequirementTable";
 import { useNotification } from "../../contexts/NotificationContext";
-import { projectService } from "../../services/projectService";
 import { requirementService } from "../../services/requirementService";
-import type { Project } from "../../types/project";
+
 import type { RequirementFormData } from "../../types/requirementForm";
 import type { Requirement } from "../../types/requirement";
 import GenerateRequirementDialog from "../../components/requirements/GenerateRequirementDialog";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
+
 
 export default function RequirementsPage() {
   const [requirements, setRequirements] = useState<Requirement[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -34,20 +37,36 @@ export default function RequirementsPage() {
   const [requirementToDelete, setRequirementToDelete] =
     useState<Requirement | null>(null);
 
+  const [
+    bulkDeleteRequirements,
+    setBulkDeleteRequirements,
+  ] = useState<Requirement[]>([]);
+
+  const [selectedRequirementIds, setSelectedRequirementIds] =
+  useState<number[]>([]);
+
   const { showNotification } = useNotification();
 
+  const { selectedProject } = useWorkspace();
+
   async function loadData() {
+
+    if (!selectedProject) {
+      setRequirements([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
-      const [requirementsData, projectsData] =
-        await Promise.all([
-          requirementService.getRequirements(),
-          projectService.getProjects(),
-        ]);
-
+      const requirementsData =
+        await requirementService.getRequirements(
+          selectedProject?.id
+        );
+      
       setRequirements(requirementsData);
-      setProjects(projectsData);
+
       setError("");
     } catch (error) {
       console.error(error);
@@ -59,7 +78,7 @@ export default function RequirementsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedProject]);
 
   function handleEdit(requirement: Requirement) {
     setSelectedRequirement(requirement);
@@ -69,6 +88,25 @@ export default function RequirementsPage() {
   function handleDelete(requirement: Requirement) {
     setRequirementToDelete(requirement);
     setConfirmOpen(true);
+  }
+
+  function handleBulkDelete() {
+    const selectedRequirements =
+      requirements.filter((requirement) =>
+        selectedRequirementIds.includes(
+          requirement.id,
+        ),
+      );
+
+    setBulkDeleteRequirements(
+      selectedRequirements,
+    );
+
+    setConfirmOpen(true);
+  }
+
+  function clearSelection() {
+    setSelectedRequirementIds([]);
   }
 
   async function handleSaveRequirement(
@@ -119,6 +157,63 @@ export default function RequirementsPage() {
         onSecondaryAction={() =>
           setOpenGenerateDialog(true)
         }
+
+        selectionCount={selectedRequirementIds.length}
+
+        selectionActions={
+          selectedRequirementIds.length === 1
+            ? [
+                {
+                  label: "Edit",
+                  onClick: () => {
+                    const requirement = requirements.find(
+                      (r) =>
+                        r.id ===
+                        selectedRequirementIds[0],
+                    );
+                  
+                    if (requirement) {
+                      handleEdit(requirement);
+                    }
+                  },
+                },
+                {
+                  label: "Delete",
+                  color: "error",
+                  onClick: () => {
+                    const requirement = requirements.find(
+                      (r) =>
+                        r.id ===
+                        selectedRequirementIds[0],
+                    );
+                  
+                    if (requirement) {
+                      handleDelete(requirement);
+                    }
+                  },
+                },
+                {
+                  label: "Clear Selection",
+                  variant: "outlined",
+                  onClick: clearSelection,
+                },
+              ]
+            : selectedRequirementIds.length > 1
+              ? [
+                  {
+                    label: "Delete Selected",
+                    color: "error",
+                    onClick: handleBulkDelete,
+                  },
+                  {
+                    label: "Clear Selection",
+                    variant: "outlined",
+                    onClick: clearSelection,
+                  },
+                ]
+              : undefined
+        }
+        
       >
         <Typography
           variant="body2"
@@ -127,14 +222,16 @@ export default function RequirementsPage() {
         >
           Total Requirements: {requirements.length}
         </Typography>
-
+      <DataGridLayout>
         <RequirementTable
           requirements={requirements}
+          selectedIds={selectedRequirementIds}
+          onSelectionChange={setSelectedRequirementIds}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
+      </DataGridLayout>
       </PageHeader>
-
       <RequirementDialog
         title={
           selectedRequirement
@@ -142,7 +239,6 @@ export default function RequirementsPage() {
             : "New Requirement"
         }
         open={openDialog}
-        projects={projects}
         requirement={
           selectedRequirement ?? undefined
         }
@@ -155,7 +251,6 @@ export default function RequirementsPage() {
 
       <GenerateRequirementDialog
         open={openGenerateDialog}
-        projects={projects}
         onClose={() =>
           setOpenGenerateDialog(false)
         }
@@ -164,48 +259,72 @@ export default function RequirementsPage() {
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Delete Requirement"
+        title={
+          bulkDeleteRequirements.length > 0
+            ? "Delete Requirements"
+            : "Delete Requirement"
+        }
         message={
-          requirementToDelete
-            ? `Are you sure you want to delete "${requirementToDelete.requirement_code}"?`
-            : ""
+          bulkDeleteRequirements.length > 0
+            ? `Are you sure you want to delete ${bulkDeleteRequirements.length} requirements?`
+            : requirementToDelete
+              ? `Are you sure you want to delete "${requirementToDelete.requirement_code}"?`
+              : ""
         }
         confirmText="Delete"
         cancelText="Cancel"
-        onConfirm={async () => {
-          if (!requirementToDelete) {
-            return;
-          }
-
-          try {
-            await requirementService.deleteRequirement(
-              requirementToDelete.id,
-            );
-
-            await loadData();
-
-            showNotification(
-              "Requirement deleted successfully.",
-              "success",
-            );
-
-            setConfirmOpen(false);
-            setRequirementToDelete(null);
-          } catch (error) {
-            console.error(error);
-
-            showNotification(
-              "Failed to delete requirement.",
-              "error",
-            );
-
-            setConfirmOpen(false);
-            setRequirementToDelete(null);
-          }
-        }}
         onCancel={() => {
           setConfirmOpen(false);
           setRequirementToDelete(null);
+          setBulkDeleteRequirements([]);
+        }}
+        onConfirm={async () => {
+          try {
+            if (bulkDeleteRequirements.length > 0) {
+              await Promise.all(
+                bulkDeleteRequirements.map(
+                  (requirement) =>
+                    requirementService.deleteRequirement(
+                      requirement.id,
+                    ),
+                ),
+              );
+            
+              showNotification(
+                "Requirements deleted successfully.",
+                "success",
+              );
+            
+              clearSelection();
+              setBulkDeleteRequirements([]);
+            } else if (requirementToDelete) {
+              await requirementService.deleteRequirement(
+                requirementToDelete.id,
+              );
+            
+              showNotification(
+                "Requirement deleted successfully.",
+                "success",
+              );
+            
+              setRequirementToDelete(null);
+            }
+          
+            await loadData();
+          } catch (error) {
+            console.error(error);
+          
+            showNotification(
+              bulkDeleteRequirements.length > 0
+                ? "Failed to delete requirements."
+                : "Failed to delete requirement.",
+              "error",
+            );
+          } finally {
+            setConfirmOpen(false);
+            setRequirementToDelete(null);
+            setBulkDeleteRequirements([]);
+          }
         }}
       />
     </>

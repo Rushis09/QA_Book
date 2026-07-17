@@ -4,12 +4,12 @@ import {
   TextField,
 } from "@mui/material";
 
-import type { Project } from "../../types/project";
+
 import type { RequirementFormData } from "../../types/requirementForm";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 
 interface RequirementFormProps {
   value: RequirementFormData;
-  projects: Project[];
   error: boolean;
   onChange: (value: RequirementFormData) => void;
 }
@@ -28,10 +28,10 @@ const statusOptions = [
 
 export default function RequirementForm({
   value,
-  projects,
   error,
   onChange,
 }: RequirementFormProps) {
+  const { selectedProject } = useWorkspace();
   function updateField<K extends keyof RequirementFormData>(
     field: K,
     fieldValue: RequirementFormData[K],
@@ -43,30 +43,28 @@ export default function RequirementForm({
   }
 
   return (
+
     <Grid container spacing={2}>
+
       <Grid size={{ xs: 12 }}>
+
         <TextField
-          select
+
           label="Project"
-          value={value.project_id}
-          onChange={(event) =>
-            updateField(
-              "project_id",
-              Number(event.target.value),
-            )
+          value={
+            selectedProject
+              ? `${selectedProject.project_code} - ${selectedProject.name}`
+              : ""
           }
+          
           fullWidth
-          required
-        >
-          {projects.map((project) => (
-            <MenuItem
-              key={project.id}
-              value={project.id}
-            >
-              {project.project_code} - {project.name}
-            </MenuItem>
-          ))}
-        </TextField>
+          slotProps={{
+            input: {
+              readOnly: true,
+            },
+          }}
+        />
+
       </Grid>
 
       <Grid size={{ xs: 12 }}>

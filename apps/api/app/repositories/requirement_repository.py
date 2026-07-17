@@ -9,6 +9,10 @@ class RequirementRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    @property
+    def session(self) -> Session:
+        return self.db
+
     def create(self, requirement: Requirement) -> Requirement:
         self.db.add(requirement)
         self.db.commit()

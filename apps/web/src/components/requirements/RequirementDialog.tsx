@@ -9,14 +9,14 @@ import {
 
 import RequirementForm from "./RequirementForm";
 import { useNotification } from "../../contexts/NotificationContext";
-import type { Project } from "../../types/project";
+
 import type { RequirementFormData } from "../../types/requirementForm";
 import type { Requirement } from "../../types/requirement";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 
 interface RequirementDialogProps {
   title: string;
   open: boolean;
-  projects: Project[];
   requirement?: Requirement;
   onClose: () => void;
   onSave: (data: RequirementFormData) => Promise<void>;
@@ -35,7 +35,6 @@ const createDefaultFormData = (
 export default function RequirementDialog({
   title,
   open,
-  projects,
   requirement,
   onClose,
   onSave,
@@ -49,6 +48,7 @@ export default function RequirementDialog({
   const [moduleError, setModuleError] = useState(false);
 
   const { showNotification } = useNotification();
+  const { selectedProject } = useWorkspace();
 
   useEffect(() => {
     if (requirement) {
@@ -62,13 +62,13 @@ export default function RequirementDialog({
     } else {
       setFormData(
         createDefaultFormData(
-          projects.length > 0 ? projects[0].id : 0,
+          selectedProject?.id ?? 0,
         ),
       );
     }
 
     setModuleError(false);
-  }, [requirement, projects]);
+  }, [requirement, selectedProject]);
 
   async function handleSave() {
     if (!formData.module.trim()) {
@@ -96,8 +96,8 @@ export default function RequirementDialog({
   function handleCancel() {
     setFormData(
       createDefaultFormData(
-        projects.length > 0 ? projects[0].id : 0,
-      ),
+        selectedProject?.id ?? 0,
+      )
     );
 
     setModuleError(false);
@@ -116,7 +116,6 @@ export default function RequirementDialog({
       <DialogContent>
         <RequirementForm
           value={formData}
-          projects={projects}
           error={moduleError}
           onChange={(value) => {
             setFormData(value);

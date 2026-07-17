@@ -1,4 +1,11 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -9,11 +16,18 @@ from app.db.database import Base
 class Requirement(Base):
     __tablename__ = "requirements"
 
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id",
+            "requirement_code",
+            name="uq_requirement_project_code",
+        ),
+    )
+
     id = Column(Integer, primary_key=True, index=True)
 
     requirement_code = Column(
         String(20),
-        unique=True,
         nullable=False,
         index=True,
     )

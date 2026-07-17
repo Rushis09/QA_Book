@@ -1,12 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models.test_scenario import TestScenario
+from app.repositories.test_scenario_repository import (
+    TestScenarioRepository,
+)
 from app.schemas.test_scenario import (
     TestScenarioCreate,
     TestScenarioResponse,
     TestScenarioUpdate,
+)
+from app.services.test_scenario_service import (
+    TestScenarioService,
 )
 
 router = APIRouter(
@@ -20,52 +25,20 @@ def create_test_scenario(
     test_scenario: TestScenarioCreate,
     db: Session = Depends(get_db),
 ):
-    last_test_scenario = (
-        db.query(TestScenario)
-        .order_by(TestScenario.id.desc())
-        .first()
-    )
+    repository = TestScenarioRepository(db)
+    service = TestScenarioService(repository)
 
-    next_number = 1
-
-    if last_test_scenario:
-        next_number = last_test_scenario.id + 1
-
-    scenario_code = f"SCN-{next_number:03d}"
-
-    db_test_scenario = TestScenario(
-        scenario_code=scenario_code,
-        requirement_id=test_scenario.requirement_id,
-        module=test_scenario.module,
-        title=test_scenario.title,
-        description=test_scenario.description,
-        priority=test_scenario.priority,
-        status=test_scenario.status,
-    )
-
-    db.add(db_test_scenario)
-    db.commit()
-    db.refresh(db_test_scenario)
-
-    db_test_scenario = (
-        db.query(TestScenario)
-        .options(selectinload(TestScenario.requirement))
-        .filter(TestScenario.id == db_test_scenario.id)
-        .first()
-    )
-
-    return db_test_scenario
+    return service.create(test_scenario)
 
 
 @router.get("/", response_model=list[TestScenarioResponse])
 def get_test_scenarios(
     db: Session = Depends(get_db),
 ):
-    return (
-        db.query(TestScenario)
-        .options(selectinload(TestScenario.requirement))
-        .all()
-    )
+    repository = TestScenarioRepository(db)
+    service = TestScenarioService(repository)
+
+    return service.get_all()
 
 
 @router.get("/{test_scenario_id}", response_model=TestScenarioResponse)
@@ -73,11 +46,11 @@ def get_test_scenario(
     test_scenario_id: int,
     db: Session = Depends(get_db),
 ):
-    test_scenario = (
-        db.query(TestScenario)
-        .options(selectinload(TestScenario.requirement))
-        .filter(TestScenario.id == test_scenario_id)
-        .first()
+    repository = TestScenarioRepository(db)
+    service = TestScenarioService(repository)
+
+    test_scenario = service.get_by_id(
+        test_scenario_id
     )
 
     if not test_scenario:
@@ -95,10 +68,11 @@ def update_test_scenario(
     test_scenario_data: TestScenarioUpdate,
     db: Session = Depends(get_db),
 ):
-    test_scenario = (
-        db.query(TestScenario)
-        .filter(TestScenario.id == test_scenario_id)
-        .first()
+    repository = TestScenarioRepository(db)
+    service = TestScenarioService(repository)
+
+    test_scenario = service.get_by_id(
+        test_scenario_id
     )
 
     if not test_scenario:
@@ -107,36 +81,10 @@ def update_test_scenario(
             detail="Test Scenario not found",
         )
 
-    test_scenario.requirement_id = (
-    test_scenario_data.requirement_id
-)
-    test_scenario.module = (
-        test_scenario_data.module
+    return service.update(
+        test_scenario,
+        test_scenario_data,
     )
-    test_scenario.title = (
-        test_scenario_data.title
-    )
-    test_scenario.description = (
-        test_scenario_data.description
-    )
-    test_scenario.priority = (
-        test_scenario_data.priority
-    )
-    test_scenario.status = (
-        test_scenario_data.status
-    )
-
-    db.commit()
-    db.refresh(test_scenario)
-
-    test_scenario = (
-        db.query(TestScenario)
-        .options(selectinload(TestScenario.requirement))
-        .filter(TestScenario.id == test_scenario.id)
-        .first()
-    )
-
-    return test_scenario
 
 
 @router.delete("/{test_scenario_id}")
@@ -144,10 +92,11 @@ def delete_test_scenario(
     test_scenario_id: int,
     db: Session = Depends(get_db),
 ):
-    test_scenario = (
-        db.query(TestScenario)
-        .filter(TestScenario.id == test_scenario_id)
-        .first()
+    repository = TestScenarioRepository(db)
+    service = TestScenarioService(repository)
+
+    test_scenario = service.get_by_id(
+        test_scenario_id
     )
 
     if not test_scenario:
@@ -156,8 +105,7 @@ def delete_test_scenario(
             detail="Test Scenario not found",
         )
 
-    db.delete(test_scenario)
-    db.commit()
+    service.delete(test_scenario)
 
     return {
         "message": "Test Scenario deleted successfully",

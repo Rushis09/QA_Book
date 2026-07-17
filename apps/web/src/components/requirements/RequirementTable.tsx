@@ -1,6 +1,7 @@
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
+  Checkbox,
   Chip,
   IconButton,
   Paper,
@@ -16,6 +17,10 @@ import type { Requirement } from "../../types/requirement";
 
 interface RequirementTableProps {
   requirements: Requirement[];
+
+  selectedIds: number[];
+  onSelectionChange: (ids: number[]) => void;
+
   onEdit: (requirement: Requirement) => void;
   onDelete: (requirement: Requirement) => void;
 }
@@ -50,14 +55,71 @@ function getStatusColor(
 
 export default function RequirementTable({
   requirements,
+  selectedIds,
+  onSelectionChange,
   onEdit,
   onDelete,
 }: RequirementTableProps) {
+
+  const allSelected =
+    requirements.length > 0 &&
+    selectedIds.length === requirements.length;
+
+  const someSelected =
+    selectedIds.length > 0 && !allSelected;
+
+  function handleSelectAll(
+    checked: boolean,
+  ) {
+    if (checked) {
+      onSelectionChange(
+        requirements.map((r) => r.id),
+      );
+    } else {
+      onSelectionChange([]);
+    }
+  }
+
+  function handleSelectRow(
+    id: number,
+    checked: boolean,
+  ) {
+    if (checked) {
+      onSelectionChange([
+        ...selectedIds,
+        id,
+      ]);
+    } else {
+      onSelectionChange(
+        selectedIds.filter(
+          (selectedId) => selectedId !== id,
+        ),
+      );
+    }
+  }
+
   return (
-    <TableContainer component={Paper}>
-      <Table>
+
+    <TableContainer
+      component={Paper}
+      sx={{
+        flex: 1,
+        overflow: "auto",
+      }}
+    >
+      <Table stickyHeader>
         <TableHead>
-          <TableRow>
+  <TableRow>
+            <TableCell padding="checkbox">
+              <Checkbox
+                checked={allSelected}
+                indeterminate={someSelected}
+                onChange={(event) =>
+                  handleSelectAll(event.target.checked)
+                }
+              />
+            </TableCell>
+              
             <TableCell>Requirement Code</TableCell>
             <TableCell>Project</TableCell>
             <TableCell>Module</TableCell>
@@ -72,7 +134,21 @@ export default function RequirementTable({
 
         <TableBody>
           {requirements.map((requirement) => (
-            <TableRow key={requirement.id}>
+            <TableRow key={requirement.id} hover>
+              <TableCell padding="checkbox">
+                <Checkbox
+                  checked={selectedIds.includes(
+                    requirement.id,
+                  )}
+                  onChange={(event) =>
+                    handleSelectRow(
+                      requirement.id,
+                      event.target.checked,
+                    )
+                  }
+                />
+              </TableCell>
+                
               <TableCell>
                 {requirement.requirement_code}
               </TableCell>
@@ -112,6 +188,7 @@ export default function RequirementTable({
               <TableCell align="right">
                 <IconButton
                   color="primary"
+                  disabled={selectedIds.length > 0}
                   onClick={() => onEdit(requirement)}
                 >
                   <EditIcon />
@@ -119,6 +196,7 @@ export default function RequirementTable({
 
                 <IconButton
                   color="error"
+                  disabled={selectedIds.length > 0}
                   onClick={() => onDelete(requirement)}
                 >
                   <DeleteIcon />
@@ -130,7 +208,7 @@ export default function RequirementTable({
           {requirements.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={7}
+                colSpan={8}
                 align="center"
               >
                 No requirements found.

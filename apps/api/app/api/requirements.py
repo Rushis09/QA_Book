@@ -33,9 +33,13 @@ def create_requirement(
 
 @router.get("/", response_model=list[RequirementResponse])
 def get_requirements(
+    project_id: int | None = None,
     db: Session = Depends(get_db),
 ):
     service = get_requirement_service(db)
+
+    if project_id is not None:
+        return service.get_by_project(project_id)
 
     return service.get_all()
 

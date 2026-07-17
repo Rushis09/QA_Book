@@ -1,5 +1,20 @@
-import { Box, Button, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Stack,
+  Typography,
+} from "@mui/material";
+
+import type { ButtonProps } from "@mui/material";
+
 import type { ReactNode } from "react";
+
+interface PageHeaderAction {
+  label: string;
+  onClick: () => void;
+  color?: ButtonProps["color"];
+  variant?: ButtonProps["variant"];
+}
 
 interface PageHeaderProps {
   title: string;
@@ -11,7 +26,12 @@ interface PageHeaderProps {
   onSecondaryAction?: () => void;
 
   children?: ReactNode;
+
+  selectionCount?: number;
+
+  selectionActions?: PageHeaderAction[];
 }
+
 
 export default function PageHeader({
   title,
@@ -20,6 +40,8 @@ export default function PageHeader({
   secondaryActionLabel,
   onSecondaryAction,
   children,
+  selectionCount,
+  selectionActions,
 }: PageHeaderProps) {
   return (
     <>
@@ -39,22 +61,53 @@ export default function PageHeader({
           direction="row"
           spacing={2}
         >
-          {secondaryActionLabel &&
-            onSecondaryAction && (
+          {selectionCount && selectionCount > 0 ? (
+              <>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    alignSelf: "center",
+                    mr: 1,
+                  }}
+                >
+                  {selectionCount} Selected
+                </Typography>
+                
+                {selectionActions?.map((action) => (
+                  <Button
+                    key={action.label}
+                    variant={
+                      action.variant ?? "contained"
+                    }
+                    color={
+                      action.color ?? "primary"
+                    }
+                    onClick={action.onClick}
+                  >
+                    {action.label}
+                  </Button>
+                ))}
+              </>
+            ) : (
+            <>
+              {secondaryActionLabel &&
+                onSecondaryAction && (
+                  <Button
+                    variant="outlined"
+                    onClick={onSecondaryAction}
+                  >
+                    {secondaryActionLabel}
+                  </Button>
+                )}
+        
               <Button
-                variant="outlined"
-                onClick={onSecondaryAction}
+                variant="contained"
+                onClick={onAction}
               >
-                {secondaryActionLabel}
+                {actionLabel}
               </Button>
-            )}
-
-          <Button
-            variant="contained"
-            onClick={onAction}
-          >
-            {actionLabel}
-          </Button>
+            </>
+          )}
         </Stack>
       </Box>
 

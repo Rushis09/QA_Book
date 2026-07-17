@@ -4,6 +4,7 @@ from app.schemas.requirement import (
     RequirementCreate,
     RequirementUpdate,
 )
+from app.utils.code_generator import generate_sequential_code
 
 
 class RequirementService:
@@ -14,14 +15,13 @@ class RequirementService:
 
     def create(self, requirement_data: RequirementCreate) -> Requirement:
 
-        last_requirement = self.repository.get_last()
-
-        next_number = 1
-
-        if last_requirement:
-            next_number = last_requirement.id + 1
-
-        requirement_code = f"REQ-{next_number:03d}"
+        requirement_code = generate_sequential_code(
+            db=self.repository.session,
+            model=Requirement,
+            project_id=requirement_data.project_id,
+            code_field="requirement_code",
+            prefix="REQ",
+        )
 
         requirement = Requirement(
             requirement_code=requirement_code,
@@ -37,6 +37,10 @@ class RequirementService:
     def get_all(self):
 
         return self.repository.get_all()
+    
+    def get_by_project(self, project_id: int):
+
+        return self.repository.get_by_project(project_id)
 
     def get_by_id(self, requirement_id: int):
 
