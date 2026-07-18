@@ -19,19 +19,18 @@ class TestCaseService:
         self,
         test_case_data: TestCaseCreate,
     ):
-        last_test_case = (
+        test_case_count = (
             self.repository.session.query(TestCase)
-            .order_by(TestCase.id.desc())
-            .first()
+            .filter(
+                TestCase.scenario_id
+                == test_case_data.scenario_id
+            )
+            .count()
         )
-
-        next_number = 1
-
-        if last_test_case:
-            next_number = last_test_case.id + 1
-
-        test_case_code = f"TC-{next_number:03d}"
-
+        
+        next_number = test_case_count + 1
+        
+        test_case_code = f"TC{next_number:03d}"
         test_case = TestCase(
             test_case_code=test_case_code,
             scenario_id=test_case_data.scenario_id,

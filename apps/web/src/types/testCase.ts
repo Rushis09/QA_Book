@@ -1,7 +1,13 @@
+export interface TestCaseRequirement {
+  id: number;
+  requirement_code: string;
+  module: string;
+}
 export interface TestCaseScenario {
   id: number;
   scenario_code: string;
   title: string;
+  requirement: TestCaseRequirement;
 }
 
 export interface TestCase {

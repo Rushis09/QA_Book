@@ -3,10 +3,19 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class TestCaseRequirementResponse(BaseModel):
+    id: int
+    requirement_code: str
+    module: str
+
+    class Config:
+        from_attributes = True
+
 class TestCaseScenarioResponse(BaseModel):
     id: int
     scenario_code: str
     title: str
+    requirement: TestCaseRequirementResponse
 
     class Config:
         from_attributes = True

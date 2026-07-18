@@ -29,7 +29,9 @@ class TestCaseRepository:
         query = (
             self.db.query(TestCase)
             .options(
-                selectinload(TestCase.scenario)
+                selectinload(TestCase.scenario).selectinload(
+                    TestScenario.requirement
+                )
             )
         )
 
@@ -51,7 +53,9 @@ class TestCaseRepository:
         return (
             self.db.query(TestCase)
             .options(
-                selectinload(TestCase.scenario)
+                selectinload(TestCase.scenario).selectinload(
+                    TestScenario.requirement
+                )
             )
             .filter(TestCase.id == test_case_id)
             .first()

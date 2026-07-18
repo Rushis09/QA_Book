@@ -64,6 +64,7 @@ export default function TestCaseTable({
           <TableRow>
             <TableCell>Test Case Code</TableCell>
             <TableCell>Scenario</TableCell>
+            <TableCell>Requirement</TableCell>
             <TableCell>Module</TableCell>
             <TableCell>Priority</TableCell>
             <TableCell>Status</TableCell>
@@ -79,7 +80,7 @@ export default function TestCaseTable({
           {testCases.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={8}
+                colSpan={9}
                 align="center"
               >
                 No test cases found.
@@ -94,6 +95,10 @@ export default function TestCaseTable({
 
                 <TableCell>
                   {`${testCase.scenario.scenario_code} - ${testCase.scenario.title}`}
+                </TableCell>
+
+                <TableCell>
+                  {`${testCase.scenario.requirement.requirement_code} - ${testCase.scenario.requirement.module}`}
                 </TableCell>
 
                 <TableCell>
