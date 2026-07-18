@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -24,6 +24,7 @@ interface GenerateTestCaseDialogProps {
   projects: Project[];
   requirements: Requirement[];
   scenarios: TestScenario[];
+  selectedScenarioId: number;
   onClose: () => void;
   onGenerated: () => void;
 }
@@ -33,61 +34,57 @@ export default function GenerateTestCaseDialog({
   projects,
   requirements,
   scenarios,
+  selectedScenarioId,
   onClose,
   onGenerated,
 }: GenerateTestCaseDialogProps) {
-  const [projectId, setProjectId] = useState(0);
-  const [requirementId, setRequirementId] = useState(0);
-  const [scenarioId, setScenarioId] = useState(0);
   const [count, setCount] = useState(5);
   const [loading, setLoading] = useState(false);
 
   const { showNotification } = useNotification();
 
-  const filteredRequirements = useMemo(
-    () =>
-      requirements.filter(
-        (r) => r.project_id === projectId,
-      ),
-    [requirements, projectId],
+  
+
+  const selectedScenario = scenarios.find(
+    (scenario) =>
+      scenario.id === selectedScenarioId,
   );
 
-  const filteredScenarios = useMemo(
-    () =>
-      scenarios.filter(
-        (s) =>
-          s.requirement_id ===
-          requirementId,
-      ),
-    [scenarios, requirementId],
+  const selectedRequirement =
+    requirements.find(
+      (requirement) =>
+        requirement.id ===
+        selectedScenario?.requirement_id,
+    );
+
+  const selectedProject = projects.find(
+    (project) =>
+      project.id ===
+      selectedRequirement?.project_id,
   );
+
 
   async function handleGenerate() {
     try {
       setLoading(true);
 
-      const generated =
-        await aiService.generateTestCases({
-          scenario_id: scenarioId,
-          manual_description: "",
-          number_of_test_cases: count,
-        });
-
-      const scenario =
-        scenarios.find(
-          (s) => s.id === scenarioId,
-        );
-
-      if (!scenario) {
+      if (!selectedScenario) {
         throw new Error(
           "Scenario not found.",
         );
       }
 
+      const generated =
+        await aiService.generateTestCases({
+          scenario_id: selectedScenario.id,
+          manual_description: "",
+          number_of_test_cases: count,
+        });
+
       for (const tc of generated) {
         await testCaseService.createTestCase({
-          scenario_id: scenario.id,
-          module: scenario.module,
+          scenario_id: selectedScenario.id,
+          module: selectedScenario.module,
           priority: tc.priority,
           status: "Draft",
           title: tc.title,
@@ -140,78 +137,50 @@ export default function GenerateTestCaseDialog({
             gap: 3,
           }}
         >
-          <TextField
-            select
-            label="Project"
-            value={projectId}
-            onChange={(e) =>
-              setProjectId(
-                Number(e.target.value),
-              )
-            }
-          >
-            {projects.map((project) => (
-              <MenuItem
-                key={project.id}
-                value={project.id}
-              >
-                {project.project_code} -{" "}
-                {project.name}
-              </MenuItem>
-            ))}
-          </TextField>
+        <TextField
+          label="Project"
+          value={
+            selectedProject
+              ? `${selectedProject.project_code} - ${selectedProject.name}`
+              : ""
+          }
+          fullWidth
+          slotProps={{
+            input: {
+              readOnly: true,
+            },
+          }}
+        />
 
-          <TextField
-            select
-            label="Requirement"
-            value={requirementId}
-            onChange={(e) =>
-              setRequirementId(
-                Number(e.target.value),
-              )
-            }
-          >
-            {filteredRequirements.map(
-              (requirement) => (
-                <MenuItem
-                  key={requirement.id}
-                  value={requirement.id}
-                >
-                  {
-                    requirement.requirement_code
-                  }
-                  {" - "}
-                  {requirement.module}
-                </MenuItem>
-              ),
-            )}
-          </TextField>
+        <TextField
+          label="Requirement"
+          value={
+            selectedRequirement
+              ? `${selectedRequirement.requirement_code} - ${selectedRequirement.module}`
+              : ""
+          }
+          fullWidth
+          slotProps={{
+            input: {
+              readOnly: true,
+            },
+          }}
+        />
 
-          <TextField
-            select
-            label="Scenario"
-            value={scenarioId}
-            onChange={(e) =>
-              setScenarioId(
-                Number(e.target.value),
-              )
-            }
-          >
-            {filteredScenarios.map(
-              (scenario) => (
-                <MenuItem
-                  key={scenario.id}
-                  value={scenario.id}
-                >
-                  {
-                    scenario.scenario_code
-                  }
-                  {" - "}
-                  {scenario.title}
-                </MenuItem>
-              ),
-            )}
-          </TextField>
+        <TextField
+          label="Scenario"
+          value={
+            selectedScenario
+              ? `${selectedScenario.scenario_code} - ${selectedScenario.title}`
+              : ""
+          }
+          fullWidth
+          slotProps={{
+            input: {
+              readOnly: true,
+            },
+          }}
+        />
 
           <Box>
             <Typography
@@ -256,7 +225,7 @@ export default function GenerateTestCaseDialog({
           onClick={handleGenerate}
           disabled={
             loading ||
-            scenarioId === 0
+            !selectedScenario
           }
         >
           {loading

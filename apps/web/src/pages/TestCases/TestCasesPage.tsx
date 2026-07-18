@@ -1,9 +1,18 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Box,
+  Checkbox,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  ListItemText,
+  MenuItem,
+  OutlinedInput,
+  Select,
   Typography,
 } from "@mui/material";
+import type { SelectChangeEvent } from "@mui/material";
 
 import ConfirmDialog from "../../components/common/ConfirmDialog";
 import PageHeader from "../../components/common/PageHeader";
@@ -12,6 +21,7 @@ import TestCaseTable from "../../components/testCases/TestCaseTable";
 import GenerateTestCaseDialog from "../../components/testCases/GenerateTestCaseDialog";
 
 import { useNotification } from "../../contexts/NotificationContext";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 
 import { projectService } from "../../services/projectService";
 import { requirementService } from "../../services/requirementService";
@@ -37,6 +47,12 @@ export default function TestCasesPage() {
   const [requirements, setRequirements] =
     useState<Requirement[]>([]);
 
+  const [selectedRequirementIds, setSelectedRequirementIds] =
+    useState<number[]>([]);
+
+  const [selectedScenarioIds, setSelectedScenarioIds] =
+  useState<number[]>([]);
+
   const [loading, setLoading] =
     useState(true);
 
@@ -61,7 +77,19 @@ export default function TestCasesPage() {
   const { showNotification } =
     useNotification();
 
+  const { selectedProject } =
+    useWorkspace();
+
   async function loadData() {
+
+    if (!selectedProject) {
+      setTestCases([]);
+      setScenarios([]);
+      setRequirements([]);
+      setProjects([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
 
@@ -71,16 +99,23 @@ export default function TestCasesPage() {
         projectData,
         requirementData,
       ] = await Promise.all([
-        testCaseService.getTestCases(),
-        testScenarioService.getTestScenarios(),
+        testCaseService.getTestCases(
+          selectedProject.id,
+        ),
+        testScenarioService.getTestScenarios(
+          selectedProject.id,
+        ),
         projectService.getProjects(),
-        requirementService.getRequirements(),
+        requirementService.getRequirements(
+          selectedProject.id,
+        ),
       ]);
 
       setTestCases(testCaseData);
       setScenarios(scenarioData);
       setProjects(projectData);
       setRequirements(requirementData);
+      setSelectedRequirementIds([]);
 
       setError("");
     } catch (error) {
@@ -95,8 +130,63 @@ export default function TestCasesPage() {
   }
 
   useEffect(() => {
-    loadData();
-  }, []);
+  loadData();
+}, [selectedProject]);
+  
+
+    const filteredTestCases = testCases.filter(
+      (testCase) => {
+        const scenario = scenarios.find(
+          (s) => s.id === testCase.scenario_id,
+        );
+      
+        if (!scenario) {
+          return false;
+        }
+      
+        const matchesRequirement =
+          selectedRequirementIds.length === 0 ||
+          selectedRequirementIds.includes(
+            scenario.requirement_id,
+          );
+        
+        const matchesScenario =
+          selectedScenarioIds.length === 0 ||
+          selectedScenarioIds.includes(
+            scenario.id,
+          );
+        
+        return (
+          matchesRequirement &&
+          matchesScenario
+        );
+      },
+    );
+
+    const filteredScenarios =
+      selectedRequirementIds.length === 0
+        ? scenarios
+        : scenarios.filter((scenario) =>
+            selectedRequirementIds.includes(
+              scenario.requirement_id,
+            ),
+          );
+
+    useEffect(() => {
+      setSelectedScenarioIds((previous) => {
+        const next = previous.filter((id) =>
+          filteredScenarios.some(
+            (scenario) => scenario.id === id,
+          ),
+        );
+      
+        if (next.length === previous.length) {
+          return previous;
+        }
+      
+        return next;
+      });
+    }, [selectedRequirementIds, scenarios]);
 
   function handleEdit(
     testCase: TestCase,
@@ -154,30 +244,208 @@ export default function TestCasesPage() {
     );
   }
 
+  const handleRequirementChange = (
+    event: SelectChangeEvent<number[]>,
+  ) => {
+    const value = event.target.value as number[];
+
+    if (value.includes(-1)) {
+      setSelectedRequirementIds([]);
+      return;
+    }
+
+    setSelectedRequirementIds(
+      value.filter((id) => id !== -1),
+    );
+  };
+
+  const handleScenarioChange = (
+    event: SelectChangeEvent<number[]>,
+  ) => {
+    const value = event.target.value as number[];
+
+    if (value.includes(-1)) {
+      setSelectedScenarioIds([]);
+      return;
+    }
+
+    setSelectedScenarioIds(
+      value.filter((id) => id !== -1),
+    );
+  };
+
   return (
     <>
       <PageHeader
           title="Test Cases"
           actionLabel="New Test Case"
-          onAction={() =>
-            setOpenDialog(true)
-          }
+          onAction={() => {
+            if (selectedScenarioIds.length !== 1) {
+              showNotification(
+                "Please select exactly one scenario to create a test case.",
+                "warning",
+              );
+              return;
+            }
+          
+            setOpenDialog(true);
+          }}
           secondaryActionLabel="✨ Generate with AI"
-          onSecondaryAction={() =>
-            setOpenGenerateDialog(true)
-          }
+          onSecondaryAction={() => {
+            if (selectedScenarioIds.length !== 1) {
+              showNotification(
+                "Please select exactly one scenario to generate test cases.",
+                "warning",
+              );
+              return;
+            }
+          
+            setOpenGenerateDialog(true);
+          }}
         >
-         <Typography
-          variant="body2"
-          color="text.secondary"
-          gutterBottom
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            mb: 2,
+          }}
         >
-          Total Test Cases:{" "}
-          {testCases.length}
-        </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
+            Total Test Cases: {filteredTestCases.length}
+          </Typography>
+        
+          <FormControl
+            size="small"
+            sx={{ maxWidth: 420 }}
+          >
+            <InputLabel shrink>
+              Requirements
+            </InputLabel>
+        
+            <Select
+              multiple
+              displayEmpty
+              value={selectedRequirementIds}
+              onChange={handleRequirementChange}
+              input={
+                <OutlinedInput label="Requirements" />
+              }
+              renderValue={(selected) => {
+                if (selected.length === 0) {
+                  return "All Requirements";
+                }
+              
+                const selectedRequirements =
+                  requirements.filter((r) =>
+                    selected.includes(r.id),
+                  );
+                
+                if (
+                  selectedRequirements.length === 1
+                ) {
+                  return `${selectedRequirements[0].requirement_code} - ${selectedRequirements[0].module}`;
+                }
+              
+                return `${selectedRequirements.length} Requirements Selected`;
+              }}
+            >
+              <MenuItem value={-1}>
+                <Checkbox
+                  checked={
+                    selectedRequirementIds.length === 0
+                  }
+                />
+                <ListItemText primary="All Requirements" />
+              </MenuItem>
+                
+              {requirements.map(
+                (requirement) => (
+                  <MenuItem
+                    key={requirement.id}
+                    value={requirement.id}
+                  >
+                    <Checkbox
+                      checked={selectedRequirementIds.includes(
+                        requirement.id,
+                      )}
+                    />
+                    <ListItemText
+                      primary={`${requirement.requirement_code} - ${requirement.module}`}
+                    />
+                  </MenuItem>
+                ),
+              )}
+            </Select>
+          </FormControl>
 
+          <FormControl
+            size="small"
+            sx={{ maxWidth: 420 }}
+          >
+            <InputLabel shrink>
+              Scenarios
+            </InputLabel>
+
+            <Select
+              multiple
+              displayEmpty
+              value={selectedScenarioIds}
+              onChange={handleScenarioChange}
+              input={
+                <OutlinedInput label="Scenarios" />
+              }
+              renderValue={(selected) => {
+                if (selected.length === 0) {
+                  return "All Scenarios";
+                }
+              
+                const selectedScenarios =
+                  filteredScenarios.filter((scenario) =>
+                    selected.includes(scenario.id),
+                  );
+                
+                if (selectedScenarios.length === 1) {
+                  return `${selectedScenarios[0].scenario_code} - ${selectedScenarios[0].title}`;
+                }
+              
+                return `${selectedScenarios.length} Scenarios Selected`;
+              }}
+            >
+              <MenuItem value={-1}>
+                <Checkbox
+                  checked={
+                    selectedScenarioIds.length === 0
+                  }
+                />
+                <ListItemText primary="All Scenarios" />
+              </MenuItem>
+                
+              {filteredScenarios.map((scenario) => (
+                <MenuItem
+                  key={scenario.id}
+                  value={scenario.id}
+                >
+                  <Checkbox
+                    checked={selectedScenarioIds.includes(
+                      scenario.id,
+                    )}
+                  />
+                  <ListItemText
+                    primary={`${scenario.scenario_code} - ${scenario.title}`}
+                  />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+        </Box>
+            
         <TestCaseTable
-          testCases={testCases}
+          testCases={filteredTestCases}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
@@ -188,6 +456,9 @@ export default function TestCasesPage() {
         projects={projects}
         requirements={requirements}
         scenarios={scenarios}
+        selectedScenarioId={
+          selectedScenarioIds[0] ?? 0
+        }
         onClose={() =>
           setOpenGenerateDialog(false)
         }
@@ -202,6 +473,9 @@ export default function TestCasesPage() {
         }
         open={openDialog}
         scenarios={scenarios}
+        selectedScenarioId={
+          selectedScenarioIds[0] ?? 0
+        }
         testCase={
           selectedTestCase ??
           undefined

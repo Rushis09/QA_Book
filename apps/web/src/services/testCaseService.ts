@@ -8,10 +8,18 @@ import type {
 const BASE_URL = "/test-cases";
 
 export const testCaseService = {
-  async getTestCases(): Promise<TestCase[]> {
-    const response = await api.get<TestCase[]>(
-      BASE_URL,
-    );
+  async getTestCases(
+    projectId?: number,
+  ): Promise<TestCase[]> {
+    const response =
+      await api.get<TestCase[]>(
+        BASE_URL,
+        {
+          params: {
+            project_id: projectId,
+          },
+        },
+      );
 
     return response.data;
   },

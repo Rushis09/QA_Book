@@ -24,36 +24,31 @@ export default function TestCaseForm({
   return (
     <>
       <TextField
-        select
         label="Test Scenario"
-        value={value.scenario_id}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            scenario_id: Number(
-              event.target.value,
-            ),
-            module:
-              scenarios.find(
+        value={
+          scenarios.find(
+            (scenario) =>
+              scenario.id === value.scenario_id,
+          )
+            ? `${scenarios.find(
                 (scenario) =>
-                  scenario.id ===
-                  Number(event.target.value),
-              )?.module ?? "",
-          })
+                  scenario.id === value.scenario_id,
+              )!.scenario_code} - ${
+                scenarios.find(
+                  (scenario) =>
+                    scenario.id === value.scenario_id,
+                )!.title
+              }`
+            : ""
         }
         fullWidth
-        required
         margin="normal"
-      >
-        {scenarios.map((scenario) => (
-          <MenuItem
-            key={scenario.id}
-            value={scenario.id}
-          >
-            {`${scenario.scenario_code} - ${scenario.title}`}
-          </MenuItem>
-        ))}
-      </TextField>
+        slotProps={{
+          input: {
+            readOnly: true,
+          },
+        }}
+      />
 
       <TextField
         label="Module"

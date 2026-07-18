@@ -18,6 +18,7 @@ interface TestCaseDialogProps {
   title: string;
   open: boolean;
   scenarios: TestScenario[];
+  selectedScenarioId: number;
   testCase?: TestCase;
   onClose: () => void;
   onSave: (
@@ -26,10 +27,10 @@ interface TestCaseDialogProps {
 }
 
 const createDefaultFormData = (
-  scenarioId: number,
+  scenario: TestScenario | undefined,
 ): TestCaseFormData => ({
-  scenario_id: scenarioId,
-  module: "",
+  scenario_id: scenario?.id ?? 0,
+  module: scenario?.module ?? "",
   priority: "Medium",
   status: "Draft",
   title: "",
@@ -44,14 +45,15 @@ export default function TestCaseDialog({
   title,
   open,
   scenarios,
+  selectedScenarioId,
   testCase,
   onClose,
   onSave,
 }: TestCaseDialogProps) {
   const [formData, setFormData] =
-    useState<TestCaseFormData>(
-      createDefaultFormData(0),
-    );
+  useState<TestCaseFormData>(
+    createDefaultFormData(undefined),
+  );
 
   const [saving, setSaving] =
     useState(false);
@@ -81,17 +83,22 @@ export default function TestCaseDialog({
           testCase.expected_result ?? "",
       });
     } else {
+      const selectedScenario =
+        scenarios.find(
+          (scenario) =>
+            scenario.id ===
+            selectedScenarioId,
+        );
+      
       setFormData(
         createDefaultFormData(
-          scenarios.length > 0
-            ? scenarios[0].id
-            : 0,
+          selectedScenario,
         ),
       );
     }
 
     setTitleError(false);
-  }, [testCase, scenarios]);
+  }, [testCase, selectedScenarioId]);
 
   async function handleSave() {
     if (!formData.title.trim()) {
@@ -120,9 +127,7 @@ export default function TestCaseDialog({
   function handleCancel() {
     setFormData(
       createDefaultFormData(
-        scenarios.length > 0
-          ? scenarios[0].id
-          : 0,
+        scenarios[0],
       ),
     );
 
