@@ -1,6 +1,7 @@
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
+  Checkbox,
   Chip,
   IconButton,
   Paper,
@@ -16,6 +17,13 @@ import type { TestScenario } from "../../types/testScenario";
 
 interface TestScenarioTableProps {
   testScenarios: TestScenario[];
+
+  selectedIds: number[];
+
+  onSelectionChange: (
+    ids: number[],
+  ) => void;
+
   onEdit: (testScenario: TestScenario) => void;
   onDelete: (testScenario: TestScenario) => void;
 }
@@ -50,14 +58,62 @@ function getStatusColor(
 
 export default function TestScenarioTable({
   testScenarios,
+  selectedIds,
+  onSelectionChange,
   onEdit,
   onDelete,
 }: TestScenarioTableProps) {
-  return (
-    <TableContainer component={Paper}>
-      <Table>
+
+    const allSelected =
+    testScenarios.length > 0 &&
+    selectedIds.length ===
+      testScenarios.length;
+
+  function toggleSelectAll(
+    checked: boolean,
+  ) {
+    onSelectionChange(
+      checked
+        ? testScenarios.map((s) => s.id)
+        : [],
+    );
+  }
+
+  function toggleSelection(id: number) {
+    if (selectedIds.includes(id)) {
+      onSelectionChange(
+        selectedIds.filter(
+          (selectedId) =>
+            selectedId !== id,
+        ),
+      );
+    } else {
+      onSelectionChange([
+        ...selectedIds,
+        id,
+      ]);
+    }
+  }
+
+    return (
+      <TableContainer component={Paper}>
+        <Table>
         <TableHead>
           <TableRow>
+            <TableCell padding="checkbox">
+              <Checkbox
+                checked={allSelected}
+                indeterminate={
+                  selectedIds.length > 0 &&
+                  !allSelected
+                }
+                onChange={(event) =>
+                  toggleSelectAll(
+                    event.target.checked,
+                  )
+                }
+              />
+            </TableCell>
             <TableCell>Scenario Code</TableCell>
             <TableCell>Requirement</TableCell>
             <TableCell>Module</TableCell>
@@ -75,7 +131,7 @@ export default function TestScenarioTable({
           {testScenarios.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={8}
+                colSpan={9}
                 align="center"
               >
                 No test scenarios found.
@@ -83,7 +139,26 @@ export default function TestScenarioTable({
             </TableRow>
           ) : (
             testScenarios.map((testScenario) => (
-              <TableRow key={testScenario.id}>
+              <TableRow
+                key={testScenario.id}
+                hover
+                selected={selectedIds.includes(
+                  testScenario.id,
+                )}
+              >
+
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={selectedIds.includes(
+                      testScenario.id,
+                    )}
+                    onChange={() =>
+                      toggleSelection(
+                        testScenario.id,
+                      )
+                    }
+                  />
+                </TableCell>
                 <TableCell>
                   {testScenario.scenario_code}
                 </TableCell>

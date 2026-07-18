@@ -18,6 +18,7 @@ interface TestScenarioDialogProps {
   title: string;
   open: boolean;
   requirements: Requirement[];
+  selectedRequirementId: number;
   testScenario?: TestScenario;
   onClose: () => void;
   onSave: (
@@ -41,14 +42,15 @@ export default function TestScenarioDialog({
   title,
   open,
   requirements,
+  selectedRequirementId,
   testScenario,
   onClose,
   onSave,
 }: TestScenarioDialogProps) {
   const [formData, setFormData] =
-  useState<TestScenarioFormData>(
-    createDefaultFormData(0, ""),
-  );
+    useState<TestScenarioFormData>(
+      createDefaultFormData(0, ""),
+    );
 
   const [saving, setSaving] =
     useState(false);
@@ -72,20 +74,25 @@ export default function TestScenarioDialog({
         status: testScenario.status,
       });
     } else {
+      const requirement = requirements.find(
+        (r) =>
+          r.id === selectedRequirementId,
+      );
+
       setFormData(
         createDefaultFormData(
-          requirements.length > 0
-            ? requirements[0].id
-            : 0,
-          requirements.length > 0
-            ? requirements[0].module
-            : "",
+          requirement?.id ?? 0,
+          requirement?.module ?? "",
         ),
       );
     }
 
     setTitleError(false);
-  }, [testScenario, requirements]);
+  }, [
+    testScenario,
+    requirements,
+    selectedRequirementId,
+  ]);
 
   async function handleSave() {
     if (!formData.title.trim()) {
@@ -112,14 +119,15 @@ export default function TestScenarioDialog({
   }
 
   function handleCancel() {
+    const requirement = requirements.find(
+      (r) =>
+        r.id === selectedRequirementId,
+    );
+
     setFormData(
       createDefaultFormData(
-        requirements.length > 0
-          ? requirements[0].id
-          : 0,
-        requirements.length > 0
-          ? requirements[0].module
-          : "",
+        requirement?.id ?? 0,
+        requirement?.module ?? "",
       ),
     );
 

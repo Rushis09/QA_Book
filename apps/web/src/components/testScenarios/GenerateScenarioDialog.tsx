@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -6,11 +6,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
-  FormControlLabel,
   MenuItem,
-  Radio,
-  RadioGroup,
   TextField,
   Typography,
 } from "@mui/material";
@@ -25,6 +21,7 @@ interface GenerateScenarioDialogProps {
   open: boolean;
   projects: Project[];
   requirements: Requirement[];
+  selectedRequirementId: number;
   onClose: () => void;
   onGenerated: () => void;
 }
@@ -33,47 +30,56 @@ export default function GenerateScenarioDialog({
   open,
   projects,
   requirements,
+  selectedRequirementId,
   onClose,
   onGenerated,
 }: GenerateScenarioDialogProps) {
   const [projectId, setProjectId] = useState(0);
 
-  const [mode, setMode] = useState<
-    "requirement" | "all"
-  >("requirement");
 
-  const filteredRequirements = useMemo(
-    () =>
-      requirements.filter(
-        (requirement) =>
-          requirement.project_id === projectId,
-      ),
-    [requirements, projectId],
-  );
 
-  const [requirementId, setRequirementId] =
-    useState(0);
+
+  const requirementId = selectedRequirementId;
+  
 
   const [count, setCount] = useState(5);
 
   const [loading, setLoading] = useState(false);
 
+  const selectedProject = projects.find(
+    (project) => project.id === projectId,
+  );
+
+  const selectedRequirement = requirements.find(
+  (requirement) =>
+    requirement.id === selectedRequirementId,
+);
+
+
   const { showNotification } =
     useNotification();
 
   useEffect(() => {
-    if (projects.length > 0) {
-      setProjectId(projects[0].id);
+    if (!selectedRequirementId) {
+      if (projects.length > 0) {
+        setProjectId(projects[0].id);
+      }
+      return;
     }
-  }, [projects]);
 
-  useEffect(() => {
-    if (filteredRequirements.length > 0) {
-      setRequirementId(
-        filteredRequirements[0].id,
-      );
+    const requirement = requirements.find(
+      (requirement) =>
+        requirement.id === selectedRequirementId,
+    );
+
+    if (requirement) {
+      setProjectId(requirement.project_id);
     }
-  }, [filteredRequirements]);
+  }, [
+    projects,
+    requirements,
+    selectedRequirementId,
+  ]);
 
   
   async function handleGenerate() {
@@ -83,12 +89,8 @@ export default function GenerateScenarioDialog({
       const scenarios =
         await aiService.generateScenarios({
           project_id: projectId,
-          requirement_id:
-            mode === "requirement"
-              ? requirementId
-              : undefined,
-          generate_for_all:
-            mode === "all",
+          requirement_id: requirementId,
+          generate_for_all: false,
           manual_description: "",
           number_of_scenarios: count,
         });
@@ -158,94 +160,40 @@ export default function GenerateScenarioDialog({
           }}
         >
           <TextField
-            select
             label="Project"
-            value={projectId}
-            onChange={(event) =>
-              setProjectId(
-                Number(event.target.value),
-              )
+            value={
+              selectedProject
+                ? `${selectedProject.project_code} - ${selectedProject.name}`
+                : ""
             }
             fullWidth
-          >
-            {projects.map((project) => (
-              <MenuItem
-                key={project.id}
-                value={project.id}
-              >
-                {project.project_code} -{" "}
-                {project.name}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <FormControl>
-            <Typography
-              variant="subtitle2"
-              sx={{ mb: 1 }}
-            >
-              Generation Mode
-            </Typography>
-
-            <RadioGroup
-              value={mode}
-              onChange={(event) =>
-                setMode(
-                  event.target.value as
-                    | "requirement"
-                    | "all",
-                )
-              }
-            >
-              <FormControlLabel
-                value="requirement"
-                control={<Radio />}
-                label="Specific Requirement"
-              />
-
-              <FormControlLabel
-                value="all"
-                control={<Radio />}
-                label="All Requirements"
-              />
-            </RadioGroup>
-          </FormControl>
-
-          {mode === "requirement" && (
-            <TextField
-              select
-              label="Requirement"
-              value={requirementId}
-              onChange={(event) =>
-                setRequirementId(
-                  Number(event.target.value),
-                )
-              }
-              fullWidth
-            >
-              {filteredRequirements.map(
-                (requirement) => (
-                  <MenuItem
-                    key={requirement.id}
-                    value={requirement.id}
-                  >
-                    {requirement.requirement_code}
-                    {" - "}
-                    {requirement.module}
-                  </MenuItem>
-                ),
-              )}
-            </TextField>
-          )}
+            slotProps={{
+              input: {
+                readOnly: true,
+              },
+            }}
+          />
+          <TextField
+            label="Requirement"
+            value={
+              selectedRequirement
+                ? `${selectedRequirement.requirement_code} - ${selectedRequirement.module}`
+                : ""
+            }
+            fullWidth
+            slotProps={{
+              input: {
+                readOnly: true,
+              },
+            }}
+          />
 
           <Box>
             <Typography
               variant="subtitle2"
               sx={{ mb: 1 }}
             >
-              {mode === "requirement"
-                ? "Number of Scenarios"
-                : "Scenarios per Requirement"}
+              "Number of Scenarios"
             </Typography>
 
             <TextField
@@ -280,9 +228,7 @@ export default function GenerateScenarioDialog({
           variant="contained"
           onClick={handleGenerate}
           disabled={
-            loading ||
-            (mode === "requirement" &&
-              requirementId === 0)
+            loading || requirementId === 0
           }
         >
           {loading

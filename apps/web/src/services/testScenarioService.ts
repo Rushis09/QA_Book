@@ -8,8 +8,16 @@ const BASE_URL = "/test-scenarios";
 
 
 export const testScenarioService = {
-  async getTestScenarios(): Promise<TestScenario[]> {
-    const response = await api.get<TestScenario[]>(BASE_URL);
+  async getTestScenarios(
+    projectId?: number,
+  ): Promise<TestScenario[]> {
+    const response =
+      await api.get<TestScenario[]>(BASE_URL, {
+        params: projectId
+          ? { project_id: projectId }
+          : undefined,
+      });
+    
     return response.data;
   },
 

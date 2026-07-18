@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -33,12 +33,13 @@ def create_test_scenario(
 
 @router.get("/", response_model=list[TestScenarioResponse])
 def get_test_scenarios(
+    project_id: int | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     repository = TestScenarioRepository(db)
     service = TestScenarioService(repository)
 
-    return service.get_all()
+    return service.get_all(project_id)
 
 
 @router.get("/{test_scenario_id}", response_model=TestScenarioResponse)

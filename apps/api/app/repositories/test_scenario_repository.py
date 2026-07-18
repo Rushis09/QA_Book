@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session, selectinload
 
+from app.models.requirement import Requirement
 from app.models.test_scenario import TestScenario
-
 
 class TestScenarioRepository:
     def __init__(self, db: Session):
@@ -20,12 +20,26 @@ class TestScenarioRepository:
         self.db.refresh(test_scenario)
         return test_scenario
 
-    def get_all(self):
-        return (
+    def get_all(
+        self,
+        project_id: int | None = None,
+    ):
+        query = (
             self.db.query(TestScenario)
-            .options(selectinload(TestScenario.requirement))
-            .all()
+            .options(
+                selectinload(TestScenario.requirement)
+            )
         )
+    
+        if project_id is not None:
+            query = (
+                query.join(Requirement)
+                .filter(
+                    Requirement.project_id == project_id
+                )
+            )
+    
+        return query.all()
 
     def get_by_id(
         self,

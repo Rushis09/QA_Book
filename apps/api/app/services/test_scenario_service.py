@@ -19,19 +19,19 @@ class TestScenarioService:
         self,
         test_scenario_data: TestScenarioCreate,
     ):
-        last_test_scenario = (
+        scenario_count = (
             self.repository.session.query(TestScenario)
-            .order_by(TestScenario.id.desc())
-            .first()
+            .filter(
+                TestScenario.requirement_id
+                == test_scenario_data.requirement_id
+            )
+            .count()
         )
-
-        next_number = 1
-
-        if last_test_scenario:
-            next_number = last_test_scenario.id + 1
-
-        scenario_code = f"SCN-{next_number:03d}"
-
+    
+        next_number = scenario_count + 1
+    
+        scenario_code = f"SCN{next_number:03d}"
+    
         test_scenario = TestScenario(
             scenario_code=scenario_code,
             requirement_id=test_scenario_data.requirement_id,
@@ -41,13 +41,18 @@ class TestScenarioService:
             priority=test_scenario_data.priority,
             status=test_scenario_data.status,
         )
-
+    
         created = self.repository.create(test_scenario)
-
+    
         return self.repository.get_by_id(created.id)
 
-    def get_all(self):
-        return self.repository.get_all()
+    def get_all(
+        self,
+        project_id: int | None = None,
+    ):
+        return self.repository.get_all(
+            project_id,
+        )
 
     def get_by_id(
         self,

@@ -22,36 +22,28 @@ export default function TestScenarioForm({
   error,
   onChange,
 }: TestScenarioFormProps) {
+  const selectedRequirement =
+    requirements.find(
+      (r) => r.id === value.requirement_id,
+    );
+
   return (
    <>
     <TextField
-      select
       label="Requirement"
-      value={value.requirement_id}
-      onChange={(event) => {
-        const requirement = requirements.find(
-          (r) => r.id === Number(event.target.value),
-        );
-
-        onChange({
-          ...value,
-          requirement_id: Number(event.target.value),
-          module: requirement?.module ?? "",
-        });
-      }}
+      value={
+        selectedRequirement
+          ? `${selectedRequirement.requirement_code} - ${selectedRequirement.module}`
+          : ""
+      }
       fullWidth
-      required
       margin="normal"
-    >
-      {requirements.map((requirement) => (
-        <MenuItem
-          key={requirement.id}
-          value={requirement.id}
-        >
-          {`${requirement.requirement_code} - ${requirement.module}`}
-        </MenuItem>
-      ))}
-    </TextField>
+      slotProps={{
+        input: {
+          readOnly: true,
+        },
+      }}
+    />
 
     <Grid
       container

@@ -1,15 +1,26 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Box,
+  Checkbox,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  ListItemText,
+  MenuItem,
+  OutlinedInput,
+  Select,
   Typography,
 } from "@mui/material";
+import type { SelectChangeEvent } from "@mui/material";
 
 import ConfirmDialog from "../../components/common/ConfirmDialog";
 import PageHeader from "../../components/common/PageHeader";
+import DataGridLayout from "../../components/common/DataGridLayout";
 import TestScenarioDialog from "../../components/testScenarios/TestScenarioDialog";
 import TestScenarioTable from "../../components/testScenarios/TestScenarioTable";
 import { useNotification } from "../../contexts/NotificationContext";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { requirementService } from "../../services/requirementService";
 import { testScenarioService } from "../../services/testScenarioService";
 
@@ -28,6 +39,9 @@ export default function TestScenariosPage() {
   const [requirements, setRequirements] =
     useState<Requirement[]>([]);
 
+  const [selectedRequirementIds, setSelectedRequirementIds] =
+  useState<number[]>([]);
+
   const [projects, setProjects] =
     useState<Project[]>([]);
 
@@ -43,6 +57,11 @@ export default function TestScenariosPage() {
   const [openDialog, setOpenDialog] =
     useState(false);
 
+  const [
+    selectedTestScenarioIds,
+    setSelectedTestScenarioIds,
+  ] = useState<number[]>([]);
+
   const [selectedTestScenario, setSelectedTestScenario] =
     useState<TestScenario | null>(null);
 
@@ -52,10 +71,25 @@ export default function TestScenariosPage() {
   const [testScenarioToDelete, setTestScenarioToDelete] =
     useState<TestScenario | null>(null);
 
+  const [
+    bulkDeleteScenarios,
+    setBulkDeleteScenarios,
+  ] = useState<TestScenario[]>([]);
+
   const { showNotification } =
     useNotification();
 
+  const { selectedProject } =
+    useWorkspace();
+
   async function loadData() {
+
+    if (!selectedProject) {
+      setTestScenarios([]);
+      setRequirements([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
 
@@ -64,8 +98,12 @@ export default function TestScenariosPage() {
         requirementData,
         projectData,
       ] = await Promise.all([
-        testScenarioService.getTestScenarios(),
-        requirementService.getRequirements(),
+        testScenarioService.getTestScenarios(
+          selectedProject.id,
+        ),
+        requirementService.getRequirements(
+          selectedProject.id,
+        ),
         projectService.getProjects(),
       ]);
 
@@ -86,7 +124,16 @@ export default function TestScenariosPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedProject]);
+  
+  const filteredTestScenarios =
+  selectedRequirementIds.length === 0
+    ? testScenarios
+    : testScenarios.filter((scenario) =>
+        selectedRequirementIds.includes(
+          scenario.requirement_id,
+        ),
+      );
 
   function handleEdit(
     testScenario: TestScenario,
@@ -98,11 +145,38 @@ export default function TestScenariosPage() {
   function handleDelete(
     testScenario: TestScenario,
   ) {
+    setBulkDeleteScenarios([]);
     setTestScenarioToDelete(testScenario);
     setConfirmOpen(true);
   }
 
-  async function handleSave(
+
+  function clearSelection() {
+    setSelectedTestScenarioIds([]);
+  }
+
+  function handleBulkDelete() {
+    const selectedScenarios =
+      testScenarios.filter((scenario) =>
+        selectedTestScenarioIds.includes(
+          scenario.id,
+        ),
+      );
+
+    if (selectedScenarios.length === 0) {
+      return;
+    }
+
+    setTestScenarioToDelete(null);
+
+    setBulkDeleteScenarios(
+      selectedScenarios,
+    );
+
+    setConfirmOpen(true);
+  }
+
+  async function handleSaveTestScenario(
     data: TestScenarioFormData,
   ) {
     if (selectedTestScenario) {
@@ -144,33 +218,198 @@ export default function TestScenariosPage() {
     );
   }
 
+  const handleRequirementChange = (
+    event: SelectChangeEvent<number[]>,
+  ) => {
+    const value = event.target.value as number[];
+
+    if (value.includes(-1)) {
+      setSelectedRequirementIds([]);
+      return;
+    }
+
+    setSelectedRequirementIds(
+      value.filter((id) => id !== -1),
+    );
+  };
+
   return (
     <>
       <PageHeader
           title="Test Scenarios"
           actionLabel="New Test Scenario"
-          onAction={() =>
-            setOpenDialog(true)
-          }
+          onAction={() => {
+            if (selectedRequirementIds.length !== 1) {
+              showNotification(
+                "Please select exactly one requirement to create a test scenario.",
+                "warning",
+              );
+              return;
+            }
+          
+            setOpenDialog(true);
+          }}
           secondaryActionLabel="✨ Generate with AI"
-          onSecondaryAction={() =>
-            setOpenGenerateDialog(true)
-          }
-        >
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          gutterBottom
-        >
-          Total Test Scenarios:{" "}
-          {testScenarios.length}
-        </Typography>
+          onSecondaryAction={() => {
+            if (selectedRequirementIds.length !== 1) {
+              showNotification(
+                "Please select exactly one requirement to generate scenarios.",
+                "warning",
+              );
+              return;
+            }
+          
+            setOpenGenerateDialog(true);
+          }}
 
-        <TestScenarioTable
-          testScenarios={testScenarios}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+          selectionCount={
+            selectedTestScenarioIds.length
+          }
+
+          selectionActions={
+            selectedTestScenarioIds.length === 1
+              ? [
+                  {
+                    label: "Edit",
+                    onClick: () => {
+                      const scenario =
+                        testScenarios.find(
+                          (s) =>
+                            s.id ===
+                            selectedTestScenarioIds[0],
+                        );
+                      
+                      if (scenario) {
+                        handleEdit(scenario);
+                      }
+                    },
+                  },
+                  {
+                    label: "Delete",
+                    color: "error",
+                    onClick: () => {
+                      const scenario =
+                        testScenarios.find(
+                          (s) =>
+                            s.id ===
+                            selectedTestScenarioIds[0],
+                        );
+                      
+                      if (scenario) {
+                        handleDelete(scenario);
+                      }
+                    },
+                  },
+                  {
+                    label: "Clear Selection",
+                    variant: "outlined",
+                    onClick: clearSelection,
+                  },
+                ]
+              : selectedTestScenarioIds.length > 1
+                ? [
+                    {
+                      label: "Delete Selected",
+                      color: "error",
+                      onClick: handleBulkDelete,
+                    },
+                    {
+                      label: "Clear Selection",
+                      variant: "outlined",
+                      onClick: clearSelection,
+                    },
+                  ]
+                : undefined
+          }
+
+        >
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            mb: 2,
+          }}
+        >
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
+            Total Test Scenarios: {filteredTestScenarios.length}
+          </Typography>
+        
+          <FormControl size="small" sx={{ maxWidth: 420 }}>
+            <InputLabel shrink>
+              Requirements
+            </InputLabel>
+        
+            <Select
+              multiple
+              displayEmpty
+              value={selectedRequirementIds}
+              onChange={handleRequirementChange}
+              input={
+                <OutlinedInput label="Requirements" />
+              }
+              renderValue={(selected) => {
+                if (selected.length === 0) {
+                  return "All Requirements";
+                }
+              
+                const selectedRequirements = requirements.filter((r) =>
+                  selected.includes(r.id),
+                );
+              
+                if (selectedRequirements.length === 1) {
+                  return `${selectedRequirements[0].requirement_code} - ${selectedRequirements[0].module}`;
+                }
+              
+                return `${selectedRequirements.length} Requirements Selected`;
+              }}
+            >
+              <MenuItem value={-1}>
+                <Checkbox
+                  checked={
+                    selectedRequirementIds.length === 0
+                  }
+                />
+              
+                <ListItemText
+                  primary="All Requirements"
+                />
+              </MenuItem>
+
+              {requirements.map((requirement) => (
+                <MenuItem
+                  key={requirement.id}
+                  value={requirement.id}
+                >
+                  <Checkbox
+                    checked={selectedRequirementIds.includes(
+                      requirement.id,
+                    )}
+                  />
+
+                  <ListItemText
+                    primary={`${requirement.requirement_code} - ${requirement.module}`}
+                  />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+
+        <DataGridLayout>
+          <TestScenarioTable
+            testScenarios={filteredTestScenarios}
+            selectedIds={selectedTestScenarioIds}
+            onSelectionChange={
+              setSelectedTestScenarioIds
+            }
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        </DataGridLayout>
       </PageHeader>
 
       <TestScenarioDialog
@@ -181,6 +420,9 @@ export default function TestScenariosPage() {
         }
         open={openDialog}
         requirements={requirements}
+        selectedRequirementId={
+          selectedRequirementIds[0] ?? 0
+        }
         testScenario={
           selectedTestScenario ??
           undefined
@@ -189,13 +431,16 @@ export default function TestScenariosPage() {
           setSelectedTestScenario(null);
           setOpenDialog(false);
         }}
-        onSave={handleSave}
+        onSave={handleSaveTestScenario}
       />
 
       <GenerateScenarioDialog
         open={openGenerateDialog}
         projects={projects}
         requirements={requirements}
+        selectedRequirementId={
+          selectedRequirementIds[0]
+        }
         onClose={() =>
           setOpenGenerateDialog(false)
         }
@@ -204,48 +449,72 @@ export default function TestScenariosPage() {
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Delete Test Scenario"
+        title={
+          bulkDeleteScenarios.length > 0
+            ? "Delete Test Scenarios"
+            : "Delete Test Scenario"
+        }
         message={
-          testScenarioToDelete
-            ? `Are you sure you want to delete "${testScenarioToDelete.title}"?`
-            : ""
+          bulkDeleteScenarios.length > 0
+            ? `Are you sure you want to delete ${bulkDeleteScenarios.length} test scenarios?`
+            : testScenarioToDelete
+              ? `Are you sure you want to delete "${testScenarioToDelete.title}"?`
+              : ""
         }
         confirmText="Delete"
         cancelText="Cancel"
-        onConfirm={async () => {
-          if (!testScenarioToDelete) {
-            return;
-          }
-
-          try {
-            await testScenarioService.deleteTestScenario(
-              testScenarioToDelete.id,
-            );
-
-            await loadData();
-
-            showNotification(
-              "Test scenario deleted successfully.",
-              "success",
-            );
-
-            setConfirmOpen(false);
-            setTestScenarioToDelete(null);
-          } catch (error) {
-            console.error(error);
-
-            showNotification(
-              "Failed to delete test scenario.",
-              "error",
-            );
-
-            setConfirmOpen(false);
-            setTestScenarioToDelete(null);
-          }
-        }}
         onCancel={() => {
           setConfirmOpen(false);
           setTestScenarioToDelete(null);
+          setBulkDeleteScenarios([]);
+        }}
+        onConfirm={async () => {
+          try {
+            if (bulkDeleteScenarios.length > 0) {
+              await Promise.all(
+                bulkDeleteScenarios.map(
+                  (scenario) =>
+                    testScenarioService.deleteTestScenario(
+                      scenario.id,
+                    ),
+                ),
+              );
+            
+              showNotification(
+                "Test scenarios deleted successfully.",
+                "success",
+              );
+            
+              clearSelection();
+              setBulkDeleteScenarios([]);
+            } else if (testScenarioToDelete) {
+              await testScenarioService.deleteTestScenario(
+                testScenarioToDelete.id,
+              );
+            
+              showNotification(
+                "Test scenario deleted successfully.",
+                "success",
+              );
+            
+              setTestScenarioToDelete(null);
+            }
+          
+            await loadData();
+          } catch (error) {
+            console.error(error);
+          
+            showNotification(
+              bulkDeleteScenarios.length > 0
+                ? "Failed to delete test scenarios."
+                : "Failed to delete test scenario.",
+              "error",
+            );
+          } finally {
+            setConfirmOpen(false);
+            setTestScenarioToDelete(null);
+            setBulkDeleteScenarios([]);
+          }
         }}
       />
     </>

@@ -1,4 +1,11 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -8,11 +15,18 @@ from app.db.database import Base
 class TestScenario(Base):
     __tablename__ = "test_scenarios"
 
+    __table_args__ = (
+        UniqueConstraint(
+            "requirement_id",
+            "scenario_code",
+            name="uq_scenario_requirement_code",
+        ),
+    )
+
     id = Column(Integer, primary_key=True, index=True)
 
     scenario_code = Column(
         String(20),
-        unique=True,
         nullable=False,
         index=True,
     )
