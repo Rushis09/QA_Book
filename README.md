@@ -7,6 +7,13 @@
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 # QA Book
 
+## Why QA Book?
+
+Manual testing teams often manage requirements, test cases and defects across multiple spreadsheets and tools.
+
+QA Book consolidates the entire manual testing lifecycle into a single platform, improving collaboration, traceability and reporting.
+
+
 > AI-Powered Manual Testing Workspace for Modern QA Teams
 
 QA Book is a modern web-based test management platform designed to simplify manual software testing. It enables QA engineers, testers, developers, and teams to manage the complete testing lifecycle from requirements to bug tracking through a single unified workspace.
@@ -14,6 +21,40 @@ QA Book is a modern web-based test management platform designed to simplify manu
 The platform helps teams organize projects, create requirements, design test scenarios, write detailed test cases, execute test runs, track bugs, generate reports, and maintain complete testing traceability.
 
 ---
+
+## Highlights
+
+✔ Full Stack Application
+
+✔ REST API
+
+✔ Swagger Documentation
+
+✔ Cloud Deployment
+
+✔ PostgreSQL
+
+✔ Responsive UI
+
+✔ Manual Testing Workflow
+
+✔ Modern Architecture
+
+## Workflow 
+
+Requirements
+      ↓
+Test Scenarios
+      ↓
+Test Cases
+      ↓
+Test Runs
+      ↓
+Execution
+      ↓
+Bug Tracking
+      ↓
+Reports
 
 ## Live Demo
 
@@ -263,8 +304,6 @@ https://qabook-api.onrender.com/docs
 
 # Contributing
 
-Contributions, feature suggestions, bug reports, and improvements are welcome.
-
 If you'd like to contribute:
 
 1. Fork the repository.
@@ -273,6 +312,20 @@ If you'd like to contribute:
 4. Open a Pull Request.
 
 ---
+
+## My Contribution
+
+Designed the product.
+
+Defined requirements.
+
+Designed the database.
+
+Developed frontend and backend using AI-assisted development.
+
+Validated features through Functional Testing, UI Testing and workflow verification.
+
+Deployed the application to Vercel and Render.
 
 # Author
 
