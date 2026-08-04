@@ -1,3 +1,10 @@
+![React](https://img.shields.io/badge/React-19-blue)
+
+![FastAPI](https://img.shields.io/badge/FastAPI-Green)
+
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Blue)
+
+![License](https://img.shields.io/badge/License-MIT-yellow)
 # QA Book
 
 > AI-Powered Manual Testing Workspace for Modern QA Teams
