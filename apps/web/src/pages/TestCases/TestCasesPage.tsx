@@ -51,7 +51,7 @@ export default function TestCasesPage() {
     useState<number[]>([]);
 
   const [selectedScenarioIds, setSelectedScenarioIds] =
-  useState<number[]>([]);
+    useState<number[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -73,6 +73,12 @@ export default function TestCasesPage() {
 
   const [testCaseToDelete, setTestCaseToDelete] =
     useState<TestCase | null>(null);
+
+  const [bulkDeleteTestCases, setBulkDeleteTestCases] =
+    useState<TestCase[]>([]);
+
+  const [selectedTestCaseIds, setSelectedTestCaseIds] =
+  useState<number[]>([]);
 
   const { showNotification } =
     useNotification();
@@ -116,6 +122,8 @@ export default function TestCasesPage() {
       setProjects(projectData);
       setRequirements(requirementData);
       setSelectedRequirementIds([]);
+      setSelectedScenarioIds([]);
+      setSelectedTestCaseIds([]);
 
       setError("");
     } catch (error) {
@@ -199,6 +207,23 @@ export default function TestCasesPage() {
     testCase: TestCase,
   ) {
     setTestCaseToDelete(testCase);
+    setConfirmOpen(true);
+  }
+
+  function handleBulkDelete() {
+    const selectedCases =
+      testCases.filter((testCase) =>
+        selectedTestCaseIds.includes(
+          testCase.id,
+        ),
+      );
+
+    if (selectedCases.length === 0) {
+      return;
+    }
+
+    setTestCaseToDelete(null);
+    setBulkDeleteTestCases(selectedCases);
     setConfirmOpen(true);
   }
 
@@ -302,6 +327,62 @@ export default function TestCasesPage() {
           
             setOpenGenerateDialog(true);
           }}
+          selectionCount={selectedTestCaseIds.length}
+          selectionActions={
+            selectedTestCaseIds.length === 1
+              ? [
+                  {
+                    label: "Edit",
+                    onClick: () => {
+                      const testCase = testCases.find(
+                        (tc) =>
+                          tc.id === selectedTestCaseIds[0],
+                      );
+                    
+                      if (testCase) {
+                        handleEdit(testCase);
+                      }
+                    },
+                  },
+                  {
+                    label: "Delete",
+                    color: "error",
+                    onClick: () => {
+                      const testCase = testCases.find(
+                        (tc) =>
+                          tc.id === selectedTestCaseIds[0],
+                      );
+                    
+                      if (testCase) {
+                        handleDelete(testCase);
+                      }
+                    },
+                  },
+                  {
+                    label: "Clear Selection",
+                    variant: "outlined",
+                    onClick: () => {
+                      setSelectedTestCaseIds([]);
+                    },
+                  },
+                ]
+              : selectedTestCaseIds.length > 1
+                ? [
+                    {
+                      label: "Delete Selected",
+                      color: "error",
+                      onClick: handleBulkDelete,
+                    },
+                    {
+                      label: "Clear Selection",
+                      variant: "outlined",
+                      onClick: () => {
+                        setSelectedTestCaseIds([]);
+                      },
+                    },
+                  ]
+                : undefined
+          }
         >
         <Box
           sx={{
@@ -446,6 +527,8 @@ export default function TestCasesPage() {
             
         <TestCaseTable
           testCases={filteredTestCases}
+          selectedIds={selectedTestCaseIds}
+          onSelectionChange={setSelectedTestCaseIds}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
@@ -487,50 +570,77 @@ export default function TestCasesPage() {
         onSave={handleSave}
       />
 
-      <ConfirmDialog
+     <ConfirmDialog
         open={confirmOpen}
-        title="Delete Test Case"
+        title={
+          bulkDeleteTestCases.length > 0
+            ? "Delete Test Cases"
+            : "Delete Test Case"
+        }
         message={
-          testCaseToDelete
-            ? `Are you sure you want to delete "${testCaseToDelete.test_case_code}"?`
-            : ""
+          bulkDeleteTestCases.length > 0
+            ? `Are you sure you want to delete ${bulkDeleteTestCases.length} test cases?`
+            : testCaseToDelete
+              ? `Are you sure you want to delete "${testCaseToDelete.test_case_code}"?`
+              : ""
         }
         confirmText="Delete"
         cancelText="Cancel"
         onConfirm={async () => {
-          if (!testCaseToDelete) {
-            return;
-          }
-
           try {
-            await testCaseService.deleteTestCase(
-              testCaseToDelete.id,
-            );
-
-            await loadData();
-
-            showNotification(
-              "Test case deleted successfully.",
-              "success",
-            );
-
+            if (bulkDeleteTestCases.length > 0) {
+              await Promise.all(
+                bulkDeleteTestCases.map(
+                  (testCase) =>
+                    testCaseService.deleteTestCase(
+                      testCase.id,
+                    ),
+                ),
+              );
+            
+              await loadData();
+            
+              showNotification(
+                "Test cases deleted successfully.",
+                "success",
+              );
+            
+              setSelectedTestCaseIds([]);
+              setBulkDeleteTestCases([]);
+            } else if (testCaseToDelete) {
+              await testCaseService.deleteTestCase(
+                testCaseToDelete.id,
+              );
+            
+              await loadData();
+            
+              showNotification(
+                "Test case deleted successfully.",
+                "success",
+              );
+            
+              setSelectedTestCaseIds([]);
+              setTestCaseToDelete(null);
+            }
+          
             setConfirmOpen(false);
-            setTestCaseToDelete(null);
           } catch (error) {
             console.error(error);
-
+          
             showNotification(
-              "Failed to delete test case.",
+              "Failed to delete test case(s).",
               "error",
             );
-
+          
             setConfirmOpen(false);
             setTestCaseToDelete(null);
+            setBulkDeleteTestCases([]);
           }
         }}
         onCancel={() => {
           setConfirmOpen(false);
           setTestCaseToDelete(null);
+          setBulkDeleteTestCases([]);
         }}
       />
     </>
