@@ -34,6 +34,7 @@ jobs:
       - name: Verify Backend Imports
         env:
           DATABASE_URL: sqlite:///./test.db
+          GEMINI_API_KEY: ci-test-key
         run: |
           python -c "import app.main"
 
