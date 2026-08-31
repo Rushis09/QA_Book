@@ -10,9 +10,7 @@ on:
       - main
 
 jobs:
-
   backend:
-
     runs-on: ubuntu-latest
 
     defaults:
@@ -20,7 +18,6 @@ jobs:
         working-directory: apps/api
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -41,7 +38,6 @@ jobs:
           python -c "import app.main"
 
   frontend:
-
     runs-on: ubuntu-latest
 
     defaults:
@@ -49,7 +45,6 @@ jobs:
         working-directory: apps/web
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -57,9 +52,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build Frontend
         run: npm run build
