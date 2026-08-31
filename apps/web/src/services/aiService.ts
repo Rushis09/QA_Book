@@ -8,6 +8,12 @@ export interface GenerateRequirementRequest {
   number_of_requirements: number;
 }
 
+export interface GenerateRequirementsFromBRDRequest {
+  project_id: number;
+  document_id: number;
+  number_of_requirements: number;
+}
+
 export interface GeneratedRequirement {
   module: string;
   priority: string;
@@ -55,6 +61,18 @@ export const aiService = {
     const { data } =
       await api.post<GeneratedRequirement[]>(
         "/ai/requirements/generate",
+        request,
+      );
+
+    return data;
+  },
+
+  async generateRequirementsFromBRD(
+    request: GenerateRequirementsFromBRDRequest,
+  ): Promise<GeneratedRequirement[]> {
+    const { data } =
+      await api.post<GeneratedRequirement[]>(
+        "/ai/requirements/generate-from-brd",
         request,
       );
 

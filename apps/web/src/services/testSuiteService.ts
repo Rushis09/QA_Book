@@ -5,22 +5,32 @@ import type {
   TestSuiteRequest,
 } from "../types/testSuite";
 
+const BASE_URL = "/test-suites";
+
 export const testSuiteService = {
-  async getTestSuites(): Promise<TestSuite[]> {
-    const response = await api.get<TestSuite[]>(
-      "/test-suites/",
-    );
+  async getTestSuites(
+    projectId: number,
+  ): Promise<TestSuite[]> {
+    const response =
+      await api.get<TestSuite[]>(
+        BASE_URL,
+        {
+          params: {
+            project_id: projectId,
+          },
+        },
+      );
 
     return response.data;
   },
-  
+
   async getTestSuite(
     id: number,
   ): Promise<TestSuite> {
-    const response = 
-    await api.get<TestSuite>(
-      `/test-suites/${id}`,
-    );  
+    const response =
+      await api.get<TestSuite>(
+        `${BASE_URL}/${id}`,
+      );
 
     return response.data;
   },
@@ -28,10 +38,11 @@ export const testSuiteService = {
   async createTestSuite(
     data: TestSuiteRequest,
   ): Promise<TestSuite> {
-    const response = await api.post<TestSuite>(
-      "/test-suites/",
-      data,
-    );
+    const response =
+      await api.post<TestSuite>(
+        BASE_URL,
+        data,
+      );
 
     return response.data;
   },
@@ -40,10 +51,11 @@ export const testSuiteService = {
     id: number,
     data: TestSuiteRequest,
   ): Promise<TestSuite> {
-    const response = await api.put<TestSuite>(
-      `/test-suites/${id}`,
-      data,
-    );
+    const response =
+      await api.put<TestSuite>(
+        `${BASE_URL}/${id}`,
+        data,
+      );
 
     return response.data;
   },
@@ -52,12 +64,13 @@ export const testSuiteService = {
     id: number,
     testCaseIds: number[],
   ): Promise<TestSuite> {
-    const response = await api.put<TestSuite>(
-      `/test-suites/${id}/test-cases`,
-      {
-        test_case_ids: testCaseIds,
-      },
-    );
+    const response =
+      await api.put<TestSuite>(
+        `${BASE_URL}/${id}/test-cases`,
+        {
+          test_case_ids: testCaseIds,
+        },
+      );
 
     return response.data;
   },
@@ -66,7 +79,7 @@ export const testSuiteService = {
     id: number,
   ): Promise<void> {
     await api.delete(
-      `/test-suites/${id}`,
+      `${BASE_URL}/${id}`,
     );
   },
 };

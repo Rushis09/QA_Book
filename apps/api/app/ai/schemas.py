@@ -14,6 +14,11 @@ class GenerateRequirementRequest(BaseModel):
     manual_description: str = ""
     number_of_requirements: int
 
+class GenerateRequirementsFromBRDRequest(BaseModel):
+    project_id: int
+    document_id: int
+    number_of_requirements: int
+
 
 from pydantic import BaseModel, Field
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 import {
   Alert,
   CircularProgress,
@@ -48,9 +49,18 @@ export default function TestSuitesPage() {
   const { showNotification } =
     useNotification();
 
+  const { selectedProject } =
+    useWorkspace();
+
   const navigate = useNavigate();
 
   async function loadData() {
+     if (!selectedProject) {
+      setTestSuites([]);
+      setProjects([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
 
@@ -58,7 +68,9 @@ export default function TestSuitesPage() {
         suiteData,
         projectData,
       ] = await Promise.all([
-        testSuiteService.getTestSuites(),
+        testSuiteService.getTestSuites(
+          selectedProject.id,
+        ),
         projectService.getProjects(),
       ]);
 
@@ -78,7 +90,7 @@ export default function TestSuitesPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedProject]);
 
   function handleEdit(
     testSuite: TestSuite,
@@ -178,6 +190,7 @@ export default function TestSuitesPage() {
         }
         open={openDialog}
         projects={projects}
+        selectedProject={selectedProject}
         testSuite={
           selectedTestSuite ??
           undefined

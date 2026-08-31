@@ -18,6 +18,7 @@ interface TestSuiteDialogProps {
   title: string;
   open: boolean;
   projects: Project[];
+  selectedProject: Project | null;
   testSuite?: TestSuite;
   onClose: () => void;
   onSave: (
@@ -38,6 +39,7 @@ export default function TestSuiteDialog({
   title,
   open,
   projects,
+  selectedProject,
   testSuite,
   onClose,
   onSave,
@@ -68,15 +70,15 @@ export default function TestSuiteDialog({
     } else {
       setFormData(
         createDefaultFormData(
-          projects.length > 0
-            ? projects[0].id
+          selectedProject
+            ? selectedProject.id
             : 0,
         ),
       );
     }
 
     setNameError(false);
-  }, [testSuite, projects]);
+  }, [testSuite, selectedProject]);
 
   async function handleSave() {
     if (!formData.name.trim()) {
@@ -105,8 +107,8 @@ export default function TestSuiteDialog({
   function handleCancel() {
     setFormData(
       createDefaultFormData(
-        projects.length > 0
-          ? projects[0].id
+        selectedProject
+          ? selectedProject.id
           : 0,
       ),
     );

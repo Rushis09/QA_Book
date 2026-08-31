@@ -9,37 +9,65 @@ import ConfirmDialog from "../../components/common/ConfirmDialog";
 import PageHeader from "../../components/common/PageHeader";
 import ProjectDialog from "../../components/projects/ProjectDialog";
 import ProjectTable from "../../components/projects/ProjectTable";
+import BRDDocumentDialog from "../../components/projects/BRDDocumentDialog";
+
 import { useNotification } from "../../contexts/NotificationContext";
+
 import { projectService } from "../../services/projectService";
-import type { Project } from "../../types/project";
+import { documentService } from "../../services/documentService";
 import { exportService } from "../../services/exportService";
 
-export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+import type { Project } from "../../types/project";
 
-  const [openDialog, setOpenDialog] = useState(false);
+export default function ProjectsPage() {
+  const [projects, setProjects] =
+    useState<Project[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [openDialog, setOpenDialog] =
+    useState(false);
+
   const [selectedProject, setSelectedProject] =
     useState<Project | null>(null);
 
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [existingBrdFileName, setExistingBrdFileName] =
+    useState<string | undefined>(undefined);
+
+  const [openBrdDialog, setOpenBrdDialog] =
+    useState(false);
+
+  const [brdProject, setBrdProject] =
+    useState<Project | null>(null);
+
+  const [confirmOpen, setConfirmOpen] =
+    useState(false);
+
   const [projectToDelete, setProjectToDelete] =
     useState<Project | null>(null);
 
-  const { showNotification } = useNotification();
+  const { showNotification } =
+    useNotification();
 
   async function loadProjects() {
     try {
       setLoading(true);
 
-      const data = await projectService.getProjects();
+      const data =
+        await projectService.getProjects();
 
       setProjects(data);
       setError("");
     } catch (error) {
       console.error(error);
-      setError("Failed to load projects.");
+
+      setError(
+        "Failed to load projects.",
+      );
     } finally {
       setLoading(false);
     }
@@ -49,17 +77,53 @@ export default function ProjectsPage() {
     loadProjects();
   }, []);
 
-  function handleEdit(project: Project) {
+  async function handleEdit(
+    project: Project,
+  ) {
     setSelectedProject(project);
+    setExistingBrdFileName(undefined);
     setOpenDialog(true);
+
+    try {
+      const documents =
+        await documentService.getProjectDocuments(
+          project.id,
+        );
+
+      if (documents.length > 0) {
+        setExistingBrdFileName(
+          documents[0].file_name,
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Failed to load project documents:",
+        error,
+      );
+    }
+  }
+
+  function handleDocuments(
+    project: Project,
+  ) {
+    setBrdProject(project);
+    setOpenBrdDialog(true);
+  }
+
+  function handleCloseBrdDialog() {
+    setOpenBrdDialog(false);
+    setBrdProject(null);
   }
 
   function handleCloseDialog() {
     setSelectedProject(null);
+    setExistingBrdFileName(undefined);
     setOpenDialog(false);
   }
 
-  function handleDelete(project: Project) {
+  function handleDelete(
+    project: Project,
+  ) {
     setProjectToDelete(project);
     setConfirmOpen(true);
   }
@@ -70,13 +134,12 @@ export default function ProjectsPage() {
   ) {
     try {
       switch (exportType) {
-
         case "project":
           await exportService.exportProject(
             project.id,
             project.project_code,
           );
-        
+
           showNotification(
             "Project Summary exported successfully.",
             "success",
@@ -88,7 +151,7 @@ export default function ProjectsPage() {
             project.id,
             project.project_code,
           );
-        
+
           showNotification(
             "Requirements exported successfully.",
             "success",
@@ -100,67 +163,67 @@ export default function ProjectsPage() {
             project.id,
             project.project_code,
           );
-        
+
           showNotification(
             "Test Scenarios exported successfully.",
             "success",
           );
           break;
-        
+
         case "test-cases":
           await exportService.exportTestCases(
             project.id,
             project.project_code,
           );
-        
+
           showNotification(
             "Test Cases exported successfully.",
             "success",
           );
           break;
-        
+
         case "test-suites":
           await exportService.exportTestSuites(
             project.id,
             project.project_code,
           );
-        
+
           showNotification(
             "Test Suites exported successfully.",
             "success",
           );
           break;
-        
+
         case "test-runs":
           await exportService.exportTestRuns(
             project.id,
             project.project_code,
           );
-        
+
           showNotification(
             "Test Runs exported successfully.",
             "success",
           );
           break;
-        
+
         case "bugs":
           await exportService.exportBugs(
             project.id,
             project.project_code,
           );
-        
+
           showNotification(
             "Bug Report exported successfully.",
             "success",
           );
           break;
-        
+
         default:
           return;
       }
     } catch (error) {
       console.error(error);
-    
+
       showNotification(
         "Failed to export.",
         "error",
@@ -172,6 +235,7 @@ export default function ProjectsPage() {
     if (!projectToDelete) {
       return;
     }
+
     try {
       await projectService.deleteProject(
         projectToDelete.id,
@@ -198,6 +262,7 @@ export default function ProjectsPage() {
       setProjectToDelete(null);
     }
   }
+
   function handleCancelDelete() {
     setConfirmOpen(false);
     setProjectToDelete(null);
@@ -210,21 +275,55 @@ export default function ProjectsPage() {
     version: string | null;
     start_date: string | null;
     end_date: string | null;
+    brdFile: File | null;
   }) {
     try {
+      let savedProject: Project;
+
       if (selectedProject) {
-        await projectService.updateProject(
-          selectedProject.id,
-          data,
-        );
+        savedProject =
+          await projectService.updateProject(
+            selectedProject.id,
+            {
+              name: data.name,
+              description: data.description,
+              status: data.status,
+              version: data.version,
+              start_date: data.start_date,
+              end_date: data.end_date,
+            },
+          );
+
         showNotification(
           "Project updated successfully.",
           "success",
         );
       } else {
-        await projectService.createProject(data);
+        savedProject =
+          await projectService.createProject({
+            name: data.name,
+            description: data.description,
+            status: data.status,
+            version: data.version,
+            start_date: data.start_date,
+            end_date: data.end_date,
+          });
+
         showNotification(
           "Project created successfully.",
+          "success",
+        );
+      }
+
+      if (data.brdFile) {
+        await documentService.uploadDocument(
+          savedProject.id,
+          data.brdFile.name,
+          data.brdFile,
+        );
+
+        showNotification(
+          "BRD document uploaded successfully.",
           "success",
         );
       }
@@ -232,6 +331,7 @@ export default function ProjectsPage() {
       await loadProjects();
 
       setSelectedProject(null);
+      setExistingBrdFileName(undefined);
       setOpenDialog(false);
     } catch (error) {
       console.error(error);
@@ -248,7 +348,11 @@ export default function ProjectsPage() {
   }
 
   if (error) {
-    return <Alert severity="error">{error}</Alert>;
+    return (
+      <Alert severity="error">
+        {error}
+      </Alert>
+    );
   }
 
   return (
@@ -256,7 +360,11 @@ export default function ProjectsPage() {
       <PageHeader
         title="Projects"
         actionLabel="New Project"
-        onAction={() => setOpenDialog(true)}
+        onAction={() => {
+          setSelectedProject(null);
+          setExistingBrdFileName(undefined);
+          setOpenDialog(true);
+        }}
       >
         <Typography
           variant="body2"
@@ -271,6 +379,7 @@ export default function ProjectsPage() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onExport={handleExport}
+          onDocuments={handleDocuments}
         />
       </PageHeader>
 
@@ -281,9 +390,20 @@ export default function ProjectsPage() {
             : "New Project"
         }
         open={openDialog}
-        project={selectedProject ?? undefined}
+        project={
+          selectedProject ?? undefined
+        }
+        existingBrdFileName={
+          existingBrdFileName
+        }
         onClose={handleCloseDialog}
         onSave={handleSaveProject}
+      />
+
+      <BRDDocumentDialog
+        open={openBrdDialog}
+        project={brdProject}
+        onClose={handleCloseBrdDialog}
       />
 
       <ConfirmDialog
@@ -296,8 +416,12 @@ export default function ProjectsPage() {
         }
         confirmText="Delete"
         cancelText="Cancel"
-        onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
+        onConfirm={
+          handleConfirmDelete
+        }
+        onCancel={
+          handleCancelDelete
+        }
       />
     </>
   );

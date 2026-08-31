@@ -33,11 +33,14 @@ export default function AssignTestCasesPage() {
       }
 
       try {
-        const [suiteData, testCaseData] = await Promise.all([
-          testSuiteService.getTestSuite(Number(id)),
-          testCaseService.getTestCases(),
-        ]);
-
+        const suiteData =
+          await testSuiteService.getTestSuite(Number(id));
+              
+        const testCaseData =
+          await testCaseService.getTestCases(
+            suiteData.project_id,
+          );
+        
         setSuite(suiteData);
         setTestCases(testCaseData);
         setSelectedIds(

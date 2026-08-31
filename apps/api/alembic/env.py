@@ -20,6 +20,7 @@ from app.models.test_run import TestRun
 from app.models.test_execution import TestExecution
 from app.models.bug import Bug
 from app.models.admin import Admin
+from app.models.document import Document
 
 config = context.config
 

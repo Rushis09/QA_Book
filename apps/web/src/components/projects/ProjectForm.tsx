@@ -1,7 +1,9 @@
 import {
   Box,
+  Button,
   MenuItem,
   TextField,
+  Typography,
 } from "@mui/material";
 import dayjs from "dayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -13,13 +15,20 @@ interface ProjectFormProps {
   version: string;
   startDate: string;
   endDate: string;
+
+  brdFile: File | null;
+  existingBrdFileName?: string;
+
   error: boolean;
+
   onNameChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onVersionChange: (value: string) => void;
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
+
+  onBrdFileChange: (file: File | null) => void;
 }
 
 export default function ProjectForm({
@@ -29,13 +38,20 @@ export default function ProjectForm({
   version,
   startDate,
   endDate,
+
+  brdFile,
+  existingBrdFileName,
+
   error,
+
   onNameChange,
   onDescriptionChange,
   onStatusChange,
   onVersionChange,
   onStartDateChange,
   onEndDateChange,
+
+  onBrdFileChange,
 }: ProjectFormProps) {
   return (
     <Box
@@ -55,7 +71,9 @@ export default function ProjectForm({
         }
         error={error}
         helperText={
-          error ? "Project Name is required." : ""
+          error
+            ? "Project Name is required."
+            : ""
         }
         required
         fullWidth
@@ -65,7 +83,9 @@ export default function ProjectForm({
         label="Description"
         value={description}
         onChange={(event) =>
-          onDescriptionChange(event.target.value)
+          onDescriptionChange(
+            event.target.value,
+          )
         }
         multiline
         rows={3}
@@ -77,7 +97,9 @@ export default function ProjectForm({
         label="Status"
         value={status}
         onChange={(event) =>
-          onStatusChange(event.target.value)
+          onStatusChange(
+            event.target.value,
+          )
         }
         fullWidth
       >
@@ -102,41 +124,127 @@ export default function ProjectForm({
         label="Version"
         value={version}
         onChange={(event) =>
-          onVersionChange(event.target.value)
+          onVersionChange(
+            event.target.value,
+          )
         }
         fullWidth
       />
 
       <DatePicker
         label="Start Date"
-        value={startDate ? dayjs(startDate) : null}
+        value={
+          startDate
+            ? dayjs(startDate)
+            : null
+        }
         onChange={(value) =>
           onStartDateChange(
-            value ? value.format("YYYY-MM-DD") : "",
+            value
+              ? value.format(
+                  "YYYY-MM-DD",
+                )
+              : "",
           )
         }
         slotProps={{
-           textField: { 
+          textField: {
             fullWidth: true,
-           },
-          }}
+          },
+        }}
       />
 
       <DatePicker
         label="End Date"
-        value={endDate ? dayjs(endDate) : null}
-
+        value={
+          endDate
+            ? dayjs(endDate)
+            : null
+        }
         onChange={(value) =>
           onEndDateChange(
-            value ? value.format("YYYY-MM-DD") : "",
+            value
+              ? value.format(
+                  "YYYY-MM-DD",
+                )
+              : "",
           )
         }
-       slotProps={{
-          textField: { 
+        slotProps={{
+          textField: {
             fullWidth: true,
-           },
-          }}
+          },
+        }}
       />
+
+      {/* BRD Document */}
+      <Box>
+        <Typography
+          variant="subtitle2"
+          sx={{ mb: 1 }}
+        >
+          BRD Document
+        </Typography>
+
+        {existingBrdFileName &&
+          !brdFile && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: 1 }}
+            >
+              Existing:{" "}
+              {existingBrdFileName}
+            </Typography>
+          )}
+
+        <Button
+          variant="outlined"
+          component="label"
+        >
+          {brdFile
+            ? "Change BRD"
+            : "Choose BRD File"}
+
+          <input
+            type="file"
+            hidden
+            accept=".docx,.pdf"
+            onChange={(event) => {
+              const file =
+                event.target.files?.[0] ??
+                null;
+
+              onBrdFileChange(file);
+
+              event.target.value = "";
+            }}
+          />
+        </Button>
+
+        {brdFile && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mt: 1,
+            }}
+          >
+            Selected: {brdFile.name}
+          </Typography>
+        )}
+
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{
+            mt: 1,
+            display: "block",
+          }}
+        >
+          Supported formats: DOCX, PDF
+        </Typography>
+      </Box>
     </Box>
   );
 }

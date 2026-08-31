@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -12,6 +11,7 @@ import TestRunDialog from "../../components/testRuns/TestRunDialog";
 import TestRunTable from "../../components/testRuns/TestRunTable";
 
 import { useNotification } from "../../contexts/NotificationContext";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 
 import { testRunService } from "../../services/testRunService";
 import { testSuiteService } from "../../services/testSuiteService";
@@ -19,6 +19,7 @@ import { testSuiteService } from "../../services/testSuiteService";
 import type { TestRun } from "../../types/testRun";
 import type { TestRunFormData } from "../../types/testRunForm";
 import type { TestSuite } from "../../types/testSuite";
+
 import { useNavigate } from "react-router-dom";
 
 export default function TestRunsPage() {
@@ -46,13 +47,22 @@ export default function TestRunsPage() {
   const [testRunToDelete, setTestRunToDelete] =
     useState<TestRun | null>(null);
 
-
   const { showNotification } =
     useNotification();
-  
+
+  const { selectedProject } =
+    useWorkspace();
+
   const navigate = useNavigate();
 
   async function loadData() {
+    if (!selectedProject) {
+      setTestRuns([]);
+      setTestSuites([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -61,7 +71,9 @@ export default function TestRunsPage() {
         suiteData,
       ] = await Promise.all([
         testRunService.getTestRuns(),
-        testSuiteService.getTestSuites(),
+        testSuiteService.getTestSuites(
+          selectedProject.id,
+        ),
       ]);
 
       setTestRuns(runData);
@@ -81,7 +93,7 @@ export default function TestRunsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedProject]);
 
   function handleEdit(
     testRun: TestRun,
@@ -116,8 +128,11 @@ export default function TestRunsPage() {
   async function handleSave(
     data: TestRunFormData,
   ) {
-    console.log("Submitting Test Run:", data);
-    
+    console.log(
+      "Submitting Test Run:",
+      data,
+    );
+
     if (selectedTestRun) {
       await testRunService.updateTestRun(
         selectedTestRun.id,

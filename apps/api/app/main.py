@@ -3,7 +3,7 @@ from app.api.dashboard import (
     router as dashboard_router,
 )
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi.openapi.utils import get_openapi
 from app.api.projects import router as project_router
 from app.api.requirements import router as requirement_router
 from app.api.test_cases import router as test_case_router
@@ -35,6 +35,7 @@ from app.api.ai_requirements import (
 )
 from app.api import ai_scenarios
 from app.api import ai_test_cases
+from app.api.documents import router as document_router
 
 
 app = FastAPI(
@@ -64,6 +65,7 @@ app.include_router(ai_router)
 app.include_router(exports.router)
 app.include_router(dashboard_router)
 app.include_router(project_router)
+app.include_router(document_router)
 app.include_router(requirement_router)
 app.include_router(test_scenario_router)
 app.include_router(test_case_router)
@@ -89,3 +91,49 @@ def health():
     return {
         "status": "healthy",
     }
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+
+    upload_schema = (
+        openapi_schema
+        .get("paths", {})
+        .get("/documents/upload", {})
+        .get("post", {})
+        .get("requestBody", {})
+        .get("content", {})
+        .get("multipart/form-data", {})
+        .get("schema", {})
+    )
+
+    if "$ref" in upload_schema:
+        schema_name = upload_schema["$ref"].split("/")[-1]
+
+        document_schema = (
+            openapi_schema
+            .get("components", {})
+            .get("schemas", {})
+            .get(schema_name)
+        )
+
+        if document_schema and "properties" in document_schema:
+            file_schema = document_schema["properties"].get("file")
+
+            if file_schema:
+                file_schema.pop("contentMediaType", None)
+                file_schema["format"] = "binary"
+
+    app.openapi_schema = openapi_schema
+
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi

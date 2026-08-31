@@ -21,34 +21,27 @@ export default function TestSuiteForm({
   error,
   onChange,
 }: TestSuiteFormProps) {
+
+const selectedProject = projects.find(
+  (project) => project.id === value.project_id,
+);
   return (
     <>
       <TextField
-        select
         label="Project"
-        value={value.project_id}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            project_id: Number(
-              event.target.value,
-            ),
-          })
+        value={
+          selectedProject
+            ? `${selectedProject.project_code} - ${selectedProject.name}`
+            : ""
         }
         fullWidth
-        required
         margin="normal"
-      >
-        {projects.map((project) => (
-          <MenuItem
-            key={project.id}
-            value={project.id}
-          >
-            {`${project.project_code} - ${project.name}`}
-          </MenuItem>
-        ))}
-      </TextField>
-
+        slotProps={{
+          input: {
+            readOnly: true,
+          },
+        }}
+      />
       <TextField
         label="Suite Name"
         value={value.name}

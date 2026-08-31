@@ -15,6 +15,7 @@ interface ProjectDialogProps {
   title: string;
   open: boolean;
   project?: Project;
+  existingBrdFileName?: string;
   onClose: () => void;
   onSave: (data: {
     name: string;
@@ -23,6 +24,7 @@ interface ProjectDialogProps {
     version: string | null;
     start_date: string | null;
     end_date: string | null;
+    brdFile: File | null;
   }) => Promise<void>;
 }
 
@@ -30,6 +32,7 @@ export default function ProjectDialog({
   title,
   open,
   project,
+  existingBrdFileName,
   onClose,
   onSave,
 }: ProjectDialogProps) {
@@ -40,6 +43,9 @@ export default function ProjectDialog({
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  const [brdFile, setBrdFile] =
+    useState<File | null>(null);
+
   const [saving, setSaving] = useState(false);
   const [nameError, setNameError] = useState(false);
 
@@ -47,6 +53,7 @@ export default function ProjectDialog({
 
   useEffect(() => {
     console.log("Editing project:", project);
+
     if (project) {
       setName(project.name);
       setDescription(project.description ?? "");
@@ -54,6 +61,7 @@ export default function ProjectDialog({
       setVersion(project.version ?? "");
       setStartDate(project.start_date ?? "");
       setEndDate(project.end_date ?? "");
+      setBrdFile(null);
     } else {
       setName("");
       setDescription("");
@@ -61,13 +69,13 @@ export default function ProjectDialog({
       setVersion("");
       setStartDate("");
       setEndDate("");
+      setBrdFile(null);
     }
 
     setNameError(false);
-  }, [project]);
+  }, [project, open]);
 
   async function handleSave() {
-  
     if (!name.trim()) {
       setNameError(true);
       return;
@@ -83,6 +91,7 @@ export default function ProjectDialog({
         version,
         start_date: startDate,
         end_date: endDate,
+        brdFile,
       });
 
       await onSave({
@@ -92,6 +101,7 @@ export default function ProjectDialog({
         version: version || null,
         start_date: startDate || null,
         end_date: endDate || null,
+        brdFile,
       });
 
       handleCancel();
@@ -114,6 +124,7 @@ export default function ProjectDialog({
     setVersion("");
     setStartDate("");
     setEndDate("");
+    setBrdFile(null);
     setNameError(false);
 
     onClose();
@@ -136,6 +147,10 @@ export default function ProjectDialog({
           version={version}
           startDate={startDate}
           endDate={endDate}
+          brdFile={brdFile}
+          existingBrdFileName={
+            existingBrdFileName
+          }
           error={nameError}
           onNameChange={(value) => {
             setName(value);
@@ -149,6 +164,7 @@ export default function ProjectDialog({
           onVersionChange={setVersion}
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
+          onBrdFileChange={setBrdFile}
         />
       </DialogContent>
 
@@ -160,9 +176,14 @@ export default function ProjectDialog({
         <Button
           variant="contained"
           onClick={handleSave}
-          disabled={saving || !name.trim()}
+          disabled={
+            saving ||
+            !name.trim()
+          }
         >
-          {saving ? "Saving..." : "Save"}
+          {saving
+            ? "Saving..."
+            : "Save"}
         </Button>
       </DialogActions>
     </Dialog>
