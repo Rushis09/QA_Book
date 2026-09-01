@@ -11,6 +11,7 @@ import {
   TableHead,
   TableRow,
   Typography,
+  Button,
 } from "@mui/material";
 
 import {
@@ -18,7 +19,13 @@ import {
   useState,
 } from "react";
 
-import { useParams } from "react-router-dom";
+import {
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+
 import { getTestRunStatusColor } from "../../utils/testRunStatus";
 
 import { testRunService } from "../../services/testRunService";
@@ -30,7 +37,37 @@ import type {
   TestExecutionSummary,
 } from "../../types/testExecution";
 
-function formatDate(
+function formatDateOnly(
+  value: string | null,
+) {
+  if (!value) {
+    return "-";
+  }
+
+  const [year, month, day] =
+    value.split("-");
+
+  if (!year || !month || !day) {
+    return "-";
+  }
+
+  const date = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+  );
+
+  return date.toLocaleDateString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    },
+  );
+}
+
+function formatDateTime(
   value: string | null,
 ) {
   if (!value) {
@@ -80,9 +117,11 @@ function SummaryCard({
   );
 }
 
-
 export default function TestRunDetailsPage() {
   const { id } = useParams();
+
+  const navigate = useNavigate();
+
   const [testRun, setTestRun] =
     useState<TestRun | null>(null);
 
@@ -92,53 +131,63 @@ export default function TestRunDetailsPage() {
     );
 
   const [executions, setExecutions] =
-  useState<TestExecution[]>([]);
+    useState<TestExecution[]>([]);
 
   const [loading, setLoading] =
     useState(true);
 
   useEffect(() => {
     async function loadTestRun() {
-    if (!id) {
-      return;
+      if (!id) {
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        const [
+          runData,
+          summaryData,
+          executionData,
+        ] = await Promise.all([
+          testRunService.getTestRun(
+            Number(id),
+          ),
+          testExecutionService.getExecutionSummary(
+            Number(id),
+          ),
+          testExecutionService.getRunExecutions(
+            Number(id),
+          ),
+        ]);
+
+        setTestRun(runData);
+        setSummary(summaryData);
+        setExecutions(executionData);
+      } finally {
+        setLoading(false);
+      }
     }
 
-    try {
-      setLoading(true);
-
-      const [
-        runData,
-        summaryData,
-        executionData,
-      ] = await Promise.all([
-        testRunService.getTestRun(
-        Number(id),
-      ),
-      testExecutionService.getExecutionSummary(
-        Number(id),
-      ),
-      testExecutionService.getRunExecutions(
-        Number(id),
-      ),
-    ]);
-
-    setTestRun(runData);
-    setSummary(summaryData);
-    setExecutions(executionData);
-  } finally {
-    setLoading(false);
-  }
-}
-
-  loadTestRun();
-}, [id]);
+    loadTestRun();
+  }, [id]);
 
   if (loading) {
-  return <CircularProgress />;
-}
+    return <CircularProgress />;
+  }
 
   return (
     <>
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() =>
+          navigate("/test-runs")
+        }
+        sx={{ mb: 2 }}
+      >
+        Back to Test Runs
+      </Button>
+
       <Typography
         variant="h4"
         gutterBottom
@@ -147,249 +196,323 @@ export default function TestRunDetailsPage() {
       </Typography>
 
       <Paper
-  elevation={2}
-  sx={{
-    p: 3,
-    mt: 2,
-  }}
->
-  <Typography
-    variant="h6"
-    gutterBottom
-  >
-    Run Information
-  </Typography>
+        elevation={2}
+        sx={{
+          p: 3,
+          mt: 2,
+        }}
+      >
+        <Typography
+          variant="h6"
+          gutterBottom
+        >
+          Run Information
+        </Typography>
 
-  <Divider sx={{ mb: 2 }} />
+        <Divider sx={{ mb: 2 }} />
 
-  <Grid
-  container
-  spacing={2}
-  sx={{
-    mb: 2,
-  }}
->
-  <Grid size={{ xs: 12, md: 6 }}>
-    <Typography>
-      <strong>Run Code:</strong>{" "}
-      {testRun?.run_code}
-    </Typography>
-  </Grid>
+        <Grid
+          container
+          spacing={2}
+          sx={{
+            mb: 2,
+          }}
+        >
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography>
+              <strong>Run Code:</strong>{" "}
+              {testRun?.run_code}
+            </Typography>
+          </Grid>
 
-  <Grid size={{ xs: 12, md: 6 }}>
-    <Typography>
-      <strong>Run Name:</strong>{" "}
-      {testRun?.name}
-    </Typography>
-  </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography>
+              <strong>Run Name:</strong>{" "}
+              {testRun?.name}
+            </Typography>
+          </Grid>
 
-  <Grid size={{ xs: 12, md: 6 }}>
-    <Typography>
-      <strong>Suite:</strong>{" "}
-      {testRun?.suite.suite_code} -{" "}
-      {testRun?.suite.name}
-    </Typography>
-  </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography>
+              <strong>Suite:</strong>{" "}
+              {testRun?.suite.suite_code} -{" "}
+              {testRun?.suite.name}
+            </Typography>
+          </Grid>
 
-  <Grid size={{ xs: 12, md: 6 }}>
-    <Typography
-  component="div"
-  sx={{
-    display: "flex",
-    alignItems: "center",
-    gap: 1,
-  }}
->
-  <strong>Status:</strong>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography
+              component="div"
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <strong>
+                Execution Type:
+              </strong>
 
-  <Chip
-    label={testRun?.status ?? "-"}
-    color={getTestRunStatusColor(
-      testRun?.status ?? "",
-    )}
-    size="small"
-  />
-</Typography>
-  </Grid>
-</Grid>
+              <Chip
+                label={
+                  testRun?.execution_type ??
+                  "-"
+                }
+                size="small"
+              />
+            </Typography>
+          </Grid>
 
-    <Typography
-      variant="h6"
-      gutterBottom
-    >
-      Execution Information
-    </Typography>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography
+              component="div"
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <strong>Status:</strong>
 
-    <Divider sx={{ mb: 2 }} />
+              <Chip
+                label={
+                  testRun?.status ?? "-"
+                }
+                color={getTestRunStatusColor(
+                  testRun?.status ?? "",
+                )}
+                size="small"
+              />
+            </Typography>
+          </Grid>
+        </Grid>
 
-    <Grid
-  container
-  spacing={2}
->
-  <Grid size={{ xs: 12, md: 6 }}>
-    <Typography>
-      <strong>Build Version:</strong>{" "}
-      {testRun?.build_version ?? "-"}
-    </Typography>
-  </Grid>
+        <Typography
+          variant="h6"
+          gutterBottom
+        >
+          Execution Information
+        </Typography>
 
-  <Grid size={{ xs: 12, md: 6 }}>
-    <Typography>
-      <strong>Environment:</strong>{" "}
-      {testRun?.environment ?? "-"}
-    </Typography>
-  </Grid>
+        <Divider sx={{ mb: 2 }} />
 
-  <Grid size={{ xs: 12, md: 6 }}>
-    <Typography>
-      <strong>Tester:</strong>{" "}
-      {testRun?.tester ?? "-"}
-    </Typography>
-  </Grid>
-  
+        <Grid
+          container
+          spacing={2}
+        >
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography>
+              <strong>
+                Build Version:
+              </strong>{" "}
+              {testRun?.build_version ?? "-"}
+            </Typography>
+          </Grid>
 
-  <Grid size={{ xs: 12, md: 6 }}>
-    <Typography>
-      <strong>Start Date:</strong>{" "}
-      
-       {formatDate(testRun?.start_date ?? null)}
-    </Typography>
-  </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography>
+              <strong>
+                Environment:
+              </strong>{" "}
+              {testRun?.environment ?? "-"}
+            </Typography>
+          </Grid>
 
-  <Grid size={{ xs: 12, md: 6 }}>
-    <Typography>
-      <strong>End Date:</strong>{" "}
-      {formatDate(testRun?.end_date ?? null)}
-    </Typography>
-  </Grid>
-</Grid>
-    </Paper>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography>
+              <strong>Tester:</strong>{" "}
+              {testRun?.tester ?? "-"}
+            </Typography>
+          </Grid>
 
-    <Paper
-  elevation={2}
-  sx={{
-    p: 3,
-    mt: 3,
-  }}
->
-  <Typography
-    variant="h6"
-    gutterBottom
-  >
-    Execution Summary
-  </Typography>
-
-  <Divider sx={{ mb: 2 }} />
-
-  <Grid container spacing={2}>
-  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-  <SummaryCard
-    title="Total Test Cases"
-    value={summary?.total ?? 0}
-  />
-</Grid>
-
-  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-  <SummaryCard
-    title="Passed"
-    value={summary?.passed ?? 0}
-  />
-</Grid>
-
-  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-  <SummaryCard
-    title="Failed"
-    value={summary?.failed ?? 0}
-  />
-</Grid>
-
-<Grid size={{ xs: 12, sm: 6, md: 4 }}>
-  <SummaryCard
-    title="Blocked"
-    value={summary?.blocked ?? 0}
-  />
-</Grid>
-
-<Grid size={{ xs: 12, sm: 6, md: 4 }}>
-  <SummaryCard
-    title="Not Executed"
-    value={summary?.not_executed ?? 0}
-  />
-</Grid>
-
-<Grid size={{ xs: 12, sm: 6, md: 4 }}>
-  <SummaryCard
-    title="Pass Percentage"
-    value={`${summary?.pass_percentage ?? 0}%`}
-  />
-</Grid>
-</Grid>
-</Paper>
-<Paper
-  elevation={2}
-  sx={{
-    p: 3,
-    mt: 3,
-  }}
->
-  <Typography
-    variant="h6"
-    gutterBottom
-  >
-    Execution History
-  </Typography>
-
-  <Divider sx={{ mb: 2 }} />
-
-  <TableContainer>
-  <Table>
-    <TableHead>
-      <TableRow>
-        <TableCell>Test Case</TableCell>
-        <TableCell>Title</TableCell>
-        <TableCell>Status</TableCell>
-        <TableCell>Executed By</TableCell>
-        <TableCell>Executed At</TableCell>
-      </TableRow>
-    </TableHead>
-
-    <TableBody>
-      {executions.map((execution) => (
-        <TableRow key={execution.id}>
-          <TableCell>
-            {execution.test_case.test_case_code}
-          </TableCell>
-
-          <TableCell>
-            {execution.test_case.title}
-          </TableCell>
-
-          <TableCell>
-           <Chip
-              label={execution.status}
-              color={getTestRunStatusColor(
-                execution.status,
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography>
+              <strong>Start Date:</strong>{" "}
+              {formatDateOnly(
+                testRun?.start_date ?? null,
               )}
-              size="small"
+            </Typography>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography>
+              <strong>End Date:</strong>{" "}
+              {formatDateOnly(
+                testRun?.end_date ?? null,
+              )}
+            </Typography>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      <Paper
+        elevation={2}
+        sx={{
+          p: 3,
+          mt: 3,
+        }}
+      >
+        <Typography
+          variant="h6"
+          gutterBottom
+        >
+          Execution Summary
+        </Typography>
+
+        <Divider sx={{ mb: 2 }} />
+
+        <Grid container spacing={2}>
+          <Grid
+            size={{ xs: 12, sm: 6, md: 4 }}
+          >
+            <SummaryCard
+              title="Total Test Cases"
+              value={summary?.total ?? 0}
             />
-          </TableCell>
+          </Grid>
 
-          <TableCell>
-            {execution.executed_by ?? "-"}
-          </TableCell>
+          <Grid
+            size={{ xs: 12, sm: 6, md: 4 }}
+          >
+            <SummaryCard
+              title="Passed"
+              value={summary?.passed ?? 0}
+            />
+          </Grid>
 
-          <TableCell>
-            {formatDate(
-              execution.executed_at,
-            )}
-          </TableCell>
-        </TableRow>
-      ))}
-    </TableBody>
-  </Table>
-</TableContainer>
-</Paper>
+          <Grid
+            size={{ xs: 12, sm: 6, md: 4 }}
+          >
+            <SummaryCard
+              title="Failed"
+              value={summary?.failed ?? 0}
+            />
+          </Grid>
 
+          <Grid
+            size={{ xs: 12, sm: 6, md: 4 }}
+          >
+            <SummaryCard
+              title="Blocked"
+              value={summary?.blocked ?? 0}
+            />
+          </Grid>
+
+          <Grid
+            size={{ xs: 12, sm: 6, md: 4 }}
+          >
+            <SummaryCard
+              title="Not Executed"
+              value={
+                summary?.not_executed ?? 0
+              }
+            />
+          </Grid>
+
+          <Grid
+            size={{ xs: 12, sm: 6, md: 4 }}
+          >
+            <SummaryCard
+              title="Pass Percentage"
+              value={`${summary?.pass_percentage ?? 0}%`}
+            />
+          </Grid>
+        </Grid>
+      </Paper>
+
+      <Paper
+        elevation={2}
+        sx={{
+          p: 3,
+          mt: 3,
+        }}
+      >
+        <Typography
+          variant="h6"
+          gutterBottom
+        >
+          Execution History
+        </Typography>
+
+        <Divider sx={{ mb: 2 }} />
+
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>
+                  Test Case
+                </TableCell>
+
+                <TableCell>
+                  Title
+                </TableCell>
+
+                <TableCell>
+                  Status
+                </TableCell>
+
+                <TableCell>
+                  Executed By
+                </TableCell>
+
+                <TableCell>
+                  Executed At
+                </TableCell>
+              </TableRow>
+            </TableHead>
+
+            <TableBody>
+              {executions.map(
+                (execution) => (
+                  <TableRow
+                    key={execution.id}
+                  >
+                    <TableCell>
+                      {
+                        execution.test_case
+                          .test_case_code
+                      }
+                    </TableCell>
+
+                    <TableCell>
+                      {
+                        execution.test_case
+                          .title
+                      }
+                    </TableCell>
+
+                    <TableCell>
+                      <Chip
+                        label={
+                          execution.status
+                        }
+                        color={getTestRunStatusColor(
+                          execution.status,
+                        )}
+                        size="small"
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      {
+                        execution.executed_by ??
+                        "-"
+                      }
+                    </TableCell>
+
+                    <TableCell>
+                      {formatDateTime(
+                        execution.executed_at,
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ),
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
     </>
   );
 }

@@ -4,7 +4,6 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
-    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -15,14 +14,6 @@ from app.db.database import Base
 class TestSuite(Base):
     __tablename__ = "test_suites"
 
-    __table_args__ = (
-        UniqueConstraint(
-            "project_id",
-            "suite_code",
-            name="uq_test_suite_project_code",
-        ),
-    )
-
     id = Column(
         Integer,
         primary_key=True,
@@ -32,6 +23,7 @@ class TestSuite(Base):
     suite_code = Column(
         String(20),
         nullable=False,
+        unique=True,
         index=True,
     )
 

@@ -14,6 +14,7 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate, useParams } from "react-router-dom";
 
 import AssignmentHeader from "../../components/testSuites/assignment/AssignmentHeader";
@@ -72,12 +73,12 @@ export default function AssignTestCasesPage() {
 
   const [saving, setSaving] =
     useState(false);
+
   const [aiLoading, setAiLoading] =
-  useState(false);
+    useState(false);
 
-const [aiRecommendedIds, setAiRecommendedIds] =
-  useState<number[]>([]);
-
+  const [aiRecommendedIds, setAiRecommendedIds] =
+    useState<number[]>([]);
 
   const [error, setError] =
     useState("");
@@ -176,47 +177,50 @@ const [aiRecommendedIds, setAiRecommendedIds] =
     setSelectedScenarioIds(value);
   }
 
- 
   async function handleAIRecommend() {
-  if (!suite || filteredTestCases.length === 0) {
-    return;
-  }
+    if (
+      !suite ||
+      filteredTestCases.length === 0
+    ) {
+      return;
+    }
 
-  try {
-    setAiLoading(true);
-    setError("");
+    try {
+      setAiLoading(true);
+      setError("");
 
-    const recommendedIds =
-      await testSuiteService.recommendTestCases(
-        suite.id,
-        filteredTestCases.map(
-          (testCase) => testCase.id,
-        ),
+      const recommendedIds =
+        await testSuiteService.recommendTestCases(
+          suite.id,
+          filteredTestCases.map(
+            (testCase) => testCase.id,
+          ),
+        );
+
+      setAiRecommendedIds((previous) => [
+        ...new Set([
+          ...previous,
+          ...recommendedIds,
+        ]),
+      ]);
+
+      setSelectedIds((previous) => [
+        ...new Set([
+          ...previous,
+          ...recommendedIds,
+        ]),
+      ]);
+    } catch (error) {
+      console.error(error);
+
+      setError(
+        "Failed to get AI test case recommendations.",
       );
-
-    setAiRecommendedIds((previous) => [
-      ...new Set([
-        ...previous,
-        ...recommendedIds,
-      ]),
-    ]);
-
-    setSelectedIds((previous) => [
-      ...new Set([
-        ...previous,
-        ...recommendedIds,
-      ]),
-    ]);
-  } catch (error) {
-    console.error(error);
-
-    setError(
-      "Failed to get AI test case recommendations.",
-    );
-  } finally {
-    setAiLoading(false);
+    } finally {
+      setAiLoading(false);
+    }
   }
-}
+
   async function handleSave() {
     if (!suite) {
       return;
@@ -321,22 +325,57 @@ const [aiRecommendedIds, setAiRecommendedIds] =
 
   if (error) {
     return (
-      <Alert severity="error">
-        {error}
-      </Alert>
+      <>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() =>
+            navigate("/test-suites")
+          }
+          sx={{ mb: 2 }}
+        >
+          Back to Test Suites
+        </Button>
+
+        <Alert severity="error">
+          {error}
+        </Alert>
+      </>
     );
   }
 
   if (!suite) {
     return (
-      <Alert severity="error">
-        Test Suite not found.
-      </Alert>
+      <>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() =>
+            navigate("/test-suites")
+          }
+          sx={{ mb: 2 }}
+        >
+          Back to Test Suites
+        </Button>
+
+        <Alert severity="error">
+          Test Suite not found.
+        </Alert>
+      </>
     );
   }
 
   return (
     <>
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() =>
+          navigate("/test-suites")
+        }
+        disabled={saving}
+        sx={{ mb: 2 }}
+      >
+        Back to Test Suites
+      </Button>
+
       <AssignmentHeader
         suite={suite}
         assignedCount={selectedIds.length}
@@ -598,23 +637,25 @@ const [aiRecommendedIds, setAiRecommendedIds] =
       </Stack>
 
       <Button
-          variant="contained"
-          onClick={handleAIRecommend}
-          disabled={
-            aiLoading ||
-            filteredTestCases.length === 0
-          }
-        >
-          {aiLoading
-            ? "AI Recommending..."
-            : "✨ AI Recommend"}
-        </Button>
+        variant="contained"
+        onClick={handleAIRecommend}
+        disabled={
+          aiLoading ||
+          filteredTestCases.length === 0
+        }
+      >
+        {aiLoading
+          ? "AI Recommending..."
+          : "✨ AI Recommend"}
+      </Button>
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 6 }}>
           <AvailableTestCasesTable
             testCases={filteredTestCases}
-            aiRecommendedIds={aiRecommendedIds}
+            aiRecommendedIds={
+              aiRecommendedIds
+            }
             selectedIds={selectedIds}
             onToggle={handleToggle}
           />
@@ -624,7 +665,9 @@ const [aiRecommendedIds, setAiRecommendedIds] =
           <AssignedTestCasesTable
             testCases={testCases}
             selectedIds={selectedIds}
-            aiRecommendedIds={aiRecommendedIds}
+            aiRecommendedIds={
+              aiRecommendedIds
+            }
           />
         </Grid>
       </Grid>

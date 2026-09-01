@@ -23,10 +23,8 @@ export interface TestExecution {
   comments: string | null;
   executed_by: string | null;
   executed_at: string | null;
-
   test_run: TestExecutionRun;
   test_case: TestExecutionTestCase;
-
   created_at: string;
   updated_at: string;
 }
@@ -41,12 +39,9 @@ export interface TestExecutionSummary {
 }
 
 export interface TestExecutionUpdateRequest {
-  run_id: number;
-  test_case_id: number;
   status: string;
   actual_result: string | null;
   comments: string | null;
   executed_by: string | null;
   executed_at: string | null;
 }
-

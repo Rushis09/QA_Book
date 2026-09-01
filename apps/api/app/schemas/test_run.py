@@ -22,6 +22,7 @@ class TestRunBase(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     status: str = "Not Started"
+    execution_type: str = "Manual"
 
 
 class TestRunCreate(TestRunBase):

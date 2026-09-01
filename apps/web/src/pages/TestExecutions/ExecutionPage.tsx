@@ -6,6 +6,8 @@ import {
   CircularProgress,
   Typography,
 } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+
 import {
   useNavigate,
   useParams,
@@ -217,9 +219,80 @@ export default function ExecutionPage() {
 
   if (error) {
     return (
-      <Alert severity="error">
-        {error}
-      </Alert>
+      <>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() =>
+            navigate("/test-runs")
+          }
+          sx={{ mb: 2 }}
+        >
+          Back to Test Runs
+        </Button>
+
+        <Alert severity="error">
+          {error}
+        </Alert>
+      </>
+    );
+  }
+
+  if (executions.length === 0) {
+    return (
+      <>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() =>
+            navigate("/test-runs")
+          }
+          sx={{ mb: 2 }}
+        >
+          Back to Test Runs
+        </Button>
+
+        <Typography
+          variant="h4"
+          gutterBottom
+        >
+          Test Execution
+        </Typography>
+
+        {testRun && (
+          <>
+            <Typography variant="subtitle1">
+              <strong>Run Code:</strong>{" "}
+              {testRun.run_code}
+            </Typography>
+
+            <Typography
+              variant="subtitle1"
+              gutterBottom
+            >
+              <strong>Run Name:</strong>{" "}
+              {testRun.name}
+            </Typography>
+
+            <Typography
+              variant="subtitle1"
+              gutterBottom
+            >
+              <strong>
+                Execution Type:
+              </strong>{" "}
+              {testRun.execution_type}
+            </Typography>
+          </>
+        )}
+
+        <Alert
+          severity="warning"
+          sx={{ mt: 2 }}
+        >
+          This Test Run cannot be executed
+          because its Test Suite has no test
+          cases.
+        </Alert>
+      </>
     );
   }
 
@@ -228,41 +301,50 @@ export default function ExecutionPage() {
     executions.length - 1;
 
   const passedCount =
-  executions.filter(
-    (execution) =>
-      execution.status === "Passed",
-  ).length;
+    executions.filter(
+      (execution) =>
+        execution.status === "Passed",
+    ).length;
 
-const failedCount =
-  executions.filter(
-    (execution) =>
-      execution.status === "Failed",
-  ).length;
+  const failedCount =
+    executions.filter(
+      (execution) =>
+        execution.status === "Failed",
+    ).length;
 
-const blockedCount =
-  executions.filter(
-    (execution) =>
-      execution.status === "Blocked",
-  ).length;
+  const blockedCount =
+    executions.filter(
+      (execution) =>
+        execution.status === "Blocked",
+    ).length;
 
-const notExecutedCount =
-  executions.filter(
-    (execution) =>
-      execution.status ===
-      "Not Executed",
-  ).length;
+  const notExecutedCount =
+    executions.filter(
+      (execution) =>
+        execution.status ===
+        "Not Executed",
+    ).length;
 
-const passPercentage =
-  executions.length === 0
-    ? 0
-    : Math.round(
-        (passedCount /
-          executions.length) *
-          100,
-      );
+  const passPercentage =
+    Math.round(
+      (passedCount /
+        executions.length) *
+        100,
+    );
 
   return (
     <>
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() =>
+          navigate("/test-runs")
+        }
+        disabled={isSaving}
+        sx={{ mb: 2 }}
+      >
+        Back to Test Runs
+      </Button>
+
       <Typography
         variant="h4"
         gutterBottom
@@ -270,37 +352,48 @@ const passPercentage =
         Test Execution
       </Typography>
 
-    {testRun && (
-      <>
-        <Typography variant="subtitle1">
-          <strong>Run Code:</strong>{" "}
-          {testRun.run_code}
-        </Typography>
+      {testRun && (
+        <>
+          <Typography variant="subtitle1">
+            <strong>Run Code:</strong>{" "}
+            {testRun.run_code}
+          </Typography>
 
-        <Typography
-          variant="subtitle1"
-          gutterBottom
-        >
-          <strong>Run Name:</strong>{" "}
-          {testRun.name}
-        </Typography>
+          <Typography
+            variant="subtitle1"
+            gutterBottom
+          >
+            <strong>Run Name:</strong>{" "}
+            {testRun.name}
+          </Typography>
 
-        <Typography
-          variant="subtitle1"
-          gutterBottom
-        >
-          <strong>Progress:</strong>{" "}
-          {currentIndex + 1 } / {executions.length}
-        </Typography>
-      </>
-    )}
-    
+          <Typography
+            variant="subtitle1"
+            gutterBottom
+          >
+            <strong>
+              Execution Type:
+            </strong>{" "}
+            {testRun.execution_type}
+          </Typography>
+
+          <Typography
+            variant="subtitle1"
+            gutterBottom
+          >
+            <strong>Progress:</strong>{" "}
+            {currentIndex + 1} /{" "}
+            {executions.length}
+          </Typography>
+        </>
+      )}
+
       <Typography
         variant="subtitle1"
         gutterBottom
       >
-         <strong>Status:</strong>{" "}
-          {status}
+        <strong>Status:</strong>{" "}
+        {status}
       </Typography>
 
       <Typography
@@ -308,8 +401,9 @@ const passPercentage =
         color="text.secondary"
         gutterBottom
       >
-        Passed: {passedCount} | Failed: {failedCount} |
-        Blocked: {blockedCount} | Not Executed:{" "}
+        Passed: {passedCount} | Failed:{" "}
+        {failedCount} | Blocked:{" "}
+        {blockedCount} | Not Executed:{" "}
         {notExecutedCount}
       </Typography>
 
@@ -318,7 +412,8 @@ const passPercentage =
         color="text.secondary"
         gutterBottom
       >
-        Pass Percentage: {passPercentage}%
+        Pass Percentage:{" "}
+        {passPercentage}%
       </Typography>
 
       {currentExecution && (

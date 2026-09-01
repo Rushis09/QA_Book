@@ -50,6 +50,33 @@ export default function TestRunForm({
       </TextField>
 
       <TextField
+        select
+        label="Execution Type"
+        value={value.execution_type}
+        onChange={(event) =>
+          onChange({
+            ...value,
+            execution_type: event.target.value,
+          })
+        }
+        fullWidth
+        required
+        margin="normal"
+      >
+        <MenuItem value="Manual">
+          Manual
+        </MenuItem>
+      
+        <MenuItem value="Automated">
+          Automated
+        </MenuItem>
+      
+        <MenuItem value="Hybrid">
+          Hybrid
+        </MenuItem>
+      </TextField>
+
+      <TextField
         label="Run Name"
         value={value.name}
         onChange={(event) =>

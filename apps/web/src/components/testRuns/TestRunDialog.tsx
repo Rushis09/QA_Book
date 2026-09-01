@@ -30,6 +30,7 @@ const createDefaultFormData = (
 ): TestRunFormData => ({
   suite_id: suiteId,
   name: "",
+  execution_type: "Manual",
   build_version: "",
   environment: "",
   tester: "",
@@ -65,6 +66,8 @@ export default function TestRunDialog({
       setFormData({
         suite_id: testRun.suite_id,
         name: testRun.name,
+        execution_type:
+          testRun.execution_type,
         build_version:
           testRun.build_version ?? "",
         environment:

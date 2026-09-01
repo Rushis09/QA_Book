@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import func
@@ -69,6 +69,7 @@ class TestRunService:
             start_date=data.start_date,
             end_date=data.end_date,
             status=data.status,
+            execution_type=data.execution_type,
         )
 
         return self.repository.create(run)
@@ -90,6 +91,7 @@ class TestRunService:
         run.start_date = data.start_date
         run.end_date = data.end_date
         run.status = data.status
+        run.execution_type = data.execution_type
 
         return self.repository.update(run)
 
@@ -102,7 +104,9 @@ class TestRunService:
         )
 
         run.status = "Completed"
-        run.end_date = datetime.utcnow()
+        run.end_date = datetime.now(
+            timezone.utc
+        ).date()
 
         return self.repository.update(run)
 

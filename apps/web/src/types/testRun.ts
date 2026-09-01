@@ -10,6 +10,7 @@ export interface TestRun {
   suite_id: number;
   suite: TestRunSuite;
   name: string;
+  execution_type: string;
   build_version: string | null;
   environment: string | null;
   tester: string | null;
@@ -23,6 +24,7 @@ export interface TestRun {
 export interface TestRunRequest {
   suite_id: number;
   name: string;
+  execution_type: string;
   build_version: string | null;
   environment: string | null;
   tester: string | null;

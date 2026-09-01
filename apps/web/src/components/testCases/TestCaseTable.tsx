@@ -62,6 +62,30 @@ export default function TestCaseTable({
     }
   }
 
+  function getAutomationEligibilityColor(
+    eligibility: string,
+  ): "success" | "default" {
+    switch (eligibility) {
+      case "Eligible":
+        return "success";
+      default:
+        return "default";
+    }
+  }
+
+  function getAutomationStatusColor(
+    status: string,
+  ): "success" | "primary" | "default" {
+    switch (status) {
+      case "Automated":
+        return "success";
+      case "Not Automated":
+        return "primary";
+      default:
+        return "default";
+    }
+  }
+
   const visibleIds = testCases.map(
     (testCase) => testCase.id,
   );
@@ -154,6 +178,14 @@ export default function TestCaseTable({
             </TableCell>
 
             <TableCell>
+              Automation Eligibility
+            </TableCell>
+
+            <TableCell>
+              Automation Status
+            </TableCell>
+
+            <TableCell>
               Title
             </TableCell>
 
@@ -171,7 +203,7 @@ export default function TestCaseTable({
           {testCases.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={10}
+                colSpan={12}
                 align="center"
               >
                 No test cases found.
@@ -231,6 +263,30 @@ export default function TestCaseTable({
                       label={testCase.status}
                       color={getStatusColor(
                         testCase.status,
+                      )}
+                      size="small"
+                    />
+                  </TableCell>
+
+                  <TableCell>
+                    <Chip
+                      label={
+                        testCase.automation_eligibility
+                      }
+                      color={getAutomationEligibilityColor(
+                        testCase.automation_eligibility,
+                      )}
+                      size="small"
+                    />
+                  </TableCell>
+
+                  <TableCell>
+                    <Chip
+                      label={
+                        testCase.automation_status
+                      }
+                      color={getAutomationStatusColor(
+                        testCase.automation_status,
                       )}
                       size="small"
                     />

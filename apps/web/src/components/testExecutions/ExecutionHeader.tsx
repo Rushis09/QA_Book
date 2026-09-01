@@ -11,6 +11,7 @@ interface ExecutionHeaderProps {
   runCode: string;
   runName: string;
   suiteName: string;
+  executionType: string;
   tester: string | null;
   environment: string | null;
   buildVersion: string | null;
@@ -21,6 +22,7 @@ export default function ExecutionHeader({
   runCode,
   runName,
   suiteName,
+  executionType,
   tester,
   environment,
   buildVersion,
@@ -95,6 +97,20 @@ export default function ExecutionHeader({
             <Typography>
               {suiteName}
             </Typography>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography
+              variant="subtitle2"
+              color="text.secondary"
+            >
+              Execution Type
+            </Typography>
+
+            <Chip
+              label={executionType}
+              size="small"
+            />
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>

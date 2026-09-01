@@ -22,7 +22,6 @@ class TestExecutionTestCaseResponse(BaseModel):
     steps: str | None = None
     expected_result: str | None = None
 
-
     class Config:
         from_attributes = True
 
@@ -41,8 +40,12 @@ class TestExecutionCreate(TestExecutionBase):
     pass
 
 
-class TestExecutionUpdate(TestExecutionBase):
-    pass
+class TestExecutionUpdate(BaseModel):
+    status: str
+    actual_result: Optional[str] = None
+    comments: Optional[str] = None
+    executed_by: Optional[str] = None
+    executed_at: Optional[datetime] = None
 
 
 class TestExecutionResponse(TestExecutionBase):

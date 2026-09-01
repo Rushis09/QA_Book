@@ -16,7 +16,10 @@ import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { testRunService } from "../../services/testRunService";
 import { testSuiteService } from "../../services/testSuiteService";
 
-import type { TestRun } from "../../types/testRun";
+import type {
+  TestRun,
+  TestRunRequest,
+} from "../../types/testRun";
 import type { TestRunFormData } from "../../types/testRunForm";
 import type { TestSuite } from "../../types/testSuite";
 
@@ -111,9 +114,32 @@ export default function TestRunsPage() {
     setConfirmOpen(true);
   }
 
+  function canExecuteTestRun(
+    testRun: TestRun,
+  ) {
+    const suite = testSuites.find(
+      (suite) =>
+        suite.id === testRun.suite_id,
+    );
+
+    return (
+      !!suite &&
+      suite.test_cases.length > 0
+    );
+  }
+
   function handleExecute(
     testRun: TestRun,
   ) {
+    if (!canExecuteTestRun(testRun)) {
+      showNotification(
+        "Cannot execute Test Run because the Test Suite has no test cases.",
+        "warning",
+      );
+
+      return;
+    }
+
     navigate(
       `/test-runs/${testRun.id}/execute`,
     );
@@ -130,15 +156,33 @@ export default function TestRunsPage() {
   async function handleSave(
     data: TestRunFormData,
   ) {
+    const requestData: TestRunRequest = {
+      suite_id: data.suite_id,
+      name: data.name,
+      execution_type:
+        data.execution_type,
+      build_version:
+        data.build_version,
+      environment:
+        data.environment,
+      tester:
+        data.tester,
+      start_date:
+        data.start_date || null,
+      end_date:
+        data.end_date || null,
+      status: data.status,
+    };
+
     console.log(
       "Submitting Test Run:",
-      data,
+      requestData,
     );
 
     if (selectedTestRun) {
       await testRunService.updateTestRun(
         selectedTestRun.id,
-        data,
+        requestData,
       );
 
       showNotification(
@@ -147,7 +191,7 @@ export default function TestRunsPage() {
       );
     } else {
       await testRunService.createTestRun(
-        data,
+        requestData,
       );
 
       showNotification(
@@ -197,7 +241,12 @@ export default function TestRunsPage() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onExecute={handleExecute}
-          onViewDetails={handleViewDetails}
+          onViewDetails={
+            handleViewDetails
+          }
+          canExecute={
+            canExecuteTestRun
+          }
         />
       </PageHeader>
 

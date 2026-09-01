@@ -9,7 +9,6 @@ from app.schemas.test_execution import (
     TestExecutionCreate,
     TestExecutionUpdate,
 )
-from app.models.test_case import TestCase
 from app.services.test_run_service import TestRunService
 
 
@@ -18,7 +17,6 @@ class TestExecutionService:
         self.db = db
         self.repository = TestExecutionRepository(db)
         self.test_run_service = TestRunService(db)
-
 
     def get_test_executions(self):
         return self.repository.get_all()
@@ -38,7 +36,7 @@ class TestExecutionService:
             )
 
         return execution
-    
+
     def get_or_create_executions(
         self,
         run_id: int,
@@ -94,16 +92,18 @@ class TestExecutionService:
             execution_id,
         )
 
-        execution.run_id = data.run_id
-        execution.test_case_id = data.test_case_id
         execution.status = data.status
+
         execution.actual_result = (
             data.actual_result
         )
+
         execution.comments = data.comments
+
         execution.executed_by = (
             data.executed_by
         )
+
         execution.executed_at = (
             data.executed_at
         )
@@ -111,7 +111,6 @@ class TestExecutionService:
         return self.repository.update(
             execution,
         )
-
 
     def get_execution_summary(
         self,

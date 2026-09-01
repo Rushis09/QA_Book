@@ -53,6 +53,12 @@ export default function TestCasesPage() {
   const [selectedScenarioIds, setSelectedScenarioIds] =
     useState<number[]>([]);
 
+  const [selectedAutomationEligibility, setSelectedAutomationEligibility] =
+    useState("");
+
+  const [selectedAutomationStatus, setSelectedAutomationStatus] =
+    useState("");
+
   const [loading, setLoading] =
     useState(true);
 
@@ -78,7 +84,7 @@ export default function TestCasesPage() {
     useState<TestCase[]>([]);
 
   const [selectedTestCaseIds, setSelectedTestCaseIds] =
-  useState<number[]>([]);
+    useState<number[]>([]);
 
   const { showNotification } =
     useNotification();
@@ -87,15 +93,20 @@ export default function TestCasesPage() {
     useWorkspace();
 
   async function loadData() {
-
     if (!selectedProject) {
       setTestCases([]);
       setScenarios([]);
       setRequirements([]);
       setProjects([]);
+      setSelectedRequirementIds([]);
+      setSelectedScenarioIds([]);
+      setSelectedAutomationEligibility("");
+      setSelectedAutomationStatus("");
+      setSelectedTestCaseIds([]);
       setLoading(false);
       return;
     }
+
     try {
       setLoading(true);
 
@@ -123,6 +134,8 @@ export default function TestCasesPage() {
       setRequirements(requirementData);
       setSelectedRequirementIds([]);
       setSelectedScenarioIds([]);
+      setSelectedAutomationEligibility("");
+      setSelectedAutomationStatus("");
       setSelectedTestCaseIds([]);
 
       setError("");
@@ -138,63 +151,74 @@ export default function TestCasesPage() {
   }
 
   useEffect(() => {
-  loadData();
-}, [selectedProject]);
-  
+    loadData();
+  }, [selectedProject]);
 
-    const filteredTestCases = testCases.filter(
-      (testCase) => {
-        const scenario = scenarios.find(
-          (s) => s.id === testCase.scenario_id,
+  const filteredTestCases = testCases.filter(
+    (testCase) => {
+      const scenario = scenarios.find(
+        (s) => s.id === testCase.scenario_id,
+      );
+
+      if (!scenario) {
+        return false;
+      }
+
+      const matchesRequirement =
+        selectedRequirementIds.length === 0 ||
+        selectedRequirementIds.includes(
+          scenario.requirement_id,
         );
-      
-        if (!scenario) {
-          return false;
-        }
-      
-        const matchesRequirement =
-          selectedRequirementIds.length === 0 ||
+
+      const matchesScenario =
+        selectedScenarioIds.length === 0 ||
+        selectedScenarioIds.includes(
+          scenario.id,
+        );
+
+      const matchesAutomationEligibility =
+        selectedAutomationEligibility === "" ||
+        testCase.automation_eligibility ===
+          selectedAutomationEligibility;
+
+      const matchesAutomationStatus =
+        selectedAutomationStatus === "" ||
+        testCase.automation_status ===
+          selectedAutomationStatus;
+
+      return (
+        matchesRequirement &&
+        matchesScenario &&
+        matchesAutomationEligibility &&
+        matchesAutomationStatus
+      );
+    },
+  );
+
+  const filteredScenarios =
+    selectedRequirementIds.length === 0
+      ? scenarios
+      : scenarios.filter((scenario) =>
           selectedRequirementIds.includes(
             scenario.requirement_id,
-          );
-        
-        const matchesScenario =
-          selectedScenarioIds.length === 0 ||
-          selectedScenarioIds.includes(
-            scenario.id,
-          );
-        
-        return (
-          matchesRequirement &&
-          matchesScenario
-        );
-      },
-    );
-
-    const filteredScenarios =
-      selectedRequirementIds.length === 0
-        ? scenarios
-        : scenarios.filter((scenario) =>
-            selectedRequirementIds.includes(
-              scenario.requirement_id,
-            ),
-          );
-
-    useEffect(() => {
-      setSelectedScenarioIds((previous) => {
-        const next = previous.filter((id) =>
-          filteredScenarios.some(
-            (scenario) => scenario.id === id,
           ),
         );
-      
-        if (next.length === previous.length) {
-          return previous;
-        }
-      
-        return next;
-      });
-    }, [selectedRequirementIds, scenarios]);
+
+  useEffect(() => {
+    setSelectedScenarioIds((previous) => {
+      const next = previous.filter((id) =>
+        filteredScenarios.some(
+          (scenario) => scenario.id === id,
+        ),
+      );
+
+      if (next.length === previous.length) {
+        return previous;
+      }
+
+      return next;
+    });
+  }, [selectedRequirementIds, scenarios]);
 
   function handleEdit(
     testCase: TestCase,
@@ -302,61 +326,76 @@ export default function TestCasesPage() {
   return (
     <>
       <PageHeader
-          title="Test Cases"
-          actionLabel="New Test Case"
-          onAction={() => {
-            if (selectedScenarioIds.length !== 1) {
-              showNotification(
-                "Please select exactly one scenario to create a test case.",
-                "warning",
-              );
-              return;
-            }
-          
-            setOpenDialog(true);
-          }}
-          secondaryActionLabel="✨ Generate with AI"
-          onSecondaryAction={() => {
-            if (selectedScenarioIds.length !== 1) {
-              showNotification(
-                "Please select exactly one scenario to generate test cases.",
-                "warning",
-              );
-              return;
-            }
-          
-            setOpenGenerateDialog(true);
-          }}
-          selectionCount={selectedTestCaseIds.length}
-          selectionActions={
-            selectedTestCaseIds.length === 1
+        title="Test Cases"
+        actionLabel="New Test Case"
+        onAction={() => {
+          if (selectedScenarioIds.length !== 1) {
+            showNotification(
+              "Please select exactly one scenario to create a test case.",
+              "warning",
+            );
+            return;
+          }
+
+          setOpenDialog(true);
+        }}
+        secondaryActionLabel="✨ Generate with AI"
+        onSecondaryAction={() => {
+          if (selectedScenarioIds.length !== 1) {
+            showNotification(
+              "Please select exactly one scenario to generate test cases.",
+              "warning",
+            );
+            return;
+          }
+
+          setOpenGenerateDialog(true);
+        }}
+        selectionCount={selectedTestCaseIds.length}
+        selectionActions={
+          selectedTestCaseIds.length === 1
+            ? [
+                {
+                  label: "Edit",
+                  onClick: () => {
+                    const testCase = testCases.find(
+                      (tc) =>
+                        tc.id === selectedTestCaseIds[0],
+                    );
+
+                    if (testCase) {
+                      handleEdit(testCase);
+                    }
+                  },
+                },
+                {
+                  label: "Delete",
+                  color: "error",
+                  onClick: () => {
+                    const testCase = testCases.find(
+                      (tc) =>
+                        tc.id === selectedTestCaseIds[0],
+                    );
+
+                    if (testCase) {
+                      handleDelete(testCase);
+                    }
+                  },
+                },
+                {
+                  label: "Clear Selection",
+                  variant: "outlined",
+                  onClick: () => {
+                    setSelectedTestCaseIds([]);
+                  },
+                },
+              ]
+            : selectedTestCaseIds.length > 1
               ? [
                   {
-                    label: "Edit",
-                    onClick: () => {
-                      const testCase = testCases.find(
-                        (tc) =>
-                          tc.id === selectedTestCaseIds[0],
-                      );
-                    
-                      if (testCase) {
-                        handleEdit(testCase);
-                      }
-                    },
-                  },
-                  {
-                    label: "Delete",
+                    label: "Delete Selected",
                     color: "error",
-                    onClick: () => {
-                      const testCase = testCases.find(
-                        (tc) =>
-                          tc.id === selectedTestCaseIds[0],
-                      );
-                    
-                      if (testCase) {
-                        handleDelete(testCase);
-                      }
-                    },
+                    onClick: handleBulkDelete,
                   },
                   {
                     label: "Clear Selection",
@@ -366,28 +405,28 @@ export default function TestCasesPage() {
                     },
                   },
                 ]
-              : selectedTestCaseIds.length > 1
-                ? [
-                    {
-                      label: "Delete Selected",
-                      color: "error",
-                      onClick: handleBulkDelete,
-                    },
-                    {
-                      label: "Clear Selection",
-                      variant: "outlined",
-                      onClick: () => {
-                        setSelectedTestCaseIds([]);
-                      },
-                    },
-                  ]
-                : undefined
-          }
-        >
+              : undefined
+        }
+      >
         <Box
           sx={{
-            display: "flex",
-            flexDirection: "column",
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+            },
+            gridTemplateAreas: {
+              xs: `
+                "requirements"
+                "scenarios"
+                "automationStatus"
+                "automationEligibility"
+              `,
+              sm: `
+                "requirements automationStatus"
+                "scenarios automationEligibility"
+              `,
+            },
             gap: 2,
             mb: 2,
           }}
@@ -398,15 +437,18 @@ export default function TestCasesPage() {
           >
             Total Test Cases: {filteredTestCases.length}
           </Typography>
-        
+
           <FormControl
             size="small"
-            sx={{ maxWidth: 420 }}
+            sx={{
+              maxWidth: 420,
+              gridArea: "requirements",
+            }}
           >
             <InputLabel shrink>
               Requirements
             </InputLabel>
-        
+
             <Select
               multiple
               displayEmpty
@@ -425,9 +467,7 @@ export default function TestCasesPage() {
                     selected.includes(r.id),
                   );
                 
-                if (
-                  selectedRequirements.length === 1
-                ) {
+                if (selectedRequirements.length === 1) {
                   return `${selectedRequirements[0].requirement_code} - ${selectedRequirements[0].module}`;
                 }
               
@@ -462,15 +502,18 @@ export default function TestCasesPage() {
               )}
             </Select>
           </FormControl>
-
+            
           <FormControl
             size="small"
-            sx={{ maxWidth: 420 }}
+            sx={{
+              maxWidth: 420,
+              gridArea: "scenarios",
+            }}
           >
             <InputLabel shrink>
               Scenarios
             </InputLabel>
-
+            
             <Select
               multiple
               displayEmpty
@@ -522,9 +565,82 @@ export default function TestCasesPage() {
               ))}
             </Select>
           </FormControl>
-
-        </Box>
             
+          <FormControl
+            size="small"
+            sx={{
+              maxWidth: 420,
+              gridArea: "automationStatus",
+            }}
+          >
+            <InputLabel id="automation-status-label">
+              Automation Status
+            </InputLabel>
+            
+            <Select
+              labelId="automation-status-label"
+              value={selectedAutomationStatus}
+              onChange={(event) =>
+                setSelectedAutomationStatus(
+                  event.target.value,
+                )
+              }
+              input={
+                <OutlinedInput label="Automation Status" />
+              }
+            >
+              <MenuItem value="">
+                All
+              </MenuItem>
+            
+              <MenuItem value="Not Automated">
+                Not Automated
+              </MenuItem>
+            
+              <MenuItem value="Automated">
+                Automated
+              </MenuItem>
+            </Select>
+          </FormControl>
+            
+          <FormControl
+            size="small"
+            sx={{
+              maxWidth: 420,
+              gridArea: "automationEligibility",
+            }}
+          >
+            <InputLabel id="automation-eligibility-label">
+              Automation Eligibility
+            </InputLabel>
+            
+            <Select
+              labelId="automation-eligibility-label"
+              value={selectedAutomationEligibility}
+              onChange={(event) =>
+                setSelectedAutomationEligibility(
+                  event.target.value,
+                )
+              }
+              input={
+                <OutlinedInput label="Automation Eligibility" />
+              }
+            >
+              <MenuItem value="">
+                All
+              </MenuItem>
+            
+              <MenuItem value="Eligible">
+                Eligible
+              </MenuItem>
+            
+              <MenuItem value="Not Suitable">
+                Not Suitable
+              </MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+
         <TestCaseTable
           testCases={filteredTestCases}
           selectedIds={selectedTestCaseIds}
@@ -570,7 +686,7 @@ export default function TestCasesPage() {
         onSave={handleSave}
       />
 
-     <ConfirmDialog
+      <ConfirmDialog
         open={confirmOpen}
         title={
           bulkDeleteTestCases.length > 0
@@ -597,41 +713,41 @@ export default function TestCasesPage() {
                     ),
                 ),
               );
-            
+
               await loadData();
-            
+
               showNotification(
                 "Test cases deleted successfully.",
                 "success",
               );
-            
+
               setSelectedTestCaseIds([]);
               setBulkDeleteTestCases([]);
             } else if (testCaseToDelete) {
               await testCaseService.deleteTestCase(
                 testCaseToDelete.id,
               );
-            
+
               await loadData();
-            
+
               showNotification(
                 "Test case deleted successfully.",
                 "success",
               );
-            
+
               setSelectedTestCaseIds([]);
               setTestCaseToDelete(null);
             }
-          
+
             setConfirmOpen(false);
           } catch (error) {
             console.error(error);
-          
+
             showNotification(
               "Failed to delete test case(s).",
               "error",
             );
-          
+
             setConfirmOpen(false);
             setTestCaseToDelete(null);
             setBulkDeleteTestCases([]);

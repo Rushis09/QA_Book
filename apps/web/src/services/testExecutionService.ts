@@ -4,7 +4,6 @@ import type {
   TestExecution,
   TestExecutionSummary,
   TestExecutionUpdateRequest,
-
 } from "../types/testExecution";
 
 const BASE_URL = "/test-executions";
@@ -13,9 +12,10 @@ export const testExecutionService = {
   async getRunExecutions(
     runId: number,
   ): Promise<TestExecution[]> {
-    const response = await api.get<TestExecution[]>(
-      `${BASE_URL}/run/${runId}`,
-    );
+    const response =
+      await api.get<TestExecution[]>(
+        `${BASE_URL}/run/${runId}`,
+      );
 
     return response.data;
   },
@@ -33,11 +33,11 @@ export const testExecutionService = {
 
   async getExecutionSummary(
     runId: number,
-  ): Promise<TestExecutionSummary> 
-   {
-    const response = await api.get(
-      `${BASE_URL}/run/${runId}/summary`,
-    );
+  ): Promise<TestExecutionSummary> {
+    const response =
+      await api.get<TestExecutionSummary>(
+        `${BASE_URL}/run/${runId}/summary`,
+      );
 
     return response.data;
   },
@@ -56,22 +56,19 @@ export const testExecutionService = {
   },
 
   buildUpdateRequest(
-    execution: TestExecution,
+    _execution: TestExecution,
     status: string,
     actualResult: string,
     comments: string,
   ): TestExecutionUpdateRequest {
     return {
-      run_id: execution.run_id,
-      test_case_id:
-        execution.test_case_id,
       status,
       actual_result: actualResult,
       comments,
       executed_by:
-        execution.executed_by,
+        _execution.executed_by,
       executed_at:
-        execution.executed_at,
+        _execution.executed_at,
     };
   },
 };
