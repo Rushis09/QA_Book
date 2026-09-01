@@ -57,6 +57,20 @@ class TestCase(Base):
         default="Draft",
     )
 
+    automation_eligibility = Column(
+        String(30),
+        nullable=False,
+        default="Eligible",
+        server_default="Eligible",
+    )
+
+    automation_status = Column(
+        String(30),
+        nullable=False,
+        default="Not Automated",
+        server_default="Not Automated",
+    )
+
     title = Column(
         String(200),
         nullable=False,

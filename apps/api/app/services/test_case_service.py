@@ -71,6 +71,12 @@ class TestCaseService:
             module=test_case_data.module,
             priority=test_case_data.priority,
             status=test_case_data.status,
+            automation_eligibility=(
+                test_case_data.automation_eligibility
+            ),
+            automation_status=(
+                test_case_data.automation_status
+            ),
             title=test_case_data.title,
             description=test_case_data.description,
             preconditions=(
@@ -123,6 +129,12 @@ class TestCaseService:
         )
         test_case.status = (
             test_case_data.status
+        )
+        test_case.automation_eligibility = (
+            test_case_data.automation_eligibility
+        )
+        test_case.automation_status = (
+            test_case_data.automation_status
         )
         test_case.title = (
             test_case_data.title

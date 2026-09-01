@@ -21,24 +21,18 @@ export default function TestCaseForm({
   error,
   onChange,
 }: TestCaseFormProps) {
+  const selectedScenario = scenarios.find(
+    (scenario) =>
+      scenario.id === value.scenario_id,
+  );
+
   return (
     <>
       <TextField
         label="Test Scenario"
         value={
-          scenarios.find(
-            (scenario) =>
-              scenario.id === value.scenario_id,
-          )
-            ? `${scenarios.find(
-                (scenario) =>
-                  scenario.id === value.scenario_id,
-              )!.scenario_code} - ${
-                scenarios.find(
-                  (scenario) =>
-                    scenario.id === value.scenario_id,
-                )!.title
-              }`
+          selectedScenario
+            ? `${selectedScenario.scenario_code} - ${selectedScenario.title}`
             : ""
         }
         fullWidth
@@ -76,15 +70,9 @@ export default function TestCaseForm({
         required
         margin="normal"
       >
-        <MenuItem value="High">
-          High
-        </MenuItem>
-        <MenuItem value="Medium">
-          Medium
-        </MenuItem>
-        <MenuItem value="Low">
-          Low
-        </MenuItem>
+        <MenuItem value="High">High</MenuItem>
+        <MenuItem value="Medium">Medium</MenuItem>
+        <MenuItem value="Low">Low</MenuItem>
       </TextField>
 
       <TextField
@@ -119,18 +107,48 @@ export default function TestCaseForm({
         required
         margin="normal"
       >
-        <MenuItem value="Draft">
-          Draft
-        </MenuItem>
-      
-        <MenuItem value="Ready">
-          Ready
-        </MenuItem>
-      
+        <MenuItem value="Draft">Draft</MenuItem>
+        <MenuItem value="Ready">Ready</MenuItem>
         <MenuItem value="Approved">
           Approved
         </MenuItem>
       </TextField>
+
+      <TextField
+        select
+        label="Automation Eligibility"
+        value={value.automation_eligibility}
+        onChange={(event) =>
+          onChange({
+            ...value,
+            automation_eligibility:
+              event.target.value,
+          })
+        }
+        fullWidth
+        required
+        margin="normal"
+      >
+        <MenuItem value="Eligible">
+          Eligible
+        </MenuItem>
+
+        <MenuItem value="Not Suitable">
+          Not Suitable
+        </MenuItem>
+      </TextField>
+
+      <TextField
+        label="Automation Status"
+        value={value.automation_status}
+        fullWidth
+        margin="normal"
+        slotProps={{
+          input: {
+            readOnly: true,
+          },
+        }}
+      />
 
       <TextField
         label="Description"
@@ -153,8 +171,7 @@ export default function TestCaseForm({
         onChange={(event) =>
           onChange({
             ...value,
-            preconditions:
-              event.target.value,
+            preconditions: event.target.value,
           })
         }
         fullWidth
@@ -169,8 +186,7 @@ export default function TestCaseForm({
         onChange={(event) =>
           onChange({
             ...value,
-            test_data:
-              event.target.value,
+            test_data: event.target.value,
           })
         }
         fullWidth
@@ -200,8 +216,7 @@ export default function TestCaseForm({
         onChange={(event) =>
           onChange({
             ...value,
-            expected_result:
-              event.target.value,
+            expected_result: event.target.value,
           })
         }
         fullWidth

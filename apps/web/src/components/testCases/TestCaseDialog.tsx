@@ -33,6 +33,8 @@ const createDefaultFormData = (
   module: scenario?.module ?? "",
   priority: "Medium",
   status: "Draft",
+  automation_eligibility: "Eligible",
+  automation_status: "Not Automated",
   title: "",
   description: "",
   preconditions: "",
@@ -51,9 +53,9 @@ export default function TestCaseDialog({
   onSave,
 }: TestCaseDialogProps) {
   const [formData, setFormData] =
-  useState<TestCaseFormData>(
-    createDefaultFormData(undefined),
-  );
+    useState<TestCaseFormData>(
+      createDefaultFormData(undefined),
+    );
 
   const [saving, setSaving] =
     useState(false);
@@ -71,6 +73,10 @@ export default function TestCaseDialog({
         module: testCase.module,
         priority: testCase.priority,
         status: testCase.status,
+        automation_eligibility:
+          testCase.automation_eligibility,
+        automation_status:
+          testCase.automation_status,
         title: testCase.title,
         description:
           testCase.description ?? "",
@@ -78,7 +84,8 @@ export default function TestCaseDialog({
           testCase.preconditions ?? "",
         test_data:
           testCase.test_data ?? "",
-        steps: testCase.steps ?? "",
+        steps:
+          testCase.steps ?? "",
         expected_result:
           testCase.expected_result ?? "",
       });
@@ -89,7 +96,7 @@ export default function TestCaseDialog({
             scenario.id ===
             selectedScenarioId,
         );
-      
+
       setFormData(
         createDefaultFormData(
           selectedScenario,
@@ -98,7 +105,11 @@ export default function TestCaseDialog({
     }
 
     setTitleError(false);
-  }, [testCase, selectedScenarioId]);
+  }, [
+    testCase,
+    selectedScenarioId,
+    scenarios,
+  ]);
 
   async function handleSave() {
     if (!formData.title.trim()) {
@@ -108,13 +119,10 @@ export default function TestCaseDialog({
 
     try {
       setSaving(true);
-
       await onSave(formData);
-
       handleCancel();
     } catch (error) {
       console.error(error);
-
       showNotification(
         "Failed to save test case.",
         "error",
@@ -130,7 +138,6 @@ export default function TestCaseDialog({
         scenarios[0],
       ),
     );
-
     setTitleError(false);
     onClose();
   }

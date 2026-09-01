@@ -87,6 +87,8 @@ export default function GenerateTestCaseDialog({
           module: selectedScenario.module,
           priority: tc.priority,
           status: "Draft",
+          automation_eligibility: "Eligible",
+          automation_status: "Not Automated",
           title: tc.title,
           description: null,
           preconditions:

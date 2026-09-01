@@ -11,6 +11,7 @@ class TestCaseRequirementResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class TestCaseScenarioResponse(BaseModel):
     id: int
     scenario_code: str
@@ -26,6 +27,8 @@ class TestCaseBase(BaseModel):
     module: str
     priority: str
     status: str
+    automation_eligibility: str = "Eligible"
+    automation_status: str = "Not Automated"
     title: str
     description: str | None = None
     preconditions: str | None = None
