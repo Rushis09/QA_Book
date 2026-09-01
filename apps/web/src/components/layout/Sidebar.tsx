@@ -28,7 +28,9 @@ export default function Sidebar() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { showNotification } = useNotification();
+
+  const { showNotification } =
+    useNotification();
 
   const {
     isAuthenticated,
@@ -83,7 +85,12 @@ export default function Sidebar() {
       <List sx={{ flexGrow: 1 }}>
         {navigationItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.path;
+
+          const isActive =
+            location.pathname === item.path ||
+            location.pathname.startsWith(
+              `${item.path}/`,
+            );
 
           return (
             <ListItemButton
@@ -104,7 +111,9 @@ export default function Sidebar() {
             >
               <ListItemIcon
                 sx={{
-                  color: isActive ? "primary.main" : "inherit",
+                  color: isActive
+                    ? "primary.main"
+                    : "inherit",
                 }}
               >
                 <Icon />
@@ -113,9 +122,15 @@ export default function Sidebar() {
               <ListItemText
                 primary={
                   <Typography
-                    color={isActive ? "primary" : "inherit"}
+                    color={
+                      isActive
+                        ? "primary"
+                        : "inherit"
+                    }
                     sx={{
-                      fontWeight: isActive ? 600 : 400,
+                      fontWeight: isActive
+                        ? 600
+                        : 400,
                     }}
                   >
                     {item.label}
@@ -129,7 +144,6 @@ export default function Sidebar() {
 
       <Divider />
 
-
       <List>
         {isAuthenticated ? (
           <>
@@ -141,7 +155,7 @@ export default function Sidebar() {
               <ListItemIcon>
                 <AccountCircleIcon color="primary" />
               </ListItemIcon>
-            
+
               <ListItemText
                 primary={
                   <Box>
@@ -154,7 +168,7 @@ export default function Sidebar() {
                     >
                       {loggedInUsername}
                     </Box>
-                    
+
                     <Box
                       sx={{
                         fontSize: "0.8rem",
@@ -169,14 +183,16 @@ export default function Sidebar() {
             </ListItem>
 
             <Divider sx={{ mx: 2 }} />
-        
+
             <ListItemButton
-              onClick={() => setLogoutOpen(true)}
+              onClick={() =>
+                setLogoutOpen(true)
+              }
             >
               <ListItemIcon>
                 <LogoutIcon />
               </ListItemIcon>
-        
+
               <ListItemText
                 primary="Logout"
               />
@@ -184,12 +200,14 @@ export default function Sidebar() {
           </>
         ) : (
           <ListItemButton
-            onClick={() => setLoginOpen(true)}
+            onClick={() =>
+              setLoginOpen(true)
+            }
           >
             <ListItemIcon>
               <LoginIcon />
             </ListItemIcon>
-        
+
             <ListItemText
               primary="Admin Login"
             />
@@ -199,7 +217,9 @@ export default function Sidebar() {
 
       <LoginDialog
         open={loginOpen}
-        onClose={() => setLoginOpen(false)}
+        onClose={() =>
+          setLoginOpen(false)
+        }
         username={username}
         password={password}
         loading={loading}
@@ -210,11 +230,13 @@ export default function Sidebar() {
 
       <LogoutDialog
         open={logoutOpen}
-        onClose={() => setLogoutOpen(false)}
+        onClose={() =>
+          setLogoutOpen(false)
+        }
         onLogout={() => {
           logout();
           setLogoutOpen(false);
-        
+
           showNotification(
             "Logged out successfully.",
             "success",

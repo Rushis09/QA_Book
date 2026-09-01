@@ -75,6 +75,25 @@ export const testSuiteService = {
     return response.data;
   },
 
+  async recommendTestCases(
+    suiteId: number,
+    testCaseIds: number[],
+  ): Promise<number[]> {
+    const response =
+      await api.post<{
+        recommended_test_case_ids: number[];
+      }>(
+        "/ai/recommend-test-cases",
+        {
+          suite_id: suiteId,
+          test_case_ids: testCaseIds,
+        },
+      );
+
+    return response.data
+      .recommended_test_case_ids;
+  },
+
   async deleteTestSuite(
     id: number,
   ): Promise<void> {

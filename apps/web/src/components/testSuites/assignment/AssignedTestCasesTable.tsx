@@ -1,4 +1,5 @@
 import {
+  Box,
   Chip,
   Paper,
   Table,
@@ -15,11 +16,13 @@ import type { TestCase } from "../../../types/testCase";
 interface AssignedTestCasesTableProps {
   testCases: TestCase[];
   selectedIds: number[];
+  aiRecommendedIds: number[];
 }
 
 export default function AssignedTestCasesTable({
   testCases,
   selectedIds,
+  aiRecommendedIds,
 }: AssignedTestCasesTableProps) {
   const assignedTestCases = testCases.filter(
     (testCase) =>
@@ -38,9 +41,17 @@ export default function AssignedTestCasesTable({
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell>Code</TableCell>
-            <TableCell>Title</TableCell>
-            <TableCell>Priority</TableCell>
+            <TableCell>
+              Code
+            </TableCell>
+
+            <TableCell>
+              Title
+            </TableCell>
+
+            <TableCell>
+              Priority
+            </TableCell>
           </TableRow>
         </TableHead>
 
@@ -61,13 +72,33 @@ export default function AssignedTestCasesTable({
                   key={testCase.id}
                 >
                   <TableCell>
-                    {
-                      testCase.test_case_code
-                    }
+                    {testCase.test_case_code}
                   </TableCell>
 
                   <TableCell>
-                    {testCase.title}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                      >
+                        {testCase.title}
+                      </Typography>
+
+                      {aiRecommendedIds.includes(
+                        testCase.id,
+                      ) && (
+                        <Chip
+                          label="AI Recommended"
+                          size="small"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
                   </TableCell>
 
                   <TableCell>

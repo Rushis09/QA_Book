@@ -91,3 +91,11 @@ class GeneratedTestCase(BaseModel):
     expected_result: str = Field(
         min_length=5,
     )
+
+class RecommendTestCasesRequest(BaseModel):
+    suite_id: int
+    test_case_ids: list[int]
+
+
+class RecommendTestCasesResponse(BaseModel):
+    recommended_test_case_ids: list[int]
