@@ -8,17 +8,15 @@ class TestSuiteRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_last_test_suite(self):
-        return (
-            self.db.query(TestSuite)
-            .order_by(TestSuite.id.desc())
-            .first()
-        )
+    @property
+    def session(self) -> Session:
+        return self.db
 
     def create(self, test_suite: TestSuite):
         self.db.add(test_suite)
         self.db.commit()
         self.db.refresh(test_suite)
+
         return self.get_by_id(test_suite.id)
 
     def get_all(
@@ -31,34 +29,53 @@ class TestSuiteRepository:
                 selectinload(TestSuite.project),
                 selectinload(TestSuite.test_cases),
             )
-            .filter(TestSuite.project_id == project_id)
+            .filter(
+                TestSuite.project_id == project_id
+            )
             .all()
         )
 
-    def get_by_id(self, test_suite_id: int):
+    def get_by_id(
+        self,
+        test_suite_id: int,
+    ):
         return (
             self.db.query(TestSuite)
             .options(
                 selectinload(TestSuite.project),
                 selectinload(TestSuite.test_cases),
             )
-            .filter(TestSuite.id == test_suite_id)
+            .filter(
+                TestSuite.id == test_suite_id
+            )
             .first()
         )
 
-    def update(self, test_suite: TestSuite):
+    def update(
+        self,
+        test_suite: TestSuite,
+    ):
         self.db.commit()
         self.db.refresh(test_suite)
+
         return self.get_by_id(test_suite.id)
 
-    def delete(self, test_suite: TestSuite):
+    def delete(
+        self,
+        test_suite: TestSuite,
+    ):
         self.db.delete(test_suite)
         self.db.commit()
 
-    def get_test_cases_by_ids(self, test_case_ids: list[int]):
+    def get_test_cases_by_ids(
+        self,
+        test_case_ids: list[int],
+    ):
         return (
             self.db.query(TestCase)
-            .filter(TestCase.id.in_(test_case_ids))
+            .filter(
+                TestCase.id.in_(test_case_ids)
+            )
             .all()
         )
 
@@ -68,6 +85,8 @@ class TestSuiteRepository:
         test_cases: list[TestCase],
     ):
         test_suite.test_cases = test_cases
+
         self.db.commit()
         self.db.refresh(test_suite)
+
         return self.get_by_id(test_suite.id)

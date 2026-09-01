@@ -33,11 +33,12 @@ def create_test_run(
     response_model=list[TestRunResponse],
 )
 def get_test_runs(
+    project_id: int,
     db: Session = Depends(get_db),
 ):
     service = TestRunService(db)
 
-    return service.get_test_runs()
+    return service.get_test_runs(project_id)
 
 
 @router.get(

@@ -1,4 +1,6 @@
+from app.models.requirement import Requirement
 from app.models.test_case import TestCase
+from app.models.test_scenario import TestScenario
 from app.repositories.test_case_repository import (
     TestCaseRepository,
 )
@@ -19,30 +21,66 @@ class TestCaseService:
         self,
         test_case_data: TestCaseCreate,
     ):
-        test_case_count = (
-            self.repository.session.query(TestCase)
+        scenario = (
+            self.repository.session.query(
+                TestScenario
+            )
             .filter(
-                TestCase.scenario_id
+                TestScenario.id
                 == test_case_data.scenario_id
             )
-            .count()
+            .first()
         )
-        
-        next_number = test_case_count + 1
-        
-        test_case_code = f"TC{next_number:03d}"
+
+        if not scenario:
+            raise ValueError(
+                "Test Scenario not found"
+            )
+
+        requirement = (
+            self.repository.session.query(
+                Requirement
+            )
+            .filter(
+                Requirement.id
+                == scenario.requirement_id
+            )
+            .first()
+        )
+
+        if not requirement:
+            raise ValueError(
+                "Requirement not found"
+            )
+
+        highest_number = (
+            self.repository.get_highest_test_case_number(
+                requirement.project_id
+            )
+        )
+
+        test_case_code = (
+            f"TC{highest_number + 1:03d}"
+        )
+
         test_case = TestCase(
             test_case_code=test_case_code,
-            scenario_id=test_case_data.scenario_id,
+            scenario_id=(
+                test_case_data.scenario_id
+            ),
             module=test_case_data.module,
             priority=test_case_data.priority,
             status=test_case_data.status,
             title=test_case_data.title,
             description=test_case_data.description,
-            preconditions=test_case_data.preconditions,
+            preconditions=(
+                test_case_data.preconditions
+            ),
             test_data=test_case_data.test_data,
             steps=test_case_data.steps,
-            expected_result=test_case_data.expected_result,
+            expected_result=(
+                test_case_data.expected_result
+            ),
         )
 
         created = self.repository.create(
@@ -115,4 +153,6 @@ class TestCaseService:
         self,
         test_case: TestCase,
     ):
-        self.repository.delete(test_case)
+        self.repository.delete(
+            test_case
+        )

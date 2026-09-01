@@ -1,24 +1,30 @@
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.test_run import TestRun
+from app.models.test_suite import TestSuite
 
 
 class TestRunRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all(self):
+    def get_all(
+        self,
+        project_id: int,
+    ):
         return (
             self.db.query(TestRun)
+            .join(
+                TestSuite,
+                TestRun.suite_id == TestSuite.id,
+            )
             .options(
-                selectinload(TestRun.suite))
+                selectinload(TestRun.suite)
+            )
+            .filter(
+                TestSuite.project_id == project_id
+            )
             .all()
-        )
-    def get_last(self):
-        return (
-            self.db.query(TestRun)
-            .order_by(TestRun.id.desc())
-            .first()
         )
 
     def get_by_id(

@@ -1,3 +1,4 @@
+from app.models.requirement import Requirement
 from app.models.test_scenario import TestScenario
 from app.repositories.test_scenario_repository import (
     TestScenarioRepository,
@@ -19,32 +20,53 @@ class TestScenarioService:
         self,
         test_scenario_data: TestScenarioCreate,
     ):
-        scenario_count = (
-            self.repository.session.query(TestScenario)
+        requirement = (
+            self.repository.session.query(
+                Requirement
+            )
             .filter(
-                TestScenario.requirement_id
+                Requirement.id
                 == test_scenario_data.requirement_id
             )
-            .count()
+            .first()
         )
-    
-        next_number = scenario_count + 1
-    
-        scenario_code = f"SCN{next_number:03d}"
-    
+
+        if not requirement:
+            raise ValueError(
+                "Requirement not found"
+            )
+
+        highest_number = (
+            self.repository.get_highest_scenario_number(
+                requirement.project_id
+            )
+        )
+
+        scenario_code = (
+            f"SCN{highest_number + 1:03d}"
+        )
+
         test_scenario = TestScenario(
             scenario_code=scenario_code,
-            requirement_id=test_scenario_data.requirement_id,
+            requirement_id=(
+                test_scenario_data.requirement_id
+            ),
             module=test_scenario_data.module,
             title=test_scenario_data.title,
-            description=test_scenario_data.description,
+            description=(
+                test_scenario_data.description
+            ),
             priority=test_scenario_data.priority,
             status=test_scenario_data.status,
         )
-    
-        created = self.repository.create(test_scenario)
-    
-        return self.repository.get_by_id(created.id)
+
+        created = self.repository.create(
+            test_scenario
+        )
+
+        return self.repository.get_by_id(
+            created.id
+        )
 
     def get_all(
         self,
@@ -96,4 +118,7 @@ class TestScenarioService:
         self,
         test_scenario: TestScenario,
     ):
-        self.repository.delete(test_scenario)
+        self.repository.delete(
+            test_scenario
+        )
+        

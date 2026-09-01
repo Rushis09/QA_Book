@@ -12,7 +12,6 @@ from app.auth.dependencies import get_current_admin
 from app.models.admin import Admin
 
 
-
 router = APIRouter(
     prefix="/projects",
     tags=["Projects"],
@@ -20,15 +19,36 @@ router = APIRouter(
 
 
 def generate_project_code(db: Session) -> str:
-    count = db.query(Project).count() + 1
-    return f"PRJ-{count:03d}"
+    projects = (
+        db.query(Project.project_code)
+        .all()
+    )
+
+    highest_number = 0
+
+    for (project_code,) in projects:
+        if project_code.startswith("PRJ-"):
+            try:
+                number = int(
+                    project_code.split("-")[1]
+                )
+                highest_number = max(
+                    highest_number,
+                    number,
+                )
+            except ValueError:
+                continue
+
+    return f"PRJ-{highest_number + 1:03d}"
 
 
-@router.post("/", response_model=ProjectResponse)
+@router.post(
+    "/",
+    response_model=ProjectResponse,
+)
 def create_project(
     project: ProjectCreate,
     db: Session = Depends(get_db),
-    
 ):
     db_project = Project(
         project_code=generate_project_code(db),
@@ -47,14 +67,20 @@ def create_project(
     return db_project
 
 
-@router.get("/", response_model=list[ProjectResponse])
+@router.get(
+    "/",
+    response_model=list[ProjectResponse],
+)
 def get_projects(
     db: Session = Depends(get_db),
 ):
     return db.query(Project).all()
 
 
-@router.get("/{project_id}", response_model=ProjectResponse)
+@router.get(
+    "/{project_id}",
+    response_model=ProjectResponse,
+)
 def get_project(
     project_id: int,
     db: Session = Depends(get_db),
@@ -74,12 +100,14 @@ def get_project(
     return project
 
 
-@router.put("/{project_id}", response_model=ProjectResponse)
+@router.put(
+    "/{project_id}",
+    response_model=ProjectResponse,
+)
 def update_project(
     project_id: int,
     project_data: ProjectUpdate,
     db: Session = Depends(get_db),
-    
 ):
     project = (
         db.query(Project)
@@ -106,11 +134,12 @@ def update_project(
     return project
 
 
-@router.delete("/{project_id}")
+@router.delete(
+    "/{project_id}",
+)
 def delete_project(
     project_id: int,
     db: Session = Depends(get_db),
-    
 ):
     project = (
         db.query(Project)

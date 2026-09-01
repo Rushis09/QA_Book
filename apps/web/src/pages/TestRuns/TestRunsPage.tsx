@@ -70,7 +70,9 @@ export default function TestRunsPage() {
         runData,
         suiteData,
       ] = await Promise.all([
-        testRunService.getTestRuns(),
+        testRunService.getTestRuns(
+          selectedProject.id,
+        ),
         testSuiteService.getTestSuites(
           selectedProject.id,
         ),

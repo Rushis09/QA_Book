@@ -1,5 +1,7 @@
 from datetime import datetime
+
 from fastapi import HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.test_run import TestRun
@@ -14,8 +16,11 @@ class TestRunService:
     def __init__(self, db: Session):
         self.repository = TestRunRepository(db)
 
-    def get_test_runs(self):
-        return self.repository.get_all()
+    def get_test_runs(
+        self,
+        project_id: int,
+    ):
+        return self.repository.get_all(project_id)
 
     def get_test_run(
         self,
@@ -37,15 +42,25 @@ class TestRunService:
         self,
         data: TestRunCreate,
     ):
-        last_run = self.repository.get_last()
+        latest_code = (
+            self.repository.db.query(
+                func.max(TestRun.run_code)
+            )
+            .scalar()
+        )
 
-        next_number = 1
+        if not latest_code:
+            next_number = 1
+        else:
+            numeric_part = int(
+                latest_code.replace("TR-", "")
+            )
+            next_number = numeric_part + 1
 
-        if last_run:
-            next_number = last_run.id + 1
+        run_code = f"TR-{next_number:03d}"
 
         run = TestRun(
-            run_code=f"TR-{next_number:03d}",
+            run_code=run_code,
             suite_id=data.suite_id,
             name=data.name,
             build_version=data.build_version,
@@ -56,15 +71,7 @@ class TestRunService:
             status=data.status,
         )
 
-        created = self.repository.create(run)
-
-        print("========== DEBUG ==========")
-        print("Run ID:", created.id)
-        print("Suite ID:", created.suite_id)
-        print("Suite Object:", created.suite)
-        print("===========================")
-
-        return created
+        return self.repository.create(run)
 
     def update_test_run(
         self,
@@ -85,7 +92,7 @@ class TestRunService:
         run.status = data.status
 
         return self.repository.update(run)
-    
+
     def finish_test_run(
         self,
         test_run_id: int,
