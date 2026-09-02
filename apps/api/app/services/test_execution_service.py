@@ -1,7 +1,9 @@
+
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.test_execution import TestExecution
+from app.models.test_run import TestRun
 from app.repositories.test_execution_repository import (
     TestExecutionRepository,
 )
@@ -56,6 +58,31 @@ class TestExecutionService:
             )
 
         return execution
+
+    def get_execution_by_token_and_test_case(
+        self,
+        automation_token: str,
+        test_case_id: int,
+    ):
+        run = (
+            self.db.query(TestRun)
+            .filter(
+                TestRun.automation_token
+                == automation_token,
+            )
+            .first()
+        )
+
+        if not run:
+            raise HTTPException(
+                status_code=404,
+                detail="Automation run not found",
+            )
+
+        return self.get_execution_by_run_and_test_case(
+            run.id,
+            test_case_id,
+        )
 
     def get_or_create_executions(
         self,

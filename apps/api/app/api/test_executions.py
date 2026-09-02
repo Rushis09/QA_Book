@@ -88,6 +88,22 @@ def get_test_executions(
 
 
 @router.get(
+    "/token/{automation_token}/test-case/{test_case_id}",
+    response_model=TestExecutionResponse,
+)
+def get_execution_by_token_and_test_case(
+    automation_token: str,
+    test_case_id: int,
+    db: Session = Depends(get_db),
+):
+    service = TestExecutionService(db)
+
+    return service.get_execution_by_token_and_test_case(
+        automation_token,
+        test_case_id,
+    )
+
+@router.get(
     "/{execution_id}",
     response_model=TestExecutionResponse,
 )

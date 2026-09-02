@@ -1,3 +1,4 @@
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -172,6 +173,7 @@ class AutomationProjectService:
             "suite_code": suite.suite_code,
             "test_run_id": run.id,
             "run_code": run.run_code,
+            "automation_token": run.automation_token,
             "test_case_ids": test_case_ids,
             "execution_ids": [
                 execution.id

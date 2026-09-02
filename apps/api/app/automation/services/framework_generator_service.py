@@ -1,3 +1,4 @@
+
 from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -269,15 +270,15 @@ Run only automation tests:
     pytest -m automation
 
 To connect the test execution to a QABook
-Test Run, provide the run ID at runtime:
+Test Run, provide the automation token at runtime:
 
-    pytest --qabook-run-id <TEST_RUN_ID>
+    pytest --qabook-token <AUTOMATION_TOKEN>
 
 Example:
 
-    pytest --qabook-run-id 7
+    pytest --qabook-token <AUTOMATION_TOKEN>
 
-The Test Run ID is runtime execution context
+The automation token is runtime execution context
 and should not be stored in `.env`.
 
 ## QABook Integration
@@ -296,7 +297,7 @@ using the `qabook_test_case` pytest marker.
 
 When pytest is executed with:
 
-    --qabook-run-id <TEST_RUN_ID>
+    --qabook-token <AUTOMATION_TOKEN>
 
 the framework automatically finds the corresponding
 QABook Test Execution for each mapped Test Case and
@@ -371,23 +372,23 @@ def base_url():
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--qabook-run-id",
+        "--qabook-token",
         action="store",
         default=None,
-        help="QABook Test Run ID for this execution.",
+        help="QABook automation token for this execution.",
     )
 
 
 @pytest.fixture(scope="session")
-def qabook_run_id(pytestconfig):
-    run_id = pytestconfig.getoption(
-        "--qabook-run-id"
+def qabook_token(pytestconfig):
+    token = pytestconfig.getoption(
+        "--qabook-token"
     )
 
-    if not run_id:
+    if not token:
         return None
 
-    return int(run_id)
+    return token
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -405,11 +406,11 @@ def pytest_runtest_makereport(item, call):
     if marker is None:
         return
 
-    run_id = item.config.getoption(
-        "--qabook-run-id"
+    automation_token = item.config.getoption(
+        "--qabook-token"
     )
 
-    if not run_id:
+    if not automation_token:
         return
 
     test_case_id = marker.args[0]
@@ -417,8 +418,8 @@ def pytest_runtest_makereport(item, call):
     try:
         client = QABookClient()
 
-        execution = client.get_execution_by_run_and_test_case(
-            int(run_id),
+        execution = client.get_execution_by_token_and_test_case(
+            automation_token,
             test_case_id,
         )
 
@@ -483,14 +484,14 @@ class QABookClient:
     def __init__(self):
         self.base_url = QABOOK_API_URL.rstrip("/")
 
-    def get_execution_by_run_and_test_case(
+    def get_execution_by_token_and_test_case(
         self,
-        run_id: int,
+        automation_token: str,
         test_case_id: int,
     ):
         response = requests.get(
-            f"{self.base_url}/test-executions/run/"
-            f"{run_id}/test-case/{test_case_id}",
+            f"{self.base_url}/test-executions/token/"
+            f"{automation_token}/test-case/{test_case_id}",
             timeout=30,
         )
 

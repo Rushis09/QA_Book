@@ -1,3 +1,6 @@
+
+import secrets
+
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
@@ -38,7 +41,6 @@ class TestRunService:
 
         return test_run
 
-
     def get_test_run_by_code(
         self,
         run_code: str,
@@ -76,8 +78,14 @@ class TestRunService:
 
         run_code = f"TR-{next_number:03d}"
 
+        automation_token = None
+
+        if data.execution_type == "Automated":
+            automation_token = secrets.token_urlsafe(48)
+
         run = TestRun(
             run_code=run_code,
+            automation_token=automation_token,
             suite_id=data.suite_id,
             name=data.name,
             build_version=data.build_version,

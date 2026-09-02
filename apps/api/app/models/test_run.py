@@ -1,3 +1,4 @@
+
 from sqlalchemy import (
     Column,
     Date,
@@ -25,6 +26,13 @@ class TestRun(Base):
         String,
         unique=True,
         nullable=False,
+        index=True,
+    )
+
+    automation_token = Column(
+        String(64),
+        unique=True,
+        nullable=True,
         index=True,
     )
 
