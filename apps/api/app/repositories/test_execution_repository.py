@@ -49,6 +49,24 @@ class TestExecutionRepository:
             .all()
         )
 
+    def get_by_run_and_test_case(
+        self,
+        run_id: int,
+        test_case_id: int,
+    ):
+        return (
+            self.db.query(TestExecution)
+            .options(
+                selectinload(TestExecution.test_run),
+                selectinload(TestExecution.test_case),
+            )
+            .filter(
+                TestExecution.run_id == run_id,
+                TestExecution.test_case_id == test_case_id,
+            )
+            .first()
+        )
+
     def create(
         self,
         execution: TestExecution,

@@ -38,6 +38,23 @@ class TestRunService:
 
         return test_run
 
+
+    def get_test_run_by_code(
+        self,
+        run_code: str,
+    ):
+        test_run = self.repository.get_by_run_code(
+            run_code,
+        )
+
+        if not test_run:
+            raise HTTPException(
+                status_code=404,
+                detail="Test Run not found",
+            )
+
+        return test_run
+
     def create_test_run(
         self,
         data: TestRunCreate,

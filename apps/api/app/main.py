@@ -14,7 +14,15 @@ from app.api.test_executions import router as test_execution_router
 from app.api.bugs import router as bug_router
 from app.api.reports import (router as report_router)
 from app.api import exports
-
+from app.automation.api.automation_project import (
+    router as automation_project_router,
+)
+from app.automation.api.automation_test_mapping import (
+    router as automation_test_mapping_router,
+)
+from app.automation.api.framework import (
+    router as framework_router,
+)
 
 
 # Import models so SQLAlchemy registers all ORM mappings
@@ -36,6 +44,8 @@ from app.api.ai_requirements import (
 from app.api import ai_scenarios
 from app.api import ai_test_cases
 from app.api.documents import router as document_router
+from app.automation.models.automation_project import AutomationProject
+from app.automation.models.automation_test_mapping import AutomationTestMapping
 
 
 app = FastAPI(
@@ -58,6 +68,9 @@ app.add_middleware(
 
 # Routers
 app.include_router(auth_router)
+app.include_router(automation_project_router)
+app.include_router(automation_test_mapping_router)
+app.include_router(framework_router)
 app.include_router(ai_requirement_router)
 app.include_router(ai_scenarios.router)
 app.include_router(ai_test_cases.router)

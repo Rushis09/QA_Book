@@ -37,6 +37,26 @@ class TestExecutionService:
 
         return execution
 
+    def get_execution_by_run_and_test_case(
+        self,
+        run_id: int,
+        test_case_id: int,
+    ):
+        execution = (
+            self.repository.get_by_run_and_test_case(
+                run_id,
+                test_case_id,
+            )
+        )
+
+        if not execution:
+            raise HTTPException(
+                status_code=404,
+                detail="Test Execution not found",
+            )
+
+        return execution
+
     def get_or_create_executions(
         self,
         run_id: int,

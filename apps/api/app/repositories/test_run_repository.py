@@ -42,6 +42,21 @@ class TestRunRepository:
             .first()
         )
 
+    def get_by_run_code(
+        self,
+        run_code: str,
+    ):
+        return (
+            self.db.query(TestRun)
+            .options(
+                selectinload(TestRun.suite)
+            )
+            .filter(
+                TestRun.run_code == run_code,
+            )
+            .first()
+        )
+
     def create(
         self,
         test_run: TestRun,

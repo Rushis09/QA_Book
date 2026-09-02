@@ -47,6 +47,22 @@ def get_run_executions(
     )
 
 @router.get(
+    "/run/{run_id}/test-case/{test_case_id}",
+    response_model=TestExecutionResponse,
+)
+def get_execution_by_run_and_test_case(
+    run_id: int,
+    test_case_id: int,
+    db: Session = Depends(get_db),
+):
+    service = TestExecutionService(db)
+
+    return service.get_execution_by_run_and_test_case(
+        run_id,
+        test_case_id,
+    )
+
+@router.get(
     "/run/{run_id}/summary",
 )
 def get_execution_summary(

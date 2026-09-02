@@ -40,6 +40,19 @@ def get_test_runs(
 
     return service.get_test_runs(project_id)
 
+@router.get(
+    "/code/{run_code}",
+    response_model=TestRunResponse,
+)
+def get_test_run_by_code(
+    run_code: str,
+    db: Session = Depends(get_db),
+):
+    service = TestRunService(db)
+
+    return service.get_test_run_by_code(
+        run_code,
+    )
 
 @router.get(
     "/{test_run_id}",

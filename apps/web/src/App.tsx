@@ -13,6 +13,7 @@ import TestRunDetailsPage from "./pages/TestRuns/TestRunDetailsPage";
 import ExecutionPage from "./pages/TestExecutions/ExecutionPage";
 import BugsPage from "./pages/Bugs/BugsPage";
 import ReportsPage from "./pages/Reports/ReportsPage";
+import AutomationPage from "./automation/pages/AutomationPage";
 
 function NotFoundPage() {
   return <h1>404 - Page Not Found</h1>;
@@ -22,10 +23,13 @@ export default function App() {
   return (
     <Routes>
 
-       {/* Main Application */}
+      {/* Main Application */}
       <Route element={<AppLayout />}>
-        <Route path="/" element={<DashboardPage />} />
-    
+
+        <Route
+          path="/"
+          element={<DashboardPage />}
+        />
 
         <Route
           path="/projects"
@@ -45,9 +49,13 @@ export default function App() {
         <Route
           path="/test-cases"
           element={<TestCasesPage />}
-
-      
         />
+
+        <Route
+          path="/automation"
+          element={<AutomationPage />}
+        />
+
         <Route
           path="/test-suites"
           element={<TestSuitesPage />}
@@ -81,7 +89,6 @@ export default function App() {
         <Route
           path="/test-suites/:id/assign"
           element={<AssignTestCasesPage />}
-
         />
 
       </Route>
@@ -90,6 +97,7 @@ export default function App() {
         path="*"
         element={<NotFoundPage />}
       />
+
     </Routes>
   );
 }
