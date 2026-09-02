@@ -37,6 +37,7 @@ class TestRunResponse(TestRunBase):
     id: int
     run_code: str
     suite: TestRunSuiteResponse
+    automation_token: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

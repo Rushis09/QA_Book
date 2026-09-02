@@ -2,6 +2,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 import { getTestRunStatusColor } from "../../utils/testRunStatus";
 
@@ -26,6 +27,7 @@ interface TestRunTableProps {
   onDelete: (testRun: TestRun) => void;
   onExecute: (testRun: TestRun) => void;
   onViewDetails: (testRun: TestRun) => void;
+  onCopyToken: (testRun: TestRun) => void;
   canExecute: (testRun: TestRun) => boolean;
 }
 
@@ -35,6 +37,7 @@ export default function TestRunTable({
   onDelete,
   onExecute,
   onViewDetails,
+  onCopyToken,
   canExecute,
 }: TestRunTableProps) {
   return (
@@ -70,6 +73,11 @@ export default function TestRunTable({
             testRuns.map((testRun) => {
               const executable =
                 canExecute(testRun);
+
+              const canCopyToken =
+                testRun.execution_type ===
+                  "Automated" &&
+                !!testRun.automation_token;
 
               return (
                 <TableRow
@@ -155,6 +163,21 @@ export default function TestRunTable({
                         </IconButton>
                       </span>
                     </Tooltip>
+
+                    {canCopyToken && (
+                      <Tooltip title="Copy Automation Token">
+                        <IconButton
+                          color="primary"
+                          onClick={() =>
+                            onCopyToken(
+                              testRun,
+                            )
+                          }
+                        >
+                          <ContentCopyIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
 
                     <Tooltip title="Edit Test Run">
                       <IconButton

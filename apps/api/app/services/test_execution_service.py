@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -145,7 +146,9 @@ class TestExecutionService:
             data.actual_result
         )
 
-        execution.comments = data.comments
+        execution.comments = (
+            data.comments
+        )
 
         execution.executed_by = (
             data.executed_by
@@ -155,9 +158,67 @@ class TestExecutionService:
             data.executed_at
         )
 
-        return self.repository.update(
-            execution,
+        updated_execution = (
+            self.repository.update(
+                execution,
+            )
         )
+
+        self._update_automated_run_status(
+            updated_execution,
+        )
+
+        return updated_execution
+
+    def _update_automated_run_status(
+        self,
+        execution: TestExecution,
+    ):
+        run = self.test_run_service.get_test_run(
+            execution.run_id,
+        )
+
+        if run.execution_type != "Automated":
+            return
+
+        if run.status == "Not Started":
+            run.status = "In Progress"
+
+            if run.start_date is None:
+                run.start_date = datetime.now(
+                    timezone.utc
+                ).date()
+
+        executions = (
+            self.repository.get_by_run_id(
+                run.id,
+            )
+        )
+
+        unfinished_executions = [
+            item
+            for item in executions
+            if item.status
+            not in {
+                "Passed",
+                "Failed",
+                "Blocked",
+            }
+        ]
+
+        if (
+            executions
+            and not unfinished_executions
+        ):
+            run.status = "Completed"
+
+            if run.end_date is None:
+                run.end_date = datetime.now(
+                    timezone.utc
+                ).date()
+
+        self.db.commit()
+        self.db.refresh(run)
 
     def get_execution_summary(
         self,

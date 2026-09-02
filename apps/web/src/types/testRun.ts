@@ -11,6 +11,7 @@ export interface TestRun {
   suite: TestRunSuite;
   name: string;
   execution_type: string;
+  automation_token: string | null;
   build_version: string | null;
   environment: string | null;
   tester: string | null;

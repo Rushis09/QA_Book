@@ -153,6 +153,37 @@ export default function TestRunsPage() {
     );
   }
 
+  async function handleCopyToken(
+    testRun: TestRun,
+  ) {
+    if (!testRun.automation_token) {
+      showNotification(
+        "Automation token is not available for this Test Run.",
+        "warning",
+      );
+
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(
+        testRun.automation_token,
+      );
+
+      showNotification(
+        `Automation token for ${testRun.run_code} copied successfully.`,
+        "success",
+      );
+    } catch (error) {
+      console.error(error);
+
+      showNotification(
+        "Failed to copy automation token.",
+        "error",
+      );
+    }
+  }
+
   async function handleSave(
     data: TestRunFormData,
   ) {
@@ -243,6 +274,9 @@ export default function TestRunsPage() {
           onExecute={handleExecute}
           onViewDetails={
             handleViewDetails
+          }
+          onCopyToken={
+            handleCopyToken
           }
           canExecute={
             canExecuteTestRun

@@ -74,6 +74,13 @@ export default function AutomationPage() {
       undefined,
     );
 
+  const [automationRun, setAutomationRun] =
+    useState<{
+      test_run_id: number;
+      run_code: string;
+      automation_token: string;
+    } | null>(null);
+
   async function loadAutomationData() {
     if (!selectedProject) {
       setAutomationProject(null);
@@ -210,14 +217,16 @@ export default function AutomationPage() {
           automationProject.id,
         );
 
+      setAutomationRun({
+        test_run_id: result.test_run_id,
+        run_code: result.run_code,
+        automation_token:
+          result.automation_token,
+      });
+
       showNotification(
         `Automation run ${result.run_code} created successfully.`,
         "success",
-      );
-
-      console.log(
-        "Automation run created:",
-        result,
       );
     } catch (error) {
       console.error(error);
@@ -228,6 +237,33 @@ export default function AutomationPage() {
       );
     } finally {
       setStartingRun(false);
+    }
+  }
+
+  async function handleCopyAutomationCommand() {
+    if (!automationRun) {
+      return;
+    }
+
+    const command =
+      `pytest --qabook-token "${automationRun.automation_token}"`;
+
+    try {
+      await navigator.clipboard.writeText(
+        command,
+      );
+
+      showNotification(
+        "Automation command copied to clipboard.",
+        "success",
+      );
+    } catch (error) {
+      console.error(error);
+
+      showNotification(
+        "Failed to copy automation command.",
+        "error",
+      );
     }
   }
 
@@ -588,6 +624,67 @@ export default function AutomationPage() {
               </Box>
             </Stack>
           </Paper>
+
+          {automationRun && (
+            <Paper
+              elevation={1}
+              sx={{
+                p: 3,
+                mb: 3,
+              }}
+            >
+              <Stack spacing={2}>
+                <Typography variant="h6">
+                  Automation Run Created
+                </Typography>
+
+                <Typography variant="body2">
+                  <strong>Run:</strong>{" "}
+                  {automationRun.run_code}
+                </Typography>
+
+                <Typography variant="body2">
+                  <strong>Test Run ID:</strong>{" "}
+                  {automationRun.test_run_id}
+                </Typography>
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  Run the downloaded automation framework
+                  using the command below.
+                </Typography>
+
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 1,
+                    backgroundColor:
+                      "action.hover",
+                    fontFamily:
+                      "monospace",
+                    overflowX: "auto",
+                  }}
+                >
+                  pytest --qabook-token
+                  {" "}
+                  &lt;AUTOMATION_TOKEN&gt;
+                </Box>
+
+                <Box>
+                  <Button
+                    variant="contained"
+                    onClick={
+                      handleCopyAutomationCommand
+                    }
+                  >
+                    Copy Automation Command
+                  </Button>
+                </Box>
+              </Stack>
+            </Paper>
+          )}
 
           <Typography
             variant="h6"

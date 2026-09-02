@@ -15,6 +15,7 @@ export interface AutomationRunResponse {
   suite_code: string;
   test_run_id: number;
   run_code: string;
+  automation_token: string;
   test_case_ids: number[];
   execution_ids: number[];
 }
