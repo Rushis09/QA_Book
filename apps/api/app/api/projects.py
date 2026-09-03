@@ -10,36 +10,13 @@ from app.schemas.project import (
 )
 from app.auth.dependencies import get_current_admin
 from app.models.admin import Admin
+from app.utils.code_generator import generate_sequential_code
 
 
 router = APIRouter(
     prefix="/projects",
     tags=["Projects"],
 )
-
-
-def generate_project_code(db: Session) -> str:
-    projects = (
-        db.query(Project.project_code)
-        .all()
-    )
-
-    highest_number = 0
-
-    for (project_code,) in projects:
-        if project_code.startswith("PRJ-"):
-            try:
-                number = int(
-                    project_code.split("-")[1]
-                )
-                highest_number = max(
-                    highest_number,
-                    number,
-                )
-            except ValueError:
-                continue
-
-    return f"PRJ-{highest_number + 1:03d}"
 
 
 @router.post(
@@ -51,7 +28,11 @@ def create_project(
     db: Session = Depends(get_db),
 ):
     db_project = Project(
-        project_code=generate_project_code(db),
+        project_code=generate_sequential_code(
+            db=db,
+            entity_type="project",
+            prefix="PRJ",
+        ),
         name=project.name,
         description=project.description,
         status=project.status,

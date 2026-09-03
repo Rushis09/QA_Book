@@ -17,9 +17,8 @@ class TestCase(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "scenario_id",
             "test_case_code",
-            name="uq_test_case_scenario_code",
+            name="uq_test_case_code",
         ),
     )
 

@@ -23,7 +23,7 @@ from app.models.admin import Admin
 from app.models.document import Document
 from app.automation.models.automation_project import AutomationProject
 from app.automation.models.automation_test_mapping import AutomationTestMapping
-
+from app.models.code_sequence import CodeSequence
 
 config = context.config
 

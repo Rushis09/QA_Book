@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 
 import PageHeader from "../../components/common/PageHeader";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
 
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useNotification } from "../../contexts/NotificationContext";
@@ -43,6 +44,9 @@ export default function AutomationPage() {
     useState(true);
 
   const [saving, setSaving] =
+    useState(false);
+
+  const [deinitializing, setDeinitializing] =
     useState(false);
 
   const [downloading, setDownloading] =
@@ -80,6 +84,11 @@ export default function AutomationPage() {
       run_code: string;
       automation_token: string;
     } | null>(null);
+
+  const [
+    deinitializeConfirmOpen,
+    setDeinitializeConfirmOpen,
+  ] = useState(false);
 
   async function loadAutomationData() {
     if (!selectedProject) {
@@ -190,6 +199,55 @@ export default function AutomationPage() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  function handleDeinitialize() {
+    if (
+      !automationProject ||
+      deinitializing
+    ) {
+      return;
+    }
+
+    setDeinitializeConfirmOpen(true);
+  }
+
+  async function confirmDeinitialize() {
+    if (!automationProject) {
+      return;
+    }
+
+    try {
+      setDeinitializing(true);
+      setError("");
+
+      await automationService.deleteAutomationProject(
+        automationProject.id,
+      );
+
+      setAutomationProject(null);
+      setMappings([]);
+      setAutomationRun(null);
+
+      showNotification(
+        "Automation deinitialized successfully.",
+        "success",
+      );
+    } catch (error) {
+      console.error(error);
+
+      setError(
+        "Failed to deinitialize automation.",
+      );
+
+      showNotification(
+        "Failed to deinitialize automation.",
+        "error",
+      );
+    } finally {
+      setDeinitializing(false);
+      setDeinitializeConfirmOpen(false);
     }
   }
 
@@ -448,12 +506,18 @@ export default function AutomationPage() {
       title="Automation"
       actionLabel={
         automationProject
-          ? "Automation Initialized"
+          ? deinitializing
+            ? "Deinitializing..."
+            : "Deinitialize Automation"
           : saving
             ? "Initializing..."
             : "Initialize Automation"
       }
-      onAction={handleInitialize}
+      onAction={
+        automationProject
+          ? handleDeinitialize
+          : handleInitialize
+      }
     >
       <Typography
         variant="body2"
@@ -736,6 +800,18 @@ export default function AutomationPage() {
         mapping={selectedMapping}
         onClose={handleCloseMappingDialog}
         onSave={handleSaveMapping}
+      />
+
+      <ConfirmDialog
+        open={deinitializeConfirmOpen}
+        title="Deinitialize Automation"
+        message="Are you sure you want to deinitialize automation? This will remove the automation project and its test case mappings. Your QABook project and test cases will not be deleted."
+        confirmText="Deinitialize"
+        cancelText="Cancel"
+        onConfirm={confirmDeinitialize}
+        onCancel={() => {
+          setDeinitializeConfirmOpen(false);
+        }}
       />
     </PageHeader>
   );

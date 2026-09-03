@@ -15,6 +15,7 @@ from app.models.test_suite import TestSuite
 from app.repositories.test_suite_repository import TestSuiteRepository
 from app.services.test_execution_service import TestExecutionService
 from app.services.test_run_service import TestRunService
+from app.utils.code_generator import generate_sequential_code
 
 
 class AutomationProjectService:
@@ -182,25 +183,11 @@ class AutomationProjectService:
         }
 
     def _generate_suite_code(self) -> str:
-        latest_code = (
-            self.db.query(
-                TestSuite.suite_code
-            )
-            .order_by(
-                TestSuite.id.desc()
-            )
-            .first()
+        return generate_sequential_code(
+            db=self.db,
+            entity_type="test_suite",
+            prefix="TS",
         )
-
-        if not latest_code:
-            next_number = 1
-        else:
-            numeric_part = int(
-                latest_code[0].replace("TS-", "")
-            )
-            next_number = numeric_part + 1
-
-        return f"TS-{next_number:03d}"
 
     @staticmethod
     def _build_test_run_data(

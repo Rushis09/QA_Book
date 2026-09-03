@@ -1,5 +1,4 @@
 from fastapi import HTTPException
-from sqlalchemy import func
 
 from app.models.test_suite import TestSuite
 from app.repositories.test_suite_repository import TestSuiteRepository
@@ -8,6 +7,7 @@ from app.schemas.test_suite import (
     TestSuiteCreate,
     TestSuiteUpdate,
 )
+from app.utils.code_generator import generate_sequential_code
 
 
 class TestSuiteService:
@@ -15,22 +15,11 @@ class TestSuiteService:
         self.repository = repository
 
     def create(self, test_suite_data: TestSuiteCreate):
-        latest_code = (
-            self.repository.session.query(
-                func.max(TestSuite.suite_code)
-            )
-            .scalar()
+        suite_code = generate_sequential_code(
+            db=self.repository.session,
+            entity_type="test_suite",
+            prefix="TS",
         )
-
-        if not latest_code:
-            next_number = 1
-        else:
-            numeric_part = int(
-                latest_code.replace("TS-", "")
-            )
-            next_number = numeric_part + 1
-
-        suite_code = f"TS-{next_number:03d}"
 
         test_suite = TestSuite(
             suite_code=suite_code,

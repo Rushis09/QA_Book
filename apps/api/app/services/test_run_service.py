@@ -1,10 +1,8 @@
-
 import secrets
 
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.test_run import TestRun
@@ -13,6 +11,7 @@ from app.schemas.test_run import (
     TestRunCreate,
     TestRunUpdate,
 )
+from app.utils.code_generator import generate_sequential_code
 
 
 class TestRunService:
@@ -61,22 +60,11 @@ class TestRunService:
         self,
         data: TestRunCreate,
     ):
-        latest_code = (
-            self.repository.db.query(
-                func.max(TestRun.run_code)
-            )
-            .scalar()
+        run_code = generate_sequential_code(
+            db=self.repository.db,
+            entity_type="test_run",
+            prefix="TR",
         )
-
-        if not latest_code:
-            next_number = 1
-        else:
-            numeric_part = int(
-                latest_code.replace("TR-", "")
-            )
-            next_number = numeric_part + 1
-
-        run_code = f"TR-{next_number:03d}"
 
         automation_token = None
 

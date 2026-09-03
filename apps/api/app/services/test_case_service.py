@@ -1,4 +1,3 @@
-from app.models.requirement import Requirement
 from app.models.test_case import TestCase
 from app.models.test_scenario import TestScenario
 from app.repositories.test_case_repository import (
@@ -8,6 +7,7 @@ from app.schemas.test_case import (
     TestCaseCreate,
     TestCaseUpdate,
 )
+from app.utils.code_generator import generate_sequential_code
 
 
 class TestCaseService:
@@ -37,30 +37,10 @@ class TestCaseService:
                 "Test Scenario not found"
             )
 
-        requirement = (
-            self.repository.session.query(
-                Requirement
-            )
-            .filter(
-                Requirement.id
-                == scenario.requirement_id
-            )
-            .first()
-        )
-
-        if not requirement:
-            raise ValueError(
-                "Requirement not found"
-            )
-
-        highest_number = (
-            self.repository.get_highest_test_case_number(
-                requirement.project_id
-            )
-        )
-
-        test_case_code = (
-            f"TC{highest_number + 1:03d}"
+        test_case_code = generate_sequential_code(
+            db=self.repository.session,
+            entity_type="test_case",
+            prefix="TC",
         )
 
         test_case = TestCase(

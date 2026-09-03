@@ -1,37 +1,37 @@
-from sqlalchemy import func
+from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+from app.models.code_sequence import CodeSequence
 
 
 def generate_sequential_code(
     db: Session,
-    model,
-    project_id: int,
-    code_field: str,
+    entity_type: str,
     prefix: str,
 ) -> str:
     """
-    Generates the next sequential code for a project.
+    Generate the next globally unique business code for an entity type.
 
     Example:
-        REQ001
-        REQ002
-        REQ003
+        entity_type="test_case", prefix="TC"
+        -> TC-001
+        -> TC-002
+        -> TC-003
+
+    Numbers are reserved independently from the actual entity rows,
+    so deleting an entity will never cause its code number to be reused.
     """
 
-    column = getattr(model, code_field)
+    sequence = db.execute(
+        select(CodeSequence)
+        .where(CodeSequence.entity_type == entity_type)
+        .with_for_update()
+    ).scalar_one()
 
-    latest_code = (
-        db.query(func.max(column))
-        .filter(model.project_id == project_id)
-        .scalar()
-    )
+    number = sequence.next_number
 
-    if not latest_code:
-        next_number = 1
-    else:
-        numeric_part = int(
-            latest_code.replace(prefix, "")
-        )
-        next_number = numeric_part + 1
+    sequence.next_number += 1
 
-    return f"{prefix}{next_number:03d}"
+    db.flush()
+
+    return f"{prefix}-{number:03d}"

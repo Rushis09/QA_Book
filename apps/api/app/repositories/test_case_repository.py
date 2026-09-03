@@ -23,44 +23,6 @@ class TestCaseRepository:
 
         return test_case
 
-    def get_highest_test_case_number(
-        self,
-        project_id: int,
-    ) -> int:
-        test_case_codes = (
-            self.db.query(
-                TestCase.test_case_code
-            )
-            .join(TestScenario)
-            .join(Requirement)
-            .filter(
-                Requirement.project_id
-                == project_id
-            )
-            .all()
-        )
-
-        highest_number = 0
-
-        for (test_case_code,) in test_case_codes:
-            if not test_case_code.startswith("TC"):
-                continue
-
-            try:
-                number = int(
-                    test_case_code[2:]
-                )
-
-                highest_number = max(
-                    highest_number,
-                    number,
-                )
-
-            except ValueError:
-                continue
-
-        return highest_number
-
     def get_all(
         self,
         project_id: int | None = None,

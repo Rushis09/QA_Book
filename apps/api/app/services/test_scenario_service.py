@@ -7,6 +7,7 @@ from app.schemas.test_scenario import (
     TestScenarioCreate,
     TestScenarioUpdate,
 )
+from app.utils.code_generator import generate_sequential_code
 
 
 class TestScenarioService:
@@ -36,14 +37,10 @@ class TestScenarioService:
                 "Requirement not found"
             )
 
-        highest_number = (
-            self.repository.get_highest_scenario_number(
-                requirement.project_id
-            )
-        )
-
-        scenario_code = (
-            f"SCN{highest_number + 1:03d}"
+        scenario_code = generate_sequential_code(
+            db=self.repository.session,
+            entity_type="scenario",
+            prefix="SCN",
         )
 
         test_scenario = TestScenario(
@@ -121,4 +118,3 @@ class TestScenarioService:
         self.repository.delete(
             test_scenario
         )
-        

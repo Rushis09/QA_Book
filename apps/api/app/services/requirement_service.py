@@ -17,9 +17,7 @@ class RequirementService:
 
         requirement_code = generate_sequential_code(
             db=self.repository.session,
-            model=Requirement,
-            project_id=requirement_data.project_id,
-            code_field="requirement_code",
+            entity_type="requirement",
             prefix="REQ",
         )
 
@@ -37,7 +35,7 @@ class RequirementService:
     def get_all(self):
 
         return self.repository.get_all()
-    
+
     def get_by_project(self, project_id: int):
 
         return self.repository.get_by_project(project_id)
@@ -48,10 +46,10 @@ class RequirementService:
 
     def get_required(self, requirement_id: int) -> Requirement:
         requirement = self.repository.get_by_id(requirement_id)
-    
+
         if requirement is None:
             raise ValueError("Requirement not found")
-    
+
         return requirement
 
     def update(

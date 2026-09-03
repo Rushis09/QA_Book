@@ -18,9 +18,8 @@ class Requirement(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "project_id",
             "requirement_code",
-            name="uq_requirement_project_code",
+            name="uq_requirement_code",
         ),
     )
 
