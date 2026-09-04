@@ -14,6 +14,10 @@ import ExecutionPage from "./pages/TestExecutions/ExecutionPage";
 import BugsPage from "./pages/Bugs/BugsPage";
 import ReportsPage from "./pages/Reports/ReportsPage";
 import AutomationPage from "./automation/pages/AutomationPage";
+import TestExecutionsListPage from "./pages/TestExecutions/TestExecutionsListPage";
+
+
+
 
 function NotFoundPage() {
   return <h1>404 - Page Not Found</h1>;
@@ -74,6 +78,11 @@ export default function App() {
         <Route
           path="/test-runs/:runId/execute"
           element={<ExecutionPage />}
+        />
+
+        <Route
+          path="/test-executions"
+          element={<TestExecutionsListPage />}
         />
 
         <Route

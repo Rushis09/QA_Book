@@ -35,6 +35,7 @@ from app.models.suite_test_case import SuiteTestCase
 from app.models.test_run import TestRun
 from app.models.test_execution import TestExecution
 from app.models.bug import Bug
+from app.models.bug_retest import BugRetest
 from app.models.admin import Admin
 from app.auth.router import router as auth_router
 from app.ai.router import router as ai_router

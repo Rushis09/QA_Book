@@ -3,6 +3,8 @@ import api from "./api";
 import type {
   Bug,
   BugRequest,
+  BugRetest,
+  BugRetestRequest,
 } from "../types/bug";
 
 const BASE_URL = "/bugs";
@@ -47,6 +49,19 @@ export const bugService = {
     const response =
       await api.put<Bug>(
         `${BASE_URL}/${id}`,
+        data,
+      );
+
+    return response.data;
+  },
+
+  async createRetest(
+    bugId: number,
+    data: BugRetestRequest,
+  ): Promise<BugRetest> {
+    const response =
+      await api.post<BugRetest>(
+        `${BASE_URL}/${bugId}/retest`,
         data,
       );
 

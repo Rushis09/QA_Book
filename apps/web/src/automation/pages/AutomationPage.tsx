@@ -95,6 +95,7 @@ export default function AutomationPage() {
       setAutomationProject(null);
       setTestCases([]);
       setMappings([]);
+      setError("");
       setLoading(false);
       return;
     }
@@ -103,21 +104,14 @@ export default function AutomationPage() {
       setLoading(true);
       setError("");
 
-      const [
-        automationProjectData,
-        testCaseData,
-      ] = await Promise.all([
-        automationService.getAutomationProjectByProjectId(
+      /*
+       * Test cases are independent of the automation project.
+       * Always load them first.
+       */
+      const testCaseData =
+        await testCaseService.getTestCases(
           selectedProject.id,
-        ),
-        testCaseService.getTestCases(
-          selectedProject.id,
-        ),
-      ]);
-
-      setAutomationProject(
-        automationProjectData,
-      );
+        );
 
       setTestCases(
         testCaseData.filter(
@@ -125,6 +119,46 @@ export default function AutomationPage() {
             testCase.automation_eligibility ===
             "Eligible",
         ),
+      );
+
+      /*
+       * An automation project is optional.
+       * A 404 simply means automation has not been
+       * initialized for this QABook project yet.
+       */
+      let automationProjectData:
+        | AutomationProject
+        | null = null;
+
+      try {
+        automationProjectData =
+          await automationService.getAutomationProjectByProjectId(
+            selectedProject.id,
+          );
+      } catch (error) {
+        const status =
+          (
+            error as {
+              response?: {
+                status?: number;
+              };
+            }
+          ).response?.status;
+
+        if (status !== 404) {
+          throw error;
+        }
+      }
+
+      if (!automationProjectData) {
+        setAutomationProject(null);
+        setMappings([]);
+        setAutomationRun(null);
+        return;
+      }
+
+      setAutomationProject(
+        automationProjectData,
       );
 
       const mappingData =
@@ -138,8 +172,9 @@ export default function AutomationPage() {
 
       setAutomationProject(null);
       setMappings([]);
+
       setError(
-        "Failed to load automation project.",
+        "Failed to load automation data.",
       );
     } finally {
       setLoading(false);
@@ -169,18 +204,19 @@ export default function AutomationPage() {
 
     try {
       setSaving(true);
+      setError("");
 
-      const data =
-        await automationService.createAutomationProject({
-          project_id: selectedProject.id,
-          name: name.trim(),
-          framework,
-          status: "Active",
-          repository_url: null,
-        });
+      await automationService.createAutomationProject({
+        project_id: selectedProject.id,
+        name: name.trim(),
+        framework,
+        status: "Active",
+        repository_url: null,
+      });
 
-      setAutomationProject(data);
       setName("");
+
+      await loadAutomationData();
 
       showNotification(
         "Automation project initialized successfully.",
@@ -226,9 +262,9 @@ export default function AutomationPage() {
         automationProject.id,
       );
 
-      setAutomationProject(null);
-      setMappings([]);
       setAutomationRun(null);
+
+      await loadAutomationData();
 
       showNotification(
         "Automation deinitialized successfully.",
@@ -481,6 +517,39 @@ export default function AutomationPage() {
       );
 
     setMappings(mappingData);
+  }
+
+  async function handleUnmap(
+    mapping: AutomationTestMapping,
+  ) {
+    if (!automationProject) {
+      return;
+    }
+
+    try {
+      await automationService.deleteAutomationTestMapping(
+        mapping.id,
+      );
+
+      const mappingData =
+        await automationService.getAutomationTestMappings(
+          automationProject.id,
+        );
+
+      setMappings(mappingData);
+
+      showNotification(
+        "Test case unmapped successfully.",
+        "success",
+      );
+    } catch (error) {
+      console.error(error);
+
+      showNotification(
+        "Failed to unmap test case.",
+        "error",
+      );
+    }
   }
 
   function handleCloseMappingDialog() {
@@ -771,6 +840,7 @@ export default function AutomationPage() {
             mappings={mappings}
             onMap={handleMapTestCase}
             onBulkMap={handleBulkMap}
+            onUnmap={handleUnmap}
           />
 
           {bulkMapping && (

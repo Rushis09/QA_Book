@@ -1,4 +1,6 @@
 import {
+  Box,
+  Chip,
   Divider,
   MenuItem,
   Paper,
@@ -9,8 +11,8 @@ import {
 
 import {
   BUG_PRIORITIES,
+  BUG_RESOLUTIONS,
   BUG_SEVERITIES,
-  BUG_STATUSES,
 } from "../../constants/bugConstants";
 
 import type { TestExecution } from "../../types/testExecution";
@@ -23,15 +25,28 @@ interface BugFormProps {
     execution: boolean;
     title: boolean;
   };
+  executionLocked?: boolean;
   onChange: (
     value: BugFormData,
   ) => void;
 }
 
+const BUG_STATUS_TRANSITIONS: Record<string, string[]> = {
+  Open: ["Open", "Triaged"],
+  Triaged: ["Triaged", "In Progress", "Closed"],
+  "In Progress": ["In Progress", "Fixed"],
+  Fixed: ["Fixed", "Ready for QA"],
+  "Ready for QA": ["Ready for QA", "Retesting"],
+  Retesting: ["Retesting", "Closed", "Reopened"],
+  Reopened: ["Reopened", "In Progress"],
+  Closed: ["Closed", "Reopened"],
+};
+
 export default function BugForm({
   value,
   executions,
   error,
+  executionLocked = false,
   onChange,
 }: BugFormProps) {
   const selectedExecution =
@@ -39,356 +54,580 @@ export default function BugForm({
       (execution) =>
         execution.id === value.execution_id,
     ) ?? null;
+    
+  const availableStatuses =
+    BUG_STATUS_TRANSITIONS[value.status] ??
+    [value.status];
 
   return (
-    <Stack spacing={3}>
-              <TextField
-        select
-        label="Test Execution"
-        value={value.execution_id}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            execution_id: Number(
-              event.target.value,
-            ),
-          })
-        }
-        fullWidth
-        required
-        error={error.execution}
-        helperText={
-          error.execution
-            ? "Test Execution is required."
-            : ""
-        }
-      >
-        {executions.map((execution) => (
-          <MenuItem
-            key={execution.id}
-            value={execution.id}
-          >
-            {`${execution.test_run.run_code} | ${execution.test_case.test_case_code} | ${execution.test_case.title}`}
-          </MenuItem>
-        ))}
-      </TextField>
-
-      {selectedExecution && (
-        <Paper
-          variant="outlined"
+    <Stack spacing={3} sx={{ pt: 1 }}>
+      {/* =====================================================
+          EXECUTION / TRACEABILITY
+      ====================================================== */}
+      <Box>
+        <Typography
+          variant="overline"
+          color="text.secondary"
           sx={{
-            p: 2,
+            fontWeight: 700,
+            letterSpacing: 1,
           }}
         >
-          <Typography
-            variant="h6"
-            gutterBottom
+          Execution Context
+        </Typography>
+
+        {!selectedExecution ? (
+          <TextField
+            select
+            label="Test Execution"
+            value={value.execution_id}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                execution_id: Number(
+                  event.target.value,
+                ),
+              })
+            }
+            fullWidth
+            required
+            disabled={executionLocked}
+            error={error.execution}
+            helperText={
+              error.execution
+                ? "Test Execution is required."
+                : ""
+            }
+            sx={{ mt: 1 }}
           >
-            Execution Details
+            {executions.map((execution) => (
+              <MenuItem
+                key={execution.id}
+                value={execution.id}
+              >
+                {`${execution.test_run.run_code} | ${execution.test_case.test_case_code} | ${execution.test_case.title}`}
+              </MenuItem>
+            ))}
+          </TextField>
+        ) : (
+          <Paper
+            variant="outlined"
+            sx={{
+              mt: 1,
+              p: 2,
+              borderRadius: 2,
+              backgroundColor:
+                "background.default",
+            }}
+          >
+            <Stack spacing={1.5}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: 2,
+                }}
+              >
+                <Box>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      fontWeight: 700,
+                    }}
+                  >
+                    {
+                      selectedExecution.test_case
+                        .test_case_code
+                    }
+                    {" — "}
+                    {
+                      selectedExecution.test_case
+                        .title
+                    }
+                  </Typography>
+
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    {
+                      selectedExecution.test_run
+                        .run_code
+                    }
+                    {" — "}
+                    {
+                      selectedExecution.test_run
+                        .name
+                    }
+                  </Typography>
+                </Box>
+
+                <Chip
+                  label={
+                    selectedExecution.status
+                  }
+                  color={
+                    selectedExecution.status ===
+                    "Failed"
+                      ? "error"
+                      : "default"
+                  }
+                  size="small"
+                />
+              </Box>
+
+              <Divider />
+
+              <Stack
+                direction={{
+                  xs: "column",
+                  sm: "row",
+                }}
+                spacing={{
+                  xs: 1,
+                  sm: 4,
+                }}
+              >
+                <Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Execution
+                  </Typography>
+
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 600,
+                    }}
+                  >
+                    #{selectedExecution.id}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Test Case Priority
+                  </Typography>
+
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 600,
+                    }}
+                  >
+                    {
+                      selectedExecution.test_case
+                        .priority
+                    }
+                  </Typography>
+                </Box>
+
+                
+              </Stack>
+            </Stack>
+          </Paper>
+        )}
+      </Box>
+
+      {/* =====================================================
+          TEST CASE REFERENCE
+      ====================================================== */}
+      {selectedExecution && (
+        <Box>
+          <Typography
+            variant="overline"
+            color="text.secondary"
+            sx={{
+              fontWeight: 700,
+              letterSpacing: 1,
+            }}
+          >
+            Test Case Reference
           </Typography>
 
-          <Stack spacing={2}>
-            <TextField
-              label="Run Code"
-              value={
-                selectedExecution.test_run.run_code
-              }
-              fullWidth
-              slotProps={{
-                input: {
-                  readOnly: true,
-                },
-              }}
-            />
+          <Paper
+            variant="outlined"
+            sx={{
+              mt: 1,
+              p: 2,
+              borderRadius: 2,
+            }}
+          >
+            <Stack spacing={2}>
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  Preconditions
+                </Typography>
 
-            <TextField
-              label="Run Name"
-              value={
-                selectedExecution.test_run.name
-              }
-              fullWidth
-              slotProps={{
-                input: {
-                  readOnly: true,
-                },
-              }}
-            />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    mt: 0.5,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {selectedExecution.test_case
+                    .preconditions ||
+                    "No preconditions specified."}
+                </Typography>
+              </Box>
 
-            <TextField
-              label="Test Case Code"
-              value={
-                selectedExecution.test_case
-                  .test_case_code
-              }
-              fullWidth
-              slotProps={{
-                input: {
-                  readOnly: true,
-                },
-              }}
-            />
+              <Divider />
 
-            <TextField
-              label="Test Case"
-              value={
-                selectedExecution.test_case.title
-              }
-              fullWidth
-              slotProps={{
-                input: {
-                  readOnly: true,
-                },
-              }}
-            />
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  Test Case Steps
+                </Typography>
 
-            <TextField
-              label="Priority"
-              value={
-                selectedExecution.test_case
-                  .priority
-              }
-              fullWidth
-              slotProps={{
-                input: {
-                  readOnly: true,
-                },
-              }}
-            />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    mt: 0.5,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {selectedExecution.test_case
+                    .steps ||
+                    "No test case steps specified."}
+                </Typography>
+              </Box>
 
-            <TextField
-              label="Preconditions"
-              value={
-                selectedExecution.test_case
-                  .preconditions ?? ""
-              }
-              multiline
-              rows={2}
-              fullWidth
-              slotProps={{
-                input: {
-                  readOnly: true,
-                },
-              }}
-            />
+              <Divider />
 
-            <TextField
-              label="Steps"
-              value={
-                selectedExecution.test_case
-                  .steps ?? ""
-              }
-              multiline
-              rows={4}
-              fullWidth
-              slotProps={{
-                input: {
-                  readOnly: true,
-                },
-              }}
-            />
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  Expected Result
+                </Typography>
 
-            <TextField
-              label="Expected Result"
-              value={
-                selectedExecution.test_case
-                  .expected_result ?? ""
-              }
-              multiline
-              rows={3}
-              fullWidth
-              slotProps={{
-                input: {
-                  readOnly: true,
-                },
-              }}
-            />
-          </Stack>
-        </Paper>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    mt: 0.5,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {selectedExecution.test_case
+                    .expected_result ||
+                    "No expected result specified."}
+                </Typography>
+              </Box>
+            </Stack>
+          </Paper>
+        </Box>
       )}
 
-      <Divider />
-              <Typography variant="h6">
-        Bug Information
-      </Typography>
+      {/* =====================================================
+          BUG DETAILS
+      ====================================================== */}
+      <Box>
+        <Typography
+          variant="overline"
+          color="text.secondary"
+          sx={{
+            fontWeight: 700,
+            letterSpacing: 1,
+          }}
+        >
+          Bug Details
+        </Typography>
 
-      <TextField
-        label="Bug Title"
-        value={value.title}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            title: event.target.value,
-          })
-        }
-        required
-        error={error.title}
-        helperText={
-          error.title
-            ? "Bug title is required."
-            : ""
-        }
-        fullWidth
-      />
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <TextField
+            label="Bug Title"
+            placeholder="Describe the defect clearly"
+            value={value.title}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                title: event.target.value,
+              })
+            }
+            required
+            error={error.title}
+            helperText={
+              error.title
+                ? "Bug title is required."
+                : "Use a short, specific description of the problem."
+            }
+            fullWidth
+          />
 
-      <TextField
-        label="Description"
-        value={value.description ?? ""}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            description:
-              event.target.value,
-          })
-        }
-        multiline
-        rows={3}
-        fullWidth
-      />
+          <TextField
+            label="Description"
+            placeholder="Describe the problem, impact, or additional context"
+            value={value.description ?? ""}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                description:
+                  event.target.value,
+              })
+            }
+            multiline
+            rows={3}
+            fullWidth
+          />
 
-      <TextField
-        select
-        label="Severity"
-        value={value.severity}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            severity:
-              event.target.value,
-          })
-        }
-        fullWidth
-      >
-        {BUG_SEVERITIES.map(
-          (severity) => (
-            <MenuItem
-              key={severity}
-              value={severity}
+          <Stack
+            direction={{
+              xs: "column",
+              sm: "row",
+            }}
+            spacing={2}
+          >
+            <TextField
+              select
+              label="Severity"
+              value={value.severity}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  severity:
+                    event.target.value,
+                })
+              }
+              fullWidth
             >
-              {severity}
-            </MenuItem>
-          ),
-        )}
-      </TextField>
+              {BUG_SEVERITIES.map(
+                (severity) => (
+                  <MenuItem
+                    key={severity}
+                    value={severity}
+                  >
+                    {severity}
+                  </MenuItem>
+                ),
+              )}
+            </TextField>
 
-      <TextField
-        select
-        label="Priority"
-        value={value.priority}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            priority:
-              event.target.value,
-          })
-        }
-        fullWidth
-      >
-        {BUG_PRIORITIES.map(
-          (priority) => (
-            <MenuItem
-              key={priority}
-              value={priority}
+            <TextField
+              select
+              label="Priority"
+              value={value.priority}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  priority:
+                    event.target.value,
+                })
+              }
+              fullWidth
             >
-              {priority}
-            </MenuItem>
-          ),
-        )}
-      </TextField>
+              {BUG_PRIORITIES.map(
+                (priority) => (
+                  <MenuItem
+                    key={priority}
+                    value={priority}
+                  >
+                    {priority}
+                  </MenuItem>
+                ),
+              )}
+            </TextField>
 
-      <TextField
-        select
-        label="Status"
-        value={value.status}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            status:
-              event.target.value,
-          })
-        }
-        fullWidth
-      >
-        {BUG_STATUSES.map(
-          (status) => (
-            <MenuItem
-              key={status}
-              value={status}
+           <TextField
+              select
+              label="Status"
+              value={value.status}
+              onChange={(event) => {
+                const status = event.target.value;
+              
+                onChange({
+                  ...value,
+                  status,
+                  resolution:
+                    status === "Closed"
+                      ? value.resolution
+                      : null,
+                });
+              }}
+              fullWidth
             >
-              {status}
-            </MenuItem>
-          ),
-        )}
-      </TextField>
+              {availableStatuses.map(
+                (status) => (
+                  <MenuItem
+                    key={status}
+                    value={status}
+                  >
+                    {status}
+                  </MenuItem>
+                ),
+              )}
+            </TextField>
+            
+            <TextField
+              select
+              label="Resolution"
+              value={value.resolution ?? ""}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  resolution:
+                    event.target.value || null,
+                })
+              }
+              disabled={value.status !== "Closed"}
+              required={value.status === "Closed"}
+              fullWidth
+            >
+              <MenuItem value="">
+                No Resolution
+              </MenuItem>
+            
+              {BUG_RESOLUTIONS.map(
+                (resolution) => (
+                  <MenuItem
+                    key={resolution}
+                    value={resolution}
+                  >
+                    {resolution}
+                  </MenuItem>
+                ),
+              )}
+            </TextField>
+          </Stack>
 
-      <TextField
-        label="Assigned To"
-        value={value.assigned_to ?? ""}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            assigned_to:
-              event.target.value,
-          })
-        }
-        fullWidth
-      />
+          <Stack
+            direction={{
+              xs: "column",
+              sm: "row",
+            }}
+            spacing={2}
+          >
+            <TextField
+              label="Assigned To"
+              placeholder="Assign to a team member"
+              value={value.assigned_to ?? ""}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  assigned_to:
+                    event.target.value,
+                })
+              }
+              fullWidth
+            />
 
-      <TextField
-        label="Reported By"
-        value={value.reported_by ?? ""}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            reported_by:
-              event.target.value,
-          })
-        }
-        fullWidth
-      />
+            <TextField
+              label="Reported By"
+              placeholder="Reporter"
+              value={value.reported_by ?? ""}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  reported_by:
+                    event.target.value,
+                })
+              }
+              fullWidth
+            />
+          </Stack>
+        </Stack>
+      </Box>
 
-      <TextField
-        label="Environment"
-        value={value.environment ?? ""}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            environment:
-              event.target.value,
-          })
-        }
-        fullWidth
-      />
-              <TextField
-        label="Steps To Reproduce"
-        value={
-          value.steps_to_reproduce ?? ""
-        }
-        onChange={(event) =>
-          onChange({
-            ...value,
-            steps_to_reproduce:
-              event.target.value,
-          })
-        }
-        multiline
-        rows={4}
-        fullWidth
-      />
+      {/* =====================================================
+          REPRODUCTION & RESULTS
+      ====================================================== */}
+      <Box>
+        <Typography
+          variant="overline"
+          color="text.secondary"
+          sx={{
+            fontWeight: 700,
+            letterSpacing: 1,
+          }}
+        >
+          Reproduction & Results
+        </Typography>
 
-      <TextField
-        label="Actual Result"
-        value={value.actual_result ?? ""}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            actual_result:
-              event.target.value,
-          })
-        }
-        multiline
-        rows={4}
-        fullWidth
-      />
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <TextField
+            label="Steps To Reproduce"
+            placeholder="Describe the steps required to reproduce the defect"
+            value={
+              value.steps_to_reproduce ?? ""
+            }
+            onChange={(event) =>
+              onChange({
+                ...value,
+                steps_to_reproduce:
+                  event.target.value,
+              })
+            }
+            multiline
+            rows={4}
+            fullWidth
+          />
+
+          <TextField
+            label="Actual Result"
+            placeholder="Describe what actually happened"
+            value={value.actual_result ?? ""}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                actual_result:
+                  event.target.value,
+              })
+            }
+            multiline
+            rows={4}
+            fullWidth
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                backgroundColor:
+                  "action.hover",
+              },
+            }}
+          />
+        </Stack>
+      </Box>
+
+      {/* =====================================================
+          ENVIRONMENT
+      ====================================================== */}
+      <Box>
+        <Typography
+          variant="overline"
+          color="text.secondary"
+          sx={{
+            fontWeight: 700,
+            letterSpacing: 1,
+          }}
+        >
+          Environment
+        </Typography>
+
+        <TextField
+          label="Environment"
+          placeholder="e.g. QA, Staging, Production"
+          value={value.environment ?? ""}
+          onChange={(event) =>
+            onChange({
+              ...value,
+              environment:
+                event.target.value,
+            })
+          }
+          fullWidth
+          sx={{ mt: 1 }}
+        />
+      </Box>
     </Stack>
   );
 }

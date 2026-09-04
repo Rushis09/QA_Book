@@ -86,6 +86,19 @@ def get_test_executions(
 
     return service.get_test_executions()
 
+@router.get(
+    "/token/{automation_token}",
+    response_model=list[TestExecutionResponse],
+)
+def get_executions_by_token(
+    automation_token: str,
+    db: Session = Depends(get_db),
+):
+    service = TestExecutionService(db)
+
+    return service.get_executions_by_token(
+        automation_token,
+    )
 
 @router.get(
     "/token/{automation_token}/test-case/{test_case_id}",

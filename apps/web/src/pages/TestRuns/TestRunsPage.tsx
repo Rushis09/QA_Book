@@ -166,19 +166,22 @@ export default function TestRunsPage() {
     }
 
     try {
+      const command =
+        `pytest --qabook-token "${testRun.automation_token}"`;
+
       await navigator.clipboard.writeText(
-        testRun.automation_token,
+        command,
       );
 
       showNotification(
-        `Automation token for ${testRun.run_code} copied successfully.`,
+        `Automation command for ${testRun.run_code} copied successfully.`,
         "success",
       );
     } catch (error) {
       console.error(error);
 
       showNotification(
-        "Failed to copy automation token.",
+        "Failed to copy automation command.",
         "error",
       );
     }

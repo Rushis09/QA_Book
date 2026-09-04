@@ -18,6 +18,7 @@ interface BugDialogProps {
   open: boolean;
   executions: TestExecution[];
   bug?: Bug;
+  initialExecutionId?: number;
   onClose: () => void;
   onSave: (
     data: BugFormData,
@@ -26,6 +27,8 @@ interface BugDialogProps {
 
 const createDefaultFormData = (
   executionId: number,
+  actualResult = "",
+  stepsToReproduce = "",
 ): BugFormData => ({
   execution_id: executionId,
 
@@ -35,13 +38,14 @@ const createDefaultFormData = (
   severity: "Medium",
   priority: "Medium",
   status: "Open",
+  resolution: null,
 
   assigned_to: "",
   reported_by: "",
   environment: "",
 
-  steps_to_reproduce: "",
-  actual_result: "",
+  steps_to_reproduce: stepsToReproduce,
+  actual_result: actualResult,
 });
 
 export default function BugDialog({
@@ -49,6 +53,7 @@ export default function BugDialog({
   open,
   executions,
   bug,
+  initialExecutionId,
   onClose,
   onSave,
 }: BugDialogProps) {
@@ -66,6 +71,10 @@ export default function BugDialog({
       title: false,
     });
 
+  const executionLocked =
+    !bug &&
+    initialExecutionId !== undefined;
+
   useEffect(() => {
     if (bug) {
       setFormData({
@@ -78,6 +87,7 @@ export default function BugDialog({
         severity: bug.severity,
         priority: bug.priority,
         status: bug.status,
+        resolution: bug.resolution,
 
         assigned_to:
           bug.assigned_to ?? "",
@@ -95,11 +105,25 @@ export default function BugDialog({
           bug.actual_result ?? "",
       });
     } else {
+      const executionId =
+        initialExecutionId ??
+        (executions.length > 0
+          ? executions[0].id
+          : 0);
+
+      const selectedExecution =
+        executions.find(
+          (execution) =>
+            execution.id === executionId,
+        );
+
       setFormData(
         createDefaultFormData(
-          executions.length > 0
-            ? executions[0].id
-            : 0,
+          executionId,
+          selectedExecution?.actual_result ??
+            "",
+          selectedExecution?.test_case.steps ??
+            "",
         ),
       );
     }
@@ -108,7 +132,11 @@ export default function BugDialog({
       execution: false,
       title: false,
     });
-  }, [bug, executions]);
+  }, [
+    bug,
+    executions,
+    initialExecutionId,
+  ]);
 
   async function handleSave() {
     const executionError =
@@ -173,6 +201,9 @@ export default function BugDialog({
           value={formData}
           executions={executions}
           error={errors}
+          executionLocked={
+            executionLocked
+          }
           onChange={(value) => {
             setFormData(value);
 

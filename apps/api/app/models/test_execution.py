@@ -85,3 +85,9 @@ class TestExecution(Base):
         back_populates="execution",
         cascade="all, delete-orphan",
     )
+
+    bug_retests = relationship(
+        "BugRetest",
+        back_populates="execution",
+        cascade="all, delete-orphan",
+    )

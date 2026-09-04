@@ -60,6 +60,14 @@ class TestRunService:
         self,
         data: TestRunCreate,
     ):
+        run = self.create_test_run_pending_commit(data)
+
+        return self.repository.create(run)
+
+    def create_test_run_pending_commit(
+        self,
+        data: TestRunCreate,
+    ):
         run_code = generate_sequential_code(
             db=self.repository.db,
             entity_type="test_run",
@@ -85,7 +93,10 @@ class TestRunService:
             execution_type=data.execution_type,
         )
 
-        return self.repository.create(run)
+        self.repository.db.add(run)
+        self.repository.db.flush()
+
+        return run
 
     def update_test_run(
         self,

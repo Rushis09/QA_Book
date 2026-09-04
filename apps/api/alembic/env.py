@@ -24,6 +24,7 @@ from app.models.document import Document
 from app.automation.models.automation_project import AutomationProject
 from app.automation.models.automation_test_mapping import AutomationTestMapping
 from app.models.code_sequence import CodeSequence
+from app.models.bug_retest import BugRetest
 
 config = context.config
 

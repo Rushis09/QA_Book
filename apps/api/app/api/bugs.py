@@ -11,6 +11,12 @@ from app.services.bug_service import (
     BugService,
 )
 
+from app.schemas.bug_retest import (
+    BugRetestCreate,
+    BugRetestResponse,
+)
+from app.services.bug_retest_service import BugRetestService
+
 router = APIRouter(
     prefix="/bugs",
     tags=["Bugs"],
@@ -40,6 +46,22 @@ def get_bugs(
     service = BugService(db)
 
     return service.get_bugs()
+
+@router.post(
+    "/{bug_id}/retest",
+    response_model=BugRetestResponse,
+)
+def create_bug_retest(
+    bug_id: int,
+    retest: BugRetestCreate,
+    db: Session = Depends(get_db),
+):
+    service = BugRetestService(db)
+
+    return service.create_retest(
+        bug_id,
+        retest,
+    )
 
 @router.get(
     "/{bug_id}",

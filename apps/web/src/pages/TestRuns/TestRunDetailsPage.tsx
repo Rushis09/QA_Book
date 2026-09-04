@@ -25,6 +25,7 @@ import {
 } from "react-router-dom";
 
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 import { getTestRunStatusColor } from "../../utils/testRunStatus";
 
@@ -136,6 +137,9 @@ export default function TestRunDetailsPage() {
   const [loading, setLoading] =
     useState(true);
 
+  const [copied, setCopied] =
+    useState(false);
+
   useEffect(() => {
     async function loadTestRun() {
       if (!id) {
@@ -171,6 +175,26 @@ export default function TestRunDetailsPage() {
 
     loadTestRun();
   }, [id]);
+
+  async function handleCopyAutomationCommand() {
+    if (
+      !testRun ||
+      testRun.execution_type !== "Automated" ||
+      !testRun.automation_token
+    ) {
+      return;
+    }
+
+    const command = `pytest --qabook-token "${testRun.automation_token}"`;
+
+    await navigator.clipboard.writeText(command);
+
+    setCopied(true);
+
+    window.setTimeout(() => {
+      setCopied(false);
+    }, 2000);
+  }
 
   if (loading) {
     return <CircularProgress />;
@@ -287,6 +311,45 @@ export default function TestRunDetailsPage() {
           </Grid>
         </Grid>
 
+        {testRun?.execution_type ===
+          "Automated" &&
+          testRun.automation_token && (
+            <>
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{ mt: 2 }}
+              >
+                Automation Command
+              </Typography>
+          
+              <Divider sx={{ mb: 2 }} />
+          
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={
+                  <ContentCopyIcon />
+                }
+                onClick={
+                  handleCopyAutomationCommand
+                }
+              >
+                {copied
+                  ? "Copied"
+                  : "Copy Automation Command"}
+              </Button>
+            </>
+          )}
+      </Paper>
+
+      <Paper
+        elevation={2}
+        sx={{
+          p: 3,
+          mt: 3,
+        }}
+      >
         <Typography
           variant="h6"
           gutterBottom

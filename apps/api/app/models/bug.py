@@ -34,7 +34,6 @@ class Bug(Base):
         nullable=False,
     )
 
-
     title = Column(
         String(200),
         nullable=False,
@@ -61,6 +60,11 @@ class Bug(Base):
         default="Open",
     )
 
+    resolution = Column(
+        String(30),
+        nullable=True,
+    )
+
     assigned_to = Column(
         String(100),
         nullable=True,
@@ -80,8 +84,6 @@ class Bug(Base):
         Text,
         nullable=True,
     )
-
-
 
     actual_result = Column(
         Text,
@@ -106,4 +108,8 @@ class Bug(Base):
         back_populates="bugs",
     )
 
- 
+    retests = relationship(
+        "BugRetest",
+        back_populates="bug",
+        cascade="all, delete-orphan",
+    )

@@ -21,6 +21,7 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import type { NavigationItem } from "../types/navigation";
 
 export const navigationItems: NavigationItem[] = [
+
   {
     label: "Dashboard",
     path: "/",
@@ -64,6 +65,12 @@ export const navigationItems: NavigationItem[] = [
   },
 
   {
+    label: "Test Executions",
+    path: "/test-executions",
+    icon: FactCheckIcon,
+  },
+
+  {
     label: "Automation",
     path: "/automation",
     icon: AutoAwesomeIcon,
@@ -80,4 +87,5 @@ export const navigationItems: NavigationItem[] = [
     path: "/reports",
     icon: AssessmentIcon,
   },
+
 ];
