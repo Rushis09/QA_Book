@@ -959,169 +959,176 @@ reports/*
 Thumbs.db
 """
 
-    @staticmethod
-    def _github_workflow_content(
-        automation_project: AutomationProject,
-    ) -> str:
-        return f"""name: QABook Automation
-
-on:
-  push:
-    branches:
-      - "**"
-
-  repository_dispatch:
-    types:
-      - qabook-retest
-      - qabook-automation-run
-
-permissions:
-  contents: read
-
-jobs:
-  automation:
-    name: Run QABook Automation
-    runs-on: ubuntu-latest
-
-    env:
-      QABOOK_API_URL: ${{{{ secrets.QABOOK_API_URL }}}}
-      QABOOK_CI_SECRET: ${{{{ secrets.QABOOK_CI_SECRET }}}}
-      QABOOK_AUTOMATION_PROJECT_ID: "{automation_project.id}"
-      QABOOK_REPOSITORY: "${{{{ github.repository }}}}"
-      QABOOK_COMMIT_SHA: "${{{{ github.sha }}}}"
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Install Playwright browsers
-        run: |
-          playwright install --with-deps
-
-      - name: Create or obtain QABook Test Run
-        id: qabook_run
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          RUN_ID_JSON="null"
-
-          if [ "${{{{ github.event_name }}}}" = "repository_dispatch" ]; then
-            RUN_ID_JSON='${{{{ github.event.client_payload.run_id }}}}'
-
-            if [ -z "$RUN_ID_JSON" ]; then
-              echo "QABook repository dispatch did not provide a run_id."
-              exit 1
-            fi
-          fi
-
-          response=$(curl --fail-with-body --silent --show-error \
-            --request POST \
-            --header "Content-Type: application/json" \
-            --header "X-QABook-CI-Secret: $QABOOK_CI_SECRET" \
-            --data '{{"automation_project_id": '$QABOOK_AUTOMATION_PROJECT_ID',
-              "repository": "'"$QABOOK_REPOSITORY"'",
-              "commit_sha": "'"$QABOOK_COMMIT_SHA"'",
-              "event_type": "'"${{{{ github.event_name }}}}"'",
-              "run_id": '$RUN_ID_JSON'
-            }}' \
-            "$QABOOK_API_URL/automation-projects/$QABOOK_AUTOMATION_PROJECT_ID/ci/run")
-
-          echo "$response" > qabook-run.json
-
-          python - <<'PY'
-          import json
-          import os
-
-          with open(
-              "qabook-run.json",
-              "r",
-              encoding="utf-8",
-          ) as file:
-              data = json.load(file)
-
-          token = data.get("automation_token")
-          test_files = data.get("test_files", [])
-          test_run_id = data.get("test_run_id")
-
-          if not token:
-              raise SystemExit(
-                  "QABook did not return an automation token."
-              )
-
-          if not test_run_id:
-              raise SystemExit(
-                  "QABook did not return a Test Run ID."
-              )
-
-          if not test_files:
-              raise SystemExit(
-                  "QABook returned no test files."
-              )
-
-          with open(
-              os.environ["GITHUB_OUTPUT"],
-              "a",
-              encoding="utf-8",
-          ) as output:
-              output.write(
-                  f"automation_token={{token}}\\\\n"
-              )
-              output.write(
-                  f"test_run_id={{test_run_id}}\\\\n"
-              )
-              output.write(
-                  "test_files="
-                  + json.dumps(test_files)
-                  + "\\\\n"
-              )
-          PY
-
-      - name: Run automation tests
+        @staticmethod
+        def _github_workflow_content(
+            automation_project: AutomationProject,
+        ) -> str:
+            return f"""name: QABook Automation
+    
+    on:
+      push:
+        branches:
+          - "**"
+    
+      repository_dispatch:
+        types:
+          - qabook-retest
+          - qabook-automation-run
+    
+    permissions:
+      contents: read
+    
+    jobs:
+      automation:
+        name: Run QABook Automation
+        runs-on: ubuntu-latest
+    
         env:
-          QABOOK_AUTOMATION_TOKEN: ${{{{ steps.qabook_run.outputs.automation_token }}}}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          python - <<'PY'
-          import json
-          import subprocess
-          import sys
-
-          with open(
-              "qabook-run.json",
-              "r",
-              encoding="utf-8",
-          ) as file:
-              data = json.load(file)
-
-          test_files = data.get("test_files", [])
-
-          if not test_files:
-              raise SystemExit(
-                  "QABook returned no test files for this execution."
-              )
-
-          command = [
-              sys.executable,
-              "-m",
-              "pytest",
-              *test_files,
-          ]
-
-          result = subprocess.run(command)
-
-          raise SystemExit(result.returncode)
-          PY
-"""
+          QABOOK_API_URL: ${{{{ secrets.QABOOK_API_URL }}}}
+          QABOOK_CI_SECRET: ${{{{ secrets.QABOOK_CI_SECRET }}}}
+          QABOOK_AUTOMATION_PROJECT_ID: "{automation_project.id}"
+          QABOOK_REPOSITORY: "${{{{ github.repository }}}}"
+          QABOOK_COMMIT_SHA: "${{{{ github.sha }}}}"
+    
+        steps:
+          - name: Checkout repository
+            uses: actions/checkout@v4
+    
+          - name: Set up Python
+            uses: actions/setup-python@v5
+            with:
+              python-version: "3.12"
+    
+          - name: Install dependencies
+            run: |
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+    
+          - name: Install Playwright browsers
+            run: |
+              playwright install --with-deps
+    
+          - name: Create or obtain QABook Test Run
+            id: qabook_run
+            shell: bash
+            run: |
+              set -euo pipefail
+    
+              RUN_ID_JSON="null"
+              EVENT_TYPE="${{{{ github.event_name }}}}"
+    
+              if [ "$EVENT_TYPE" = "repository_dispatch" ]; then
+                RUN_ID_JSON='${{{{ github.event.client_payload.run_id }}}}'
+                EVENT_TYPE="${{{{ github.event.action }}}}"
+    
+                if [ -z "$RUN_ID_JSON" ]; then
+                  echo "QABook repository dispatch did not provide a run_id."
+                  exit 1
+                fi
+    
+                if [ -z "$EVENT_TYPE" ]; then
+                  echo "QABook repository dispatch did not provide an event type."
+                  exit 1
+                fi
+              fi
+    
+              response=$(curl --fail-with-body --silent --show-error \
+                --request POST \
+                --header "Content-Type: application/json" \
+                --header "X-QABook-CI-Secret: $QABOOK_CI_SECRET" \
+                --data '{{"automation_project_id": '$QABOOK_AUTOMATION_PROJECT_ID',
+                  "repository": "'"$QABOOK_REPOSITORY"'",
+                  "commit_sha": "'"$QABOOK_COMMIT_SHA"'",
+                  "event_type": "'"$EVENT_TYPE"'",
+                  "run_id": '$RUN_ID_JSON'
+                }}' \
+                "$QABOOK_API_URL/automation-projects/$QABOOK_AUTOMATION_PROJECT_ID/ci/run")
+    
+              echo "$response" > qabook-run.json
+    
+              python - <<'PY'
+              import json
+              import os
+    
+              with open(
+                  "qabook-run.json",
+                  "r",
+                  encoding="utf-8",
+              ) as file:
+                  data = json.load(file)
+    
+              token = data.get("automation_token")
+              test_files = data.get("test_files", [])
+              test_run_id = data.get("test_run_id")
+    
+              if not token:
+                  raise SystemExit(
+                      "QABook did not return an automation token."
+                  )
+    
+              if not test_run_id:
+                  raise SystemExit(
+                      "QABook did not return a Test Run ID."
+                  )
+    
+              if not test_files:
+                  raise SystemExit(
+                      "QABook returned no test files."
+                  )
+    
+              with open(
+                  os.environ["GITHUB_OUTPUT"],
+                  "a",
+                  encoding="utf-8",
+              ) as output:
+                  output.write(
+                      f"automation_token={{token}}\\\\n"
+                  )
+                  output.write(
+                      f"test_run_id={{test_run_id}}\\\\n"
+                  )
+                  output.write(
+                      "test_files="
+                      + json.dumps(test_files)
+                      + "\\\\n"
+                  )
+              PY
+    
+          - name: Run automation tests
+            env:
+              QABOOK_AUTOMATION_TOKEN: ${{{{ steps.qabook_run.outputs.automation_token }}}}
+            shell: bash
+            run: |
+              set -euo pipefail
+    
+              python - <<'PY'
+              import json
+              import subprocess
+              import sys
+    
+              with open(
+                  "qabook-run.json",
+                  "r",
+                  encoding="utf-8",
+              ) as file:
+                  data = json.load(file)
+    
+              test_files = data.get("test_files", [])
+    
+              if not test_files:
+                  raise SystemExit(
+                      "QABook returned no test files for this execution."
+                  )
+    
+              command = [
+                  sys.executable,
+                  "-m",
+                  "pytest",
+                  *test_files,
+              ]
+    
+              result = subprocess.run(command)
+    
+              raise SystemExit(result.returncode)
+              PY
+    """
