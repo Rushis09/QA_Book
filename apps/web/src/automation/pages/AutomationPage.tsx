@@ -5,6 +5,10 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Paper,
   Stack,
@@ -71,6 +75,16 @@ export default function AutomationPage() {
 
   const [deinitializeConfirmOpen, setDeinitializeConfirmOpen] =
     useState(false);
+
+  const [workspaceSettingsOpen, setWorkspaceSettingsOpen] =
+    useState(false);
+
+  const [cloneDialogOpen, setCloneDialogOpen] =
+    useState(false);
+
+  const [settingsName, setSettingsName] = useState("");
+
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const [githubConnected, setGithubConnected] = useState(false);
   const [githubConnectionLoading, setGithubConnectionLoading] =
@@ -321,6 +335,111 @@ export default function AutomationPage() {
     } finally {
       setDeinitializing(false);
       setDeinitializeConfirmOpen(false);
+    }
+  }
+
+  function openWorkspaceSettings() {
+    if (!automationProject) {
+      return;
+    }
+
+    setSettingsName(automationProject.name);
+    setWorkspaceSettingsOpen(true);
+  }
+
+  async function handleSaveWorkspaceSettings() {
+    if (!automationProject || savingSettings) {
+      return;
+    }
+
+    const trimmedName = settingsName.trim();
+
+    if (!trimmedName) {
+      showNotification(
+        "Automation workspace name is required.",
+        "error"
+      );
+      return;
+    }
+
+    try {
+      setSavingSettings(true);
+
+      const updated =
+        await automationService.updateAutomationProject(
+          automationProject.id,
+          {
+            name: trimmedName,
+            framework: automationProject.framework,
+            status: automationProject.status,
+          }
+        );
+
+      setAutomationProject(updated);
+      setWorkspaceSettingsOpen(false);
+
+      showNotification(
+        "Workspace settings updated successfully.",
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+
+      showNotification(
+        "Failed to update workspace settings.",
+        "error"
+      );
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
+  async function handleCopyCloneCommand() {
+    if (!automationProject?.repository_url) {
+      return;
+    }
+
+    const command =
+      `git clone ${automationProject.repository_url}`;
+
+    try {
+      await navigator.clipboard.writeText(command);
+
+      showNotification(
+        "Clone command copied to clipboard.",
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+
+      showNotification(
+        "Unable to copy the clone command. Copy it manually from the dialog.",
+        "error"
+      );
+    }
+  }
+
+  async function handleCopyRepositoryUrl() {
+    if (!automationProject?.repository_url) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(
+        automationProject.repository_url
+      );
+
+      showNotification(
+        "Repository URL copied to clipboard.",
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+
+      showNotification(
+        "Unable to copy the repository URL.",
+        "error"
+      );
     }
   }
 
@@ -850,12 +969,8 @@ export default function AutomationPage() {
   return (
     <PageHeader
       title="Automation"
-      actionLabel={
-        deinitializing
-          ? "Removing..."
-          : "Workspace Settings"
-      }
-      onAction={handleDeinitialize}
+      actionLabel="Workspace Settings"
+      onAction={openWorkspaceSettings}
     >
       <Stack spacing={3}>
         {/* Workspace overview */}
@@ -1041,6 +1156,21 @@ export default function AutomationPage() {
                     gap: 1,
                   }}
                 >
+                  {repositoryConnected && (
+                    <Button
+                      variant="outlined"
+                      onClick={() =>
+                        setCloneDialogOpen(true)
+                      }
+                      disabled={
+                        generatingFramework ||
+                        syncingRepository
+                      }
+                    >
+                      Clone Repository
+                    </Button>
+                  )}
+
                   <Button
                     variant={
                       githubConnected
@@ -1548,6 +1678,405 @@ export default function AutomationPage() {
           setDeinitializeConfirmOpen(false);
         }}
       />
+
+      <Dialog
+        open={workspaceSettingsOpen}
+        onClose={() => {
+          if (!savingSettings) {
+            setWorkspaceSettingsOpen(false);
+          }
+        }}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle>Workspace Settings</DialogTitle>
+
+        <DialogContent dividers>
+          <Stack spacing={3} sx={{ pt: 1 }}>
+            <Box>
+              <Typography variant="h6">
+                General
+              </Typography>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                Manage the identity and configuration of this
+                automation workspace.
+              </Typography>
+            </Box>
+
+            <TextField
+              label="Workspace name"
+              value={settingsName}
+              onChange={(event) =>
+                setSettingsName(event.target.value)
+              }
+              fullWidth
+              disabled={savingSettings}
+            />
+
+            <Divider />
+
+            <Box>
+              <Typography variant="h6">
+                Source control
+              </Typography>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                GitHub stores the generated Playwright
+                automation framework.
+              </Typography>
+            </Box>
+
+            <Stack spacing={1}>
+              <Typography variant="body2">
+                <strong>Provider:</strong> GitHub
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>Connection:</strong>{" "}
+                {githubConnected
+                  ? "Connected"
+                  : "Not connected"}
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>Repository:</strong>{" "}
+                {automationProject.repository_url ||
+                  "Not created yet"}
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>Branch:</strong> main
+              </Typography>
+            </Stack>
+
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 1,
+              }}
+            >
+              {automationProject.repository_url && (
+                <>
+                  <Button
+                    variant="outlined"
+                    component="a"
+                    href={automationProject.repository_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open Repository
+                  </Button>
+
+                  <Button
+                    variant="outlined"
+                    onClick={() =>
+                      setCloneDialogOpen(true)
+                    }
+                  >
+                    Clone Repository
+                  </Button>
+                </>
+              )}
+
+              <Button
+                variant="outlined"
+                onClick={handleConnectGitHub}
+                disabled={githubConnectionLoading}
+              >
+                {githubConnectionLoading
+                  ? "Connecting..."
+                  : "Reconnect GitHub"}
+              </Button>
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="h6">
+                Automation
+              </Typography>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                Framework settings are controlled by the
+                QABook-generated workspace.
+              </Typography>
+            </Box>
+
+            <Stack spacing={1}>
+              <Typography variant="body2">
+                <strong>Framework:</strong>{" "}
+                {automationProject.framework}
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>Test runner:</strong> pytest
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>Browser automation:</strong> Playwright
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>Test directory:</strong> tests/
+              </Typography>
+            </Stack>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="h6">
+                CI/CD
+              </Typography>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                GitHub Actions executes automation and reports
+                results back to QABook.
+              </Typography>
+            </Box>
+
+            <Stack spacing={1}>
+              <Typography variant="body2">
+                <strong>Push workflow:</strong> Configured
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>QABook automation runs:</strong> Configured
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>Bug retests:</strong> Configured
+              </Typography>
+            </Stack>
+
+            <Divider />
+
+            <Box>
+              <Typography
+                variant="h6"
+                color="error.main"
+              >
+                Danger Zone
+              </Typography>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                Remove the QABook automation workspace and its
+                mappings. The QABook project, test cases,
+                execution history, and GitHub repository are
+                not deleted.
+              </Typography>
+
+              <Button
+                color="error"
+                variant="outlined"
+                sx={{ mt: 2 }}
+                onClick={() => {
+                  setWorkspaceSettingsOpen(false);
+                  handleDeinitialize();
+                }}
+                disabled={deinitializing}
+              >
+                Remove Workspace
+              </Button>
+            </Box>
+          </Stack>
+        </DialogContent>
+
+        <DialogActions>
+          <Button
+            onClick={() =>
+              setWorkspaceSettingsOpen(false)
+            }
+            disabled={savingSettings}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={handleSaveWorkspaceSettings}
+            disabled={savingSettings}
+          >
+            {savingSettings
+              ? "Saving..."
+              : "Save Changes"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={cloneDialogOpen}
+        onClose={() => setCloneDialogOpen(false)}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle>
+          Clone Automation Repository
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <Stack spacing={3} sx={{ pt: 1 }}>
+            <Box>
+              <Typography variant="body1">
+                Clone the automation framework to your local
+                machine, then open the folder in VS Code and
+                maintain your Playwright tests normally.
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Repository
+              </Typography>
+
+              <Typography
+                variant="body2"
+                sx={{
+                  mt: 0.5,
+                  wordBreak: "break-all",
+                }}
+              >
+                {automationProject?.repository_url}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Clone command
+              </Typography>
+
+              <Paper
+                elevation={0}
+                sx={{
+                  mt: 1,
+                  p: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1.5,
+                  bgcolor: "action.hover",
+                }}
+              >
+                <Typography
+                  component="code"
+                  variant="body2"
+                  sx={{
+                    display: "block",
+                    wordBreak: "break-all",
+                    fontFamily:
+                      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  }}
+                >
+                  git clone{" "}
+                  {automationProject?.repository_url}
+                </Typography>
+              </Paper>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 1,
+                  mt: 1.5,
+                }}
+              >
+                <Button
+                  variant="contained"
+                  onClick={handleCopyCloneCommand}
+                >
+                  Copy Command
+                </Button>
+
+                <Button
+                  variant="outlined"
+                  onClick={handleCopyRepositoryUrl}
+                >
+                  Copy Repository URL
+                </Button>
+              </Box>
+            </Box>
+
+            <Box>
+              <Typography variant="h6">
+                How to use it
+              </Typography>
+
+              <Stack spacing={1} sx={{ mt: 1 }}>
+                <Typography variant="body2">
+                  <strong>1.</strong> Open Terminal or
+                  Command Prompt.
+                </Typography>
+
+                <Typography variant="body2">
+                  <strong>2.</strong> Navigate to the folder
+                  where you want the repository.
+                </Typography>
+
+                <Typography variant="body2">
+                  <strong>3.</strong> Paste and run the clone
+                  command above.
+                </Typography>
+
+                <Typography variant="body2">
+                  <strong>4.</strong> Open the cloned folder
+                  in VS Code.
+                </Typography>
+
+                <Typography variant="body2">
+                  <strong>5.</strong> Implement and maintain
+                  your Playwright tests under tests/.
+                </Typography>
+
+                <Typography variant="body2">
+                  <strong>6.</strong> Commit and push your
+                  changes to GitHub.
+                </Typography>
+              </Stack>
+            </Box>
+
+            <Alert severity="info">
+              QABook never requires a QABook token or custom
+              command inside your Playwright test files.
+              GitHub Actions handles the QABook integration
+              automatically.
+            </Alert>
+          </Stack>
+        </DialogContent>
+
+        <DialogActions>
+          <Button
+            onClick={() => setCloneDialogOpen(false)}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageHeader>
   );
 }
