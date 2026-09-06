@@ -43,53 +43,43 @@ class GitHubConnectionService:
         admin_id: int,
     ) -> dict:
         """
-        Generate the QABook automation framework and push it
-        to a new or already-connected GitHub repository.
+        Perform the one-time initial framework generation.
 
-        The generated repository is also configured for
-        QABook GitHub Actions CI/CD.
+        Initial generation creates the GitHub repository,
+        pushes the framework, configures GitHub Actions,
+        and permanently connects the repository to the
+        Automation Project.
         """
 
         try:
             automation_project = (
-                self.db.query(AutomationProject)
-                .options(
-                    selectinload(
-                        AutomationProject.mappings
-                    )
+                self._get_authorized_automation_project(
+                    automation_project_id,
+                    admin_id,
                 )
-                .filter(
-                    AutomationProject.id
-                    == automation_project_id
-                )
-                .first()
             )
 
-            if not automation_project:
+            if automation_project.repository_url:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Automation project not found.",
-                )
-
-            if (
-                automation_project.project.admin_id
-                != admin_id
-            ):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
+                    status_code=status.HTTP_409_CONFLICT,
                     detail=(
-                        "You do not have access to this "
-                        "automation project."
+                        "Automation framework has already been "
+                        "generated. Use Sync Repository for "
+                        "subsequent mapping changes."
                     ),
                 )
 
-            connection = (
-                self.db.query(GitHubConnection)
-                .filter(
-                    GitHubConnection.automation_project_id
-                    == automation_project_id
+            if automation_project.ci_secret_hash:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=(
+                        "QABook CI/CD is already configured "
+                        "for this automation project."
+                    ),
                 )
-                .first()
+
+            connection = self._get_github_connection(
+                automation_project_id
             )
 
             if not connection:
@@ -111,73 +101,34 @@ class GitHubConnectionService:
                     ),
                 )
 
-            user_access_token = (
-                connection.github_access_token
+            user_access_token = connection.github_access_token
+
+            repository_name = self._build_repository_name(
+                automation_project
             )
 
-            repository_created = False
+            repository = self.github_api.create_repository(
+                user_access_token=user_access_token,
+                repository_name=repository_name,
+                description=(
+                    "QABook automation framework "
+                    f"for {automation_project.name}"
+                ),
+                private=True,
+            )
 
-            if (
-                automation_project.repository_url
-                and connection.repository_owner
-                and connection.repository_name
-            ):
-                repository_owner = (
-                    connection.repository_owner
-                )
-                repository_name = (
-                    connection.repository_name
-                )
-                branch = (
-                    connection.branch
-                    or "main"
-                )
+            repository_owner = repository[
+                "owner"
+            ]["login"]
 
-            else:
-                repository_name = (
-                    self._build_repository_name(
-                        automation_project
-                    )
-                )
+            repository_name = repository[
+                "name"
+            ]
 
-                repository = (
-                    self.github_api.create_repository(
-                        user_access_token=user_access_token,
-                        repository_name=repository_name,
-                        description=(
-                            "QABook automation framework "
-                            f"for {automation_project.name}"
-                        ),
-                        private=True,
-                    )
-                )
-
-                repository_owner = repository[
-                    "owner"
-                ]["login"]
-
-                repository_name = repository[
-                    "name"
-                ]
-
-                branch = (
-                    repository.get("default_branch")
-                    or "main"
-                )
-
-                repository_created = True
-
-            # A CI secret can only be generated when there is
-            # no existing secret hash. This prevents silently
-            # invalidating an already configured repository.
-            if automation_project.ci_secret_hash:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=(
-                        "QABook CI/CD is already configured "
-                        "for this automation project."
-                    ),
-                )
+            branch = (
+                repository.get("default_branch")
+                or "main"
+            )
 
             ci_secret = (
                 self.automation_project_service
@@ -231,21 +182,13 @@ class GitHubConnectionService:
             self.db.commit()
 
             return {
-                "automation_project_id": (
-                    automation_project.id
-                ),
-                "github_connection_id": (
-                    connection.id
-                ),
-                "repository_owner": (
-                    repository_owner
-                ),
-                "repository_name": (
-                    repository_name
-                ),
+                "automation_project_id": automation_project.id,
+                "github_connection_id": connection.id,
+                "repository_owner": repository_owner,
+                "repository_name": repository_name,
                 "branch": branch,
                 "repository_url": repository_url,
-                "repository_created": repository_created,
+                "repository_created": True,
                 "message": (
                     "Automation framework generated, "
                     "GitHub Actions configured, and framework "
@@ -257,6 +200,266 @@ class GitHubConnectionService:
             self.db.rollback()
             raise
 
+    def sync_framework(
+        self,
+        automation_project_id: int,
+        admin_id: int,
+    ) -> dict:
+        """
+        Synchronize newly mapped automation test cases into
+        the existing GitHub repository.
+
+        Existing test files are never overwritten.
+        The QABook manifest is always refreshed.
+        """
+
+        try:
+            automation_project = (
+                self._get_authorized_automation_project(
+                    automation_project_id,
+                    admin_id,
+                )
+            )
+
+            if not automation_project.repository_url:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "Automation framework has not been "
+                        "generated yet."
+                    ),
+                )
+
+            connection = self._get_github_connection(
+                automation_project_id
+            )
+
+            if not connection:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "GitHub connection is not configured."
+                    ),
+                )
+
+            if not connection.github_access_token:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "GitHub authorization is incomplete. "
+                        "Please reconnect GitHub."
+                    ),
+                )
+
+            if (
+                not connection.repository_owner
+                or not connection.repository_name
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "GitHub repository is not configured "
+                        "for this automation project."
+                    ),
+                )
+
+            repository_owner = (
+                connection.repository_owner
+            )
+
+            repository_name = (
+                connection.repository_name
+            )
+
+            branch = (
+                connection.branch
+                or "main"
+            )
+
+            buffer = self.framework_generator.generate(
+                automation_project
+            )
+
+            result = self._sync_framework_files(
+                buffer=buffer,
+                user_access_token=(
+                    connection.github_access_token
+                ),
+                repository_owner=repository_owner,
+                repository_name=repository_name,
+                branch=branch,
+            )
+
+            self.db.commit()
+
+            repository_url = (
+                f"https://github.com/"
+                f"{repository_owner}/"
+                f"{repository_name}"
+            )
+
+            return {
+                "automation_project_id": automation_project.id,
+                "github_connection_id": connection.id,
+                "repository_owner": repository_owner,
+                "repository_name": repository_name,
+                "branch": branch,
+                "repository_url": repository_url,
+                "created_test_files": (
+                    result["created_test_files"]
+                ),
+                "skipped_test_files": (
+                    result["skipped_test_files"]
+                ),
+                "manifest_updated": (
+                    result["manifest_updated"]
+                ),
+                "message": (
+                    "Automation repository synchronized "
+                    "successfully."
+                ),
+            }
+
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def _sync_framework_files(
+        self,
+        buffer: BytesIO,
+        user_access_token: str,
+        repository_owner: str,
+        repository_name: str,
+        branch: str,
+    ) -> dict:
+        """
+        Sync only QABook-managed mapping information.
+
+        Existing test files are preserved.
+        New test files are created.
+        The manifest is refreshed.
+        """
+
+        created_test_files: list[str] = []
+        skipped_test_files: list[str] = []
+        manifest_updated = False
+
+        buffer.seek(0)
+
+        with ZipFile(buffer, "r") as zip_file:
+            for zip_info in zip_file.infolist():
+                if zip_info.is_dir():
+                    continue
+
+                file_path = (
+                    zip_info.filename
+                    .replace("\\", "/")
+                    .lstrip("/")
+                )
+
+                content = zip_file.read(
+                    zip_info
+                ).decode("utf-8")
+
+                if file_path.startswith("tests/"):
+                    result = self.github_api.upload_file(
+                        user_access_token=user_access_token,
+                        repository_owner=repository_owner,
+                        repository_name=repository_name,
+                        file_path=file_path,
+                        content=content,
+                        branch=branch,
+                        commit_message=(
+                            "Sync QABook automation test mappings"
+                        ),
+                        overwrite_existing=False,
+                    )
+
+                    if result.get("skipped"):
+                        skipped_test_files.append(
+                            file_path
+                        )
+                    else:
+                        created_test_files.append(
+                            file_path
+                        )
+
+                    continue
+
+                if file_path == "qabook/manifest.json":
+                    self.github_api.upload_file(
+                        user_access_token=user_access_token,
+                        repository_owner=repository_owner,
+                        repository_name=repository_name,
+                        file_path=file_path,
+                        content=content,
+                        branch=branch,
+                        commit_message=(
+                            "Update QABook automation manifest"
+                        ),
+                        overwrite_existing=True,
+                    )
+
+                    manifest_updated = True
+
+        return {
+            "created_test_files": created_test_files,
+            "skipped_test_files": skipped_test_files,
+            "manifest_updated": manifest_updated,
+        }
+
+    def _get_authorized_automation_project(
+        self,
+        automation_project_id: int,
+        admin_id: int,
+    ) -> AutomationProject:
+        automation_project = (
+            self.db.query(AutomationProject)
+            .options(
+                selectinload(
+                    AutomationProject.mappings
+                )
+            )
+            .filter(
+                AutomationProject.id
+                == automation_project_id
+            )
+            .first()
+        )
+
+        if not automation_project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Automation project not found.",
+            )
+
+        if (
+            automation_project.project.admin_id
+            != admin_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "You do not have access to this "
+                    "automation project."
+                ),
+            )
+
+        return automation_project
+
+    def _get_github_connection(
+        self,
+        automation_project_id: int,
+    ) -> GitHubConnection | None:
+        return (
+            self.db.query(GitHubConnection)
+            .filter(
+                GitHubConnection.automation_project_id
+                == automation_project_id
+            )
+            .first()
+        )
+
     def _configure_github_actions(
         self,
         user_access_token: str,
@@ -264,11 +467,6 @@ class GitHubConnectionService:
         repository_name: str,
         ci_secret: str,
     ) -> None:
-        """
-        Configure the GitHub Actions repository secrets
-        required by the generated QABook workflow.
-        """
-
         public_key = (
             self.github_api.get_actions_public_key(
                 user_access_token=user_access_token,
@@ -307,7 +505,7 @@ class GitHubConnectionService:
             os.getenv("QABOOK_API_URL")
             or os.getenv("API_URL")
         )
-        
+
         if not qabook_api_url:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -346,11 +544,6 @@ class GitHubConnectionService:
         repository_name: str,
         branch: str,
     ) -> None:
-        """
-        Extract the generated ZIP and push
-        every framework file to GitHub.
-        """
-
         buffer.seek(0)
 
         with ZipFile(buffer, "r") as zip_file:
@@ -380,11 +573,6 @@ class GitHubConnectionService:
     def _build_repository_name(
         automation_project: AutomationProject,
     ) -> str:
-        """
-        Build a safe GitHub repository name from
-        the Automation Project name.
-        """
-
         name = (
             automation_project.name
             or "qabook-automation"
@@ -404,16 +592,12 @@ class GitHubConnectionService:
             name,
         )
 
-        name = name.strip(
-            ".-"
-        )
+        name = name.strip(".-")
 
         if not name:
             name = "qabook-automation"
 
-        if not name.endswith(
-            "-automation"
-        ):
+        if not name.endswith("-automation"):
             name = f"{name}-automation"
 
         return name[:100]

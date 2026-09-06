@@ -29,29 +29,6 @@ export interface GitHubAuthorizationResponse {
   authorization_url: string;
 }
 
-export interface GitHubRepository {
-  id: number;
-  name: string;
-  full_name: string;
-  html_url: string;
-  default_branch: string;
-  owner: {
-    login: string;
-  };
-}
-
-export interface GitHubRepositoriesResponse {
-  automation_project_id: number;
-  github_connection_id: number;
-  repositories: GitHubRepository[];
-}
-
-export interface GitHubRepositorySelectRequest {
-  repository_owner: string;
-  repository_name: string;
-  branch: string;
-}
-
 export interface GitHubConnectionResponse {
   connected: boolean;
   github_connection_id: number | null;
@@ -62,17 +39,6 @@ export interface GitHubConnectionResponse {
   repository_url: string | null;
 }
 
-export interface GitHubRepositorySelectResponse {
-  message: string;
-  automation_project_id: number;
-  github_connection_id: number;
-  installation_id: string;
-  repository_owner: string;
-  repository_name: string;
-  branch: string;
-  repository_url: string;
-}
-
 export interface GitHubFrameworkGenerationResponse {
   automation_project_id: number;
   github_connection_id: number;
@@ -81,6 +47,19 @@ export interface GitHubFrameworkGenerationResponse {
   branch: string;
   repository_url: string;
   repository_created: boolean;
+  message: string;
+}
+
+export interface GitHubFrameworkSyncResponse {
+  automation_project_id: number;
+  github_connection_id: number;
+  repository_owner: string;
+  repository_name: string;
+  branch: string;
+  repository_url: string;
+  created_test_files: string[];
+  skipped_test_files: string[];
+  manifest_updated: boolean;
   message: string;
 }
 
@@ -199,21 +178,6 @@ const automationService = {
     return response.data;
   },
 
-  getGitHubRepositories: async (
-    automationProjectId: number
-  ): Promise<GitHubRepositoriesResponse> => {
-    const response = await api.get<GitHubRepositoriesResponse>(
-      "/automation/github/repositories",
-      {
-        params: {
-          automation_project_id: automationProjectId,
-        },
-      }
-    );
-
-    return response.data;
-  },
-
   getGitHubConnection: async (
     automationProjectId: number
   ): Promise<GitHubConnectionResponse> => {
@@ -246,19 +210,19 @@ const automationService = {
     return response.data;
   },
 
-  selectGitHubRepository: async (
-    automationProjectId: number,
-    data: GitHubRepositorySelectRequest
-  ): Promise<GitHubRepositorySelectResponse> => {
-    const response = await api.put<GitHubRepositorySelectResponse>(
-      "/automation/github/repository",
-      data,
-      {
-        params: {
-          automation_project_id: automationProjectId,
-        },
-      }
-    );
+  syncGitHubFramework: async (
+    automationProjectId: number
+  ): Promise<GitHubFrameworkSyncResponse> => {
+    const response =
+      await api.post<GitHubFrameworkSyncResponse>(
+        "/automation/github/sync-framework",
+        null,
+        {
+          params: {
+            automation_project_id: automationProjectId,
+          },
+        }
+      );
 
     return response.data;
   },

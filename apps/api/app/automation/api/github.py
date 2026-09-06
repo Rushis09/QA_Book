@@ -395,6 +395,20 @@ def generate_github_framework(
         admin_id=admin.id,
     )
 
+
+@router.post("/sync-framework")
+def sync_github_framework(
+    automation_project_id: int = Query(...),
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    service = GitHubConnectionService(db)
+
+    return service.sync_framework(
+        automation_project_id=automation_project_id,
+        admin_id=admin.id,
+    )
+
 @router.get("/repositories")
 def get_github_repositories(
     automation_project_id: int = Query(...),

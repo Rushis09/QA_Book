@@ -5,14 +5,8 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
-  MenuItem,
   Paper,
-  Select,
   Stack,
   TextField,
   Typography,
@@ -25,9 +19,7 @@ import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useNotification } from "../../contexts/NotificationContext";
 
 import { testCaseService } from "../../services/testCaseService";
-import automationService, {
-  type GitHubRepository,
-} from "../services/automationService";
+import automationService from "../services/automationService";
 
 import AutomationMappingDialog from "../components/AutomationMappingDialog";
 import AutomationMappingTable from "../components/AutomationMappingTable";
@@ -39,10 +31,7 @@ import type {
 } from "../types/automation";
 
 export default function AutomationPage() {
-  const {
-    selectedProject
-  } = useWorkspace();
-
+  const { selectedProject } = useWorkspace();
   const effectiveProject = selectedProject;
 
   const { showNotification } = useNotification();
@@ -59,9 +48,12 @@ export default function AutomationPage() {
   const [startingRun, setStartingRun] = useState(false);
   const [bulkMapping, setBulkMapping] = useState(false);
 
-  const [error, setError] = useState("");
+  const [generatingFramework, setGeneratingFramework] = useState(false);
+  const [syncingRepository, setSyncingRepository] = useState(false);
 
+  const [error, setError] = useState("");
   const [name, setName] = useState("");
+
   const [framework] = useState("Python + pytest + Playwright");
 
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
@@ -75,51 +67,58 @@ export default function AutomationPage() {
   const [automationRun, setAutomationRun] = useState<{
     test_run_id: number;
     run_code: string;
-    automation_token: string;
   } | null>(null);
 
   const [deinitializeConfirmOpen, setDeinitializeConfirmOpen] =
     useState(false);
 
-  const [repositoryDialogOpen, setRepositoryDialogOpen] = useState(false);
-
-  const [repositories, setRepositories] = useState<GitHubRepository[]>([]);
-
-  const [repositoriesLoading, setRepositoriesLoading] = useState(false);
-
-  const [repositorySaving, setRepositorySaving] = useState(false);
-
-  const [selectedRepository, setSelectedRepository] =
-    useState<GitHubRepository | null>(null);
-
-  const [selectedBranch, setSelectedBranch] = useState("main");
-
-  const [repositoryError, setRepositoryError] = useState("");
-
   const [githubConnected, setGithubConnected] = useState(false);
-  const [githubConnectionLoading, setGithubConnectionLoading] = useState(false);
-  const [generatingFramework, setGeneratingFramework] = useState(false);
+  const [githubConnectionLoading, setGithubConnectionLoading] =
+    useState(false);
 
-  const loadGitHubConnection = async (automationProjectId: number) => {
-    try {
-      setGithubConnectionLoading(true);
-
-      const connection =
-        await automationService.getGitHubConnection(automationProjectId);
-
-      setGithubConnected(connection.connected);
-    } catch (error) {
-      console.error("Failed to load GitHub connection:", error);
-      setGithubConnected(false);
-    } finally {
-      setGithubConnectionLoading(false);
-    }
-  };
+  /*
+   * Tracks whether the QABook automation mapping state has changed
+   * since the last repository synchronization.
+   *
+   * This is intentionally frontend state only. The backend remains
+   * the source of truth for the automation project and repository.
+   */
+  const [repositorySyncRequired, setRepositorySyncRequired] =
+    useState(false);
 
   const mappedTestCaseIds = useMemo(
     () => new Set(mappings.map((mapping) => mapping.test_case_id)),
     [mappings]
   );
+
+  const repositoryConnected =
+    Boolean(automationProject?.repository_url);
+
+  
+
+  const loadGitHubConnection = async (
+    automationProjectId: number
+  ) => {
+    try {
+      setGithubConnectionLoading(true);
+
+      const connection =
+        await automationService.getGitHubConnection(
+          automationProjectId
+        );
+
+      setGithubConnected(connection.connected);
+    } catch (error) {
+      console.error(
+        "Failed to load GitHub connection:",
+        error
+      );
+
+      setGithubConnected(false);
+    } finally {
+      setGithubConnectionLoading(false);
+    }
+  };
 
   async function loadAutomationData() {
     if (!effectiveProject) {
@@ -128,6 +127,7 @@ export default function AutomationPage() {
       setMappings([]);
       setAutomationRun(null);
       setGithubConnected(false);
+      setRepositorySyncRequired(false);
       setError("");
       setLoading(false);
       return;
@@ -137,17 +137,21 @@ export default function AutomationPage() {
       setLoading(true);
       setError("");
 
-      const testCaseData = await testCaseService.getTestCases(
-        effectiveProject.id
-      );
+      const testCaseData =
+        await testCaseService.getTestCases(
+          effectiveProject.id
+        );
 
       setTestCases(
         testCaseData.filter(
-          (testCase) => testCase.automation_eligibility === "Eligible"
+          (testCase) =>
+            testCase.automation_eligibility === "Eligible"
         )
       );
 
-      let automationProjectData: AutomationProject | null = null;
+      let automationProjectData:
+        | AutomationProject
+        | null = null;
 
       try {
         automationProjectData =
@@ -173,12 +177,17 @@ export default function AutomationPage() {
         setMappings([]);
         setAutomationRun(null);
         setGithubConnected(false);
+        setRepositorySyncRequired(false);
         return;
       }
 
-      setAutomationProject(automationProjectData);
+      setAutomationProject(
+        automationProjectData
+      );
 
-      await loadGitHubConnection(automationProjectData.id);
+      await loadGitHubConnection(
+        automationProjectData.id
+      );
 
       const mappingData =
         await automationService.getAutomationTestMappings(
@@ -186,14 +195,23 @@ export default function AutomationPage() {
         );
 
       setMappings(mappingData);
+
+      /*
+       * A fresh page load should not claim that synchronization is
+       * required unless a mapping operation happens in this session.
+       */
+      setRepositorySyncRequired(false);
     } catch (error) {
       console.error(error);
 
       setAutomationProject(null);
       setMappings([]);
       setGithubConnected(false);
+      setRepositorySyncRequired(false);
 
-      setError("Failed to load automation workspace.");
+      setError(
+        "Failed to load automation workspace."
+      );
     } finally {
       setLoading(false);
     }
@@ -204,7 +222,11 @@ export default function AutomationPage() {
   }, [effectiveProject]);
 
   async function handleInitialize() {
-    if (!effectiveProject || automationProject || saving) {
+    if (
+      !effectiveProject ||
+      automationProject ||
+      saving
+    ) {
       return;
     }
 
@@ -213,6 +235,7 @@ export default function AutomationPage() {
         "Automation workspace name is required.",
         "error"
       );
+
       return;
     }
 
@@ -239,7 +262,9 @@ export default function AutomationPage() {
     } catch (error) {
       console.error(error);
 
-      setError("Failed to create automation workspace.");
+      setError(
+        "Failed to create automation workspace."
+      );
 
       showNotification(
         "Failed to create automation workspace.",
@@ -251,7 +276,10 @@ export default function AutomationPage() {
   }
 
   function handleDeinitialize() {
-    if (!automationProject || deinitializing) {
+    if (
+      !automationProject ||
+      deinitializing
+    ) {
       return;
     }
 
@@ -282,7 +310,9 @@ export default function AutomationPage() {
     } catch (error) {
       console.error(error);
 
-      setError("Failed to remove automation workspace.");
+      setError(
+        "Failed to remove automation workspace."
+      );
 
       showNotification(
         "Failed to remove automation workspace.",
@@ -302,11 +332,13 @@ export default function AutomationPage() {
     try {
       setGithubConnectionLoading(true);
 
-      const response = await automationService.authorizeGitHub(
-        automationProject.id
-      );
+      const response =
+        await automationService.authorizeGitHub(
+          automationProject.id
+        );
 
-      window.location.href = response.authorization_url;
+      window.location.href =
+        response.authorization_url;
     } catch (error) {
       console.error(error);
 
@@ -314,13 +346,31 @@ export default function AutomationPage() {
         "Failed to start GitHub authorization.",
         "error"
       );
-    } finally {
+
       setGithubConnectionLoading(false);
     }
   }
 
   async function handleGenerateFramework() {
-    if (!automationProject || generatingFramework) {
+    if (
+      !automationProject ||
+      generatingFramework ||
+      syncingRepository
+    ) {
+      return;
+    }
+
+    /*
+     * Generate Framework is intentionally a one-time action.
+     * Once the repository exists, Sync Repository becomes the
+     * only repository structure synchronization action.
+     */
+    if (repositoryConnected) {
+      showNotification(
+        "The framework has already been generated. Use Sync Repository for future mapping changes.",
+        "info"
+      );
+
       return;
     }
 
@@ -329,6 +379,7 @@ export default function AutomationPage() {
         "Connect GitHub before generating the framework.",
         "error"
       );
+
       return;
     }
 
@@ -351,17 +402,21 @@ export default function AutomationPage() {
           : current
       );
 
+      setRepositorySyncRequired(false);
+
       showNotification(
-        "Framework generated and pushed to GitHub successfully.",
+        "Automation framework generated and repository created successfully.",
         "success"
       );
 
-      await loadGitHubConnection(automationProject.id);
+      await loadGitHubConnection(
+        automationProject.id
+      );
     } catch (error) {
       console.error(error);
 
       showNotification(
-        "Failed to generate and push the automation framework.",
+        "Failed to generate the automation framework.",
         "error"
       );
     } finally {
@@ -369,112 +424,86 @@ export default function AutomationPage() {
     }
   }
 
-  async function handleOpenRepositoryDialog() {
-    if (!automationProject) {
-      return;
-    }
-
-    setRepositoryDialogOpen(true);
-    setRepositoryError("");
-    setRepositoriesLoading(true);
-
-    try {
-      const response =
-        await automationService.getGitHubRepositories(
-          automationProject.id
-        );
-
-      setRepositories(response.repositories);
-
-      if (
-        automationProject.repository_url &&
-        response.repositories.length > 0
-      ) {
-        const currentRepository = response.repositories.find(
-          (repository) =>
-            repository.html_url ===
-            automationProject.repository_url
-        );
-
-        if (currentRepository) {
-          setSelectedRepository(currentRepository);
-          setSelectedBranch(
-            currentRepository.default_branch || "main"
-          );
-        }
-      }
-    } catch (error) {
-      console.error(error);
-
-      setRepositoryError(
-        "GitHub is not connected or repositories could not be loaded."
-      );
-    } finally {
-      setRepositoriesLoading(false);
-    }
-  }
-
-  async function handleSaveRepository() {
+  async function handleSyncRepository() {
     if (
       !automationProject ||
-      !selectedRepository ||
-      repositorySaving
+      syncingRepository ||
+      generatingFramework
     ) {
       return;
     }
 
-    try {
-      setRepositorySaving(true);
-      setRepositoryError("");
-
-      const response =
-        await automationService.selectGitHubRepository(
-          automationProject.id,
-          {
-            repository_owner:
-              selectedRepository.owner.login,
-            repository_name:
-              selectedRepository.name,
-            branch: selectedBranch.trim() || "main",
-          }
-        );
-
-      setAutomationProject((current) =>
-        current
-          ? {
-              ...current,
-              repository_url:
-                response.repository_url,
-            }
-          : current
+    if (!githubConnected) {
+      showNotification(
+        "Connect GitHub before synchronizing the repository.",
+        "error"
       );
 
-      setGithubConnected(true);
+      return;
+    }
 
-      setRepositoryDialogOpen(false);
+    if (!repositoryConnected) {
+      showNotification(
+        "Generate the framework before synchronizing the repository.",
+        "error"
+      );
+
+      return;
+    }
+
+    try {
+      setSyncingRepository(true);
+      setError("");
+
+      const response =
+        await automationService.syncGitHubFramework(
+          automationProject.id
+        );
+
+      setRepositorySyncRequired(false);
+
+      const createdCount =
+        response.created_test_files?.length ?? 0;
+
+      const skippedCount =
+        response.skipped_test_files?.length ?? 0;
+
+      let message =
+        "Repository synchronized successfully.";
+
+      if (createdCount > 0) {
+        message += ` ${createdCount} new test file${
+          createdCount === 1 ? "" : "s"
+        } added.`;
+      }
+
+      if (skippedCount > 0) {
+        message += ` ${skippedCount} existing test file${
+          skippedCount === 1 ? "" : "s"
+        } preserved.`;
+      }
 
       showNotification(
-        "GitHub repository connected successfully.",
+        message,
         "success"
       );
     } catch (error) {
       console.error(error);
 
-      setRepositoryError(
-        "Failed to connect the selected repository."
-      );
-
       showNotification(
-        "Failed to connect GitHub repository.",
+        "Failed to synchronize the GitHub repository.",
         "error"
       );
     } finally {
-      setRepositorySaving(false);
+      setSyncingRepository(false);
     }
   }
 
   async function handleStartAutomationRun() {
-    if (!automationProject || startingRun) {
+    if (
+      !automationProject ||
+      startingRun
+    ) {
       return;
     }
 
@@ -483,14 +512,25 @@ export default function AutomationPage() {
         "Map at least one test case before starting automation.",
         "error"
       );
+
       return;
     }
 
-    if (!automationProject.repository_url) {
+    if (!repositoryConnected) {
       showNotification(
-        "Connect a GitHub repository before starting automation.",
+        "Generate the automation framework before creating a run.",
         "error"
       );
+
+      return;
+    }
+
+    if (repositorySyncRequired) {
+      showNotification(
+        "Synchronize the repository before creating an automation run.",
+        "error"
+      );
+
       return;
     }
 
@@ -505,7 +545,6 @@ export default function AutomationPage() {
       setAutomationRun({
         test_run_id: result.test_run_id,
         run_code: result.run_code,
-        automation_token: result.automation_token,
       });
 
       showNotification(
@@ -516,7 +555,7 @@ export default function AutomationPage() {
       console.error(error);
 
       showNotification(
-        "Failed to start automation run.",
+        "Failed to create automation run.",
         "error"
       );
     } finally {
@@ -524,32 +563,9 @@ export default function AutomationPage() {
     }
   }
 
-  async function handleCopyAutomationCommand() {
-    if (!automationRun) {
-      return;
-    }
-
-    const command =
-      `pytest --qabook-token "${automationRun.automation_token}"`;
-
-    try {
-      await navigator.clipboard.writeText(command);
-
-      showNotification(
-        "Automation command copied to clipboard.",
-        "success"
-      );
-    } catch (error) {
-      console.error(error);
-
-      showNotification(
-        "Failed to copy automation command.",
-        "error"
-      );
-    }
-  }
-
-  async function handleBulkMap(testCaseIds: number[]) {
+  async function handleBulkMap(
+    testCaseIds: number[]
+  ) {
     if (
       !automationProject ||
       bulkMapping ||
@@ -571,6 +587,9 @@ export default function AutomationPage() {
         );
 
       setMappings(result);
+      setRepositorySyncRequired(
+        repositoryConnected
+      );
 
       showNotification(
         `${testCaseIds.length} test case${
@@ -590,13 +609,16 @@ export default function AutomationPage() {
     }
   }
 
-  function handleMapTestCase(testCase: TestCase) {
+  function handleMapTestCase(
+    testCase: TestCase
+  ) {
     if (!automationProject) {
       return;
     }
 
     const mapping = mappings.find(
-      (item) => item.test_case_id === testCase.id
+      (item) =>
+        item.test_case_id === testCase.id
     );
 
     setSelectedTestCase(testCase);
@@ -608,7 +630,10 @@ export default function AutomationPage() {
     test_name: string;
     test_file_path: string;
   }) {
-    if (!automationProject || !selectedTestCase) {
+    if (
+      !automationProject ||
+      !selectedTestCase
+    ) {
       return;
     }
 
@@ -624,13 +649,18 @@ export default function AutomationPage() {
           "success"
         );
       } else {
-        await automationService.createAutomationTestMapping({
-          automation_project_id:
-            automationProject.id,
-          test_case_id: selectedTestCase.id,
-          test_name: data.test_name,
-          test_file_path: data.test_file_path,
-        });
+        await automationService.createAutomationTestMapping(
+          {
+            automation_project_id:
+              automationProject.id,
+            test_case_id:
+              selectedTestCase.id,
+            test_name:
+              data.test_name,
+            test_file_path:
+              data.test_file_path,
+          }
+        );
 
         showNotification(
           "Test case mapped successfully.",
@@ -644,6 +674,15 @@ export default function AutomationPage() {
         );
 
       setMappings(mappingData);
+
+      /*
+       * Mapping changes affect the generated repository
+       * structure, therefore the user must sync before creating
+       * another automation run.
+       */
+      setRepositorySyncRequired(
+        repositoryConnected
+      );
     } catch (error) {
       console.error(error);
 
@@ -675,6 +714,10 @@ export default function AutomationPage() {
 
       setMappings(mappingData);
 
+      setRepositorySyncRequired(
+        repositoryConnected
+      );
+
       showNotification(
         "Test case unmapped successfully.",
         "success"
@@ -698,7 +741,8 @@ export default function AutomationPage() {
   if (!effectiveProject) {
     return (
       <Alert severity="info">
-        Select a specific project to open its automation workspace.
+        Select a specific project to open its
+        automation workspace.
       </Alert>
     );
   }
@@ -768,8 +812,8 @@ export default function AutomationPage() {
                   color="text.secondary"
                   sx={{ mt: 0.5 }}
                 >
-                  Connect your QA project to a persistent
-                  Playwright automation repository.
+                  Create a dedicated automation workspace
+                  for this QABook project.
                 </Typography>
               </Box>
 
@@ -788,14 +832,13 @@ export default function AutomationPage() {
                 value={framework}
                 fullWidth
                 disabled
-                helperText="The current QABook automation framework."
+                helperText="The QABook-supported automation framework."
               />
 
               <Alert severity="info">
-                After setup, you will connect GitHub,
-                select a repository, map eligible test
-                cases, and execute automation through your
-                CI/CD workflow.
+                After creating the workspace, connect
+                GitHub. QABook will create and configure
+                the automation repository automatically.
               </Alert>
             </Stack>
           </Paper>
@@ -803,9 +846,6 @@ export default function AutomationPage() {
       </PageHeader>
     );
   }
-
-  const repositoryConnected =
-    Boolean(automationProject.repository_url);
 
   return (
     <PageHeader
@@ -872,7 +912,9 @@ export default function AutomationPage() {
 
             <Chip
               label={`${mappings.length} mapped test${
-                mappings.length === 1 ? "" : "s"
+                mappings.length === 1
+                  ? ""
+                  : "s"
               }`}
               variant="outlined"
             />
@@ -896,18 +938,41 @@ export default function AutomationPage() {
           }}
         >
           <Box sx={{ p: 3 }}>
-            <Stack spacing={0.5}>
-              <Typography variant="h6">
-                Source control
-              </Typography>
+            <Stack spacing={0.75}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                <Typography variant="h6">
+                  Source control
+                </Typography>
+
+                <Chip
+                  label={
+                    repositoryConnected
+                      ? "Repository connected"
+                      : "Setup required"
+                  }
+                  size="small"
+                  color={
+                    repositoryConnected
+                      ? "success"
+                      : "default"
+                  }
+                />
+              </Box>
 
               <Typography
                 variant="body2"
                 color="text.secondary"
               >
-                Your automation code lives in GitHub.
-                Clone it locally, make changes, and push
-                them back to the repository.
+                QABook manages the automation workspace
+                structure while GitHub stores your
+                Playwright automation code.
               </Typography>
             </Stack>
           </Box>
@@ -935,16 +1000,35 @@ export default function AutomationPage() {
                     Repository
                   </Typography>
 
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      mt: 0.5,
-                      wordBreak: "break-all",
-                    }}
-                  >
-                    {automationProject.repository_url ||
-                      "No repository connected"}
-                  </Typography>
+                  {repositoryConnected ? (
+                    <Typography
+                      component="a"
+                      href={
+                        automationProject.repository_url!
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      variant="body1"
+                      sx={{
+                        mt: 0.5,
+                        display: "block",
+                        wordBreak: "break-all",
+                        textDecoration: "none",
+                        "&:hover": {
+                          textDecoration: "underline",
+                        },
+                      }}
+                    >
+                      {automationProject.repository_url}
+                    </Typography>
+                  ) : (
+                    <Typography
+                      variant="body1"
+                      sx={{ mt: 0.5 }}
+                    >
+                      No repository created yet
+                    </Typography>
+                  )}
                 </Box>
 
                 <Box
@@ -958,11 +1042,16 @@ export default function AutomationPage() {
                   }}
                 >
                   <Button
-                    variant="contained"
+                    variant={
+                      githubConnected
+                        ? "outlined"
+                        : "contained"
+                    }
                     onClick={handleConnectGitHub}
                     disabled={
                       githubConnectionLoading ||
-                      generatingFramework
+                      generatingFramework ||
+                      syncingRepository
                     }
                   >
                     {githubConnectionLoading
@@ -971,54 +1060,79 @@ export default function AutomationPage() {
                         ? "Reconnect GitHub"
                         : "Connect GitHub"}
                   </Button>
-                    
-                  <Button
-                    variant="outlined"
-                    onClick={handleGenerateFramework}
-                    disabled={
-                      !githubConnected ||
-                      generatingFramework
-                    }
-                  >
-                    {generatingFramework
-                      ? "Generating Framework..."
-                      : "Generate Framework"}
-                  </Button>
 
-                  <Button
-                    variant={
-                      repositoryConnected
-                        ? "contained"
-                        : "outlined"
-                    }
-                    onClick={handleOpenRepositoryDialog}
-                    disabled={
-                      githubConnectionLoading ||
-                      generatingFramework
-                    }
-                  >
-                    {repositoryConnected
-                      ? "Change Repository"
-                      : "Select Repository"}
-                  </Button>
+                  {!repositoryConnected ? (
+                    <Button
+                      variant="contained"
+                      onClick={
+                        handleGenerateFramework
+                      }
+                      disabled={
+                        !githubConnected ||
+                        generatingFramework ||
+                        syncingRepository
+                      }
+                    >
+                      {generatingFramework
+                        ? "Creating Repository..."
+                        : "Generate Framework"}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      onClick={
+                        handleSyncRepository
+                      }
+                      disabled={
+                        !githubConnected ||
+                        generatingFramework ||
+                        syncingRepository
+                      }
+                    >
+                      {syncingRepository
+                        ? "Syncing Repository..."
+                        : "Sync Repository"}
+                    </Button>
+                  )}
                 </Box>
               </Box>
 
-              {githubConnected && !repositoryConnected && (
+              {!githubConnected && (
                 <Alert severity="info">
-                  GitHub is connected. Generate the framework to
-                  create a new repository and push the automation
-                  framework automatically.
+                  Connect your GitHub account to create
+                  and manage the automation repository.
                 </Alert>
               )}
 
-              {repositoryConnected && (
-                <Alert severity="success">
-                  GitHub repository connected. Clone the
-                  repository locally to implement and
-                  maintain your automated tests.
-                </Alert>
-              )}
+              {githubConnected &&
+                !repositoryConnected && (
+                  <Alert severity="info">
+                    GitHub is connected. Generate the
+                    framework to create a dedicated
+                    repository and configure its CI/CD
+                    integration automatically.
+                  </Alert>
+                )}
+
+              {repositoryConnected &&
+                !repositorySyncRequired && (
+                  <Alert severity="success">
+                    Repository is connected and
+                    synchronized. You can clone the
+                    repository locally and maintain your
+                    Playwright tests using standard Git
+                    workflows.
+                  </Alert>
+                )}
+
+              {repositoryConnected &&
+                repositorySyncRequired && (
+                  <Alert severity="warning">
+                    Automation mappings have changed.
+                    Synchronize the repository before
+                    creating a new automation run.
+                  </Alert>
+                )}
             </Stack>
           </Box>
         </Paper>
@@ -1045,9 +1159,9 @@ export default function AutomationPage() {
                 sx={{ mt: 0.5 }}
               >
                 QABook creates the Test Run and execution
-                scope. Your Git/CI pipeline performs the
-                actual Playwright execution and reports
-                results back to QABook.
+                scope. GitHub Actions performs the actual
+                Playwright tests and reports results back
+                to QABook automatically.
               </Typography>
             </Box>
 
@@ -1067,11 +1181,14 @@ export default function AutomationPage() {
             >
               <Button
                 variant="contained"
-                onClick={handleStartAutomationRun}
+                onClick={
+                  handleStartAutomationRun
+                }
                 disabled={
                   startingRun ||
                   mappings.length === 0 ||
-                  !repositoryConnected
+                  !repositoryConnected ||
+                  repositorySyncRequired
                 }
               >
                 {startingRun
@@ -1084,7 +1201,7 @@ export default function AutomationPage() {
                   variant="body2"
                   color="text.secondary"
                 >
-                  Connect a GitHub repository first.
+                  Generate the framework first.
                 </Typography>
               )}
 
@@ -1094,8 +1211,20 @@ export default function AutomationPage() {
                     variant="body2"
                     color="text.secondary"
                   >
-                    Map at least one eligible test case
-                    first.
+                    Map at least one eligible test
+                    case first.
+                  </Typography>
+                )}
+
+              {repositoryConnected &&
+                mappings.length > 0 &&
+                repositorySyncRequired && (
+                  <Typography
+                    variant="body2"
+                    color="warning.main"
+                  >
+                    Sync the repository before
+                    creating a new run.
                   </Typography>
                 )}
             </Box>
@@ -1109,7 +1238,7 @@ export default function AutomationPage() {
                   p: 2.5,
                 }}
               >
-                <Stack spacing={2}>
+                <Stack spacing={1.5}>
                   <Box
                     sx={{
                       display: "flex",
@@ -1117,7 +1246,8 @@ export default function AutomationPage() {
                         xs: "column",
                         sm: "row",
                       },
-                      justifyContent: "space-between",
+                      justifyContent:
+                        "space-between",
                       gap: 1,
                     }}
                   >
@@ -1136,35 +1266,22 @@ export default function AutomationPage() {
                     </Box>
 
                     <Chip
-                      label="Ready for execution"
+                      label="CI/CD execution initiated"
                       color="info"
                       size="small"
                     />
                   </Box>
 
-                  <Box
-                    sx={{
-                      p: 2,
-                      borderRadius: 1,
-                      backgroundColor: "action.hover",
-                      fontFamily: "monospace",
-                      overflowX: "auto",
-                    }}
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
                   >
-                    pytest --qabook-token
-                    {" "}
-                    &lt;AUTOMATION_TOKEN&gt;
-                  </Box>
-
-                  <Button
-                    variant="outlined"
-                    onClick={
-                      handleCopyAutomationCommand
-                    }
-                    sx={{ alignSelf: "flex-start" }}
-                  >
-                    Copy Execution Command
-                  </Button>
+                    The repository workflow will execute
+                    the mapped tests and report their
+                    results back to QABook. No QABook token
+                    or custom command is required from the
+                    tester.
+                  </Typography>
                 </Stack>
               </Box>
             )}
@@ -1203,8 +1320,8 @@ export default function AutomationPage() {
                   color="text.secondary"
                   sx={{ mt: 0.5 }}
                 >
-                  Manage which eligible QABook test cases
-                  are represented in the automation suite.
+                  Map eligible QABook test cases to
+                  automation tests maintained in GitHub.
                 </Typography>
               </Box>
 
@@ -1231,6 +1348,14 @@ export default function AutomationPage() {
                       : "default"
                   }
                 />
+
+                {repositorySyncRequired && (
+                  <Chip
+                    label="Sync required"
+                    size="small"
+                    color="warning"
+                  />
+                )}
               </Box>
             </Box>
           </Box>
@@ -1269,17 +1394,81 @@ export default function AutomationPage() {
           )}
         </Paper>
 
-        {/* Workflow guidance */}
-        <Alert severity="info">
-          <Typography variant="body2">
-            <strong>Recommended workflow:</strong>{" "}
-            Connect GitHub → generate the framework → QABook creates
-            a new GitHub repository and pushes the framework → clone
-            the repository locally → implement tests → push changes
-            to Git → create a QABook Test Run → execute through
-            CI/CD → results update the corresponding Test Executions.
-          </Typography>
-        </Alert>
+        {/* SaaS workflow */}
+        <Paper
+          elevation={0}
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+            p: 3,
+          }}
+        >
+          <Stack spacing={2}>
+            <Box>
+              <Typography variant="h6">
+                Automation lifecycle
+              </Typography>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                QABook separates QA management from
+                automation implementation while keeping
+                the workflow connected.
+              </Typography>
+            </Box>
+
+            <Stack
+              spacing={1}
+              sx={{
+                "& > *": {
+                  minHeight: 36,
+                },
+              }}
+            >
+              <Typography variant="body2">
+                <strong>1.</strong> Map eligible test cases
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>2.</strong> Sync repository structure
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>3.</strong> Maintain Playwright tests
+                in GitHub
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>4.</strong> Create an automation run
+                in QABook
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>5.</strong> GitHub Actions executes
+                the tests
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>6.</strong> Results update QABook
+                Test Executions
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>7.</strong> Review failures and
+                create Bugs when required
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>8.</strong> Retest fixed Bugs through
+                the automation workflow
+              </Typography>
+            </Stack>
+          </Stack>
+        </Paper>
 
         {/* Danger zone */}
         <Paper
@@ -1320,9 +1509,9 @@ export default function AutomationPage() {
                 sx={{ mt: 0.5 }}
               >
                 This removes the QABook automation
-                workspace and mappings. Your QABook project,
-                test cases, and GitHub repository are not
-                deleted.
+                workspace and its mappings. Your QABook
+                project, test cases, execution history, and
+                GitHub repository are not deleted.
               </Typography>
             </Box>
 
@@ -1340,143 +1529,6 @@ export default function AutomationPage() {
         </Paper>
       </Stack>
 
-      {/* GitHub repository selection */}
-      <Dialog
-        open={repositoryDialogOpen}
-        onClose={() => {
-          if (!repositorySaving) {
-            setRepositoryDialogOpen(false);
-          }
-        }}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>
-          Select GitHub repository
-        </DialogTitle>
-
-        <DialogContent>
-          <Stack spacing={3} sx={{ pt: 1 }}>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
-              Select the repository where the persistent
-              QABook automation framework will live.
-            </Typography>
-
-            {repositoryError && (
-              <Alert severity="error">
-                {repositoryError}
-              </Alert>
-            )}
-
-            {repositoriesLoading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  py: 5,
-                }}
-              >
-                <CircularProgress />
-              </Box>
-            ) : repositories.length === 0 ? (
-              <Alert severity="info">
-                No repositories are available to the
-                connected GitHub App installation.
-              </Alert>
-            ) : (
-              <>
-                <Select
-                  value={
-                    selectedRepository
-                      ? selectedRepository.full_name
-                      : ""
-                  }
-                  displayEmpty
-                  fullWidth
-                  onChange={(event) => {
-                    const repository =
-                      repositories.find(
-                        (item) =>
-                          item.full_name ===
-                          event.target.value
-                      ) || null;
-
-                    setSelectedRepository(repository);
-
-                    if (repository) {
-                      setSelectedBranch(
-                        repository.default_branch ||
-                          "main"
-                      );
-                    }
-                  }}
-                >
-                  <MenuItem value="" disabled>
-                    Select repository
-                  </MenuItem>
-
-                  {repositories.map((repository) => (
-                    <MenuItem
-                      key={repository.id}
-                      value={repository.full_name}
-                    >
-                      {repository.full_name}
-                    </MenuItem>
-                  ))}
-                </Select>
-
-                <TextField
-                  label="Branch"
-                  value={selectedBranch}
-                  onChange={(event) =>
-                    setSelectedBranch(event.target.value)
-                  }
-                  fullWidth
-                  helperText="The branch QABook should associate with this automation project."
-                />
-
-                {selectedRepository && (
-                  <Alert severity="success">
-                    Selected repository:{" "}
-                    <strong>
-                      {selectedRepository.full_name}
-                    </strong>
-                  </Alert>
-                )}
-              </>
-            )}
-          </Stack>
-        </DialogContent>
-
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => {
-              setRepositoryDialogOpen(false);
-            }}
-            disabled={repositorySaving}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            variant="contained"
-            onClick={handleSaveRepository}
-            disabled={
-              repositorySaving ||
-              repositoriesLoading ||
-              !selectedRepository
-            }
-          >
-            {repositorySaving
-              ? "Connecting..."
-              : "Connect Repository"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
       <AutomationMappingDialog
         open={mappingDialogOpen}
         testCase={selectedTestCase}
@@ -1488,7 +1540,7 @@ export default function AutomationPage() {
       <ConfirmDialog
         open={deinitializeConfirmOpen}
         title="Remove Automation Workspace"
-        message="Are you sure you want to remove this automation workspace? This will remove the QABook automation project and its mappings. Your QABook project, test cases, and GitHub repository will not be deleted."
+        message="Are you sure you want to remove this automation workspace? This removes the QABook automation project and its mappings. Your QABook project, test cases, execution history, and GitHub repository will not be deleted."
         confirmText="Remove Workspace"
         cancelText="Cancel"
         onConfirm={confirmDeinitialize}

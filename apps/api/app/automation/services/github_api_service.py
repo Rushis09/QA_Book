@@ -29,9 +29,6 @@ class GitHubAPIService:
     ) -> dict:
         """
         Find the GitHub App installation for a GitHub user.
-
-        The request is authenticated as the GitHub App itself
-        using the App JWT.
         """
         if not github_username:
             raise HTTPException(
@@ -60,9 +57,7 @@ class GitHubAPIService:
         if response.status_code != 200:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=(
-                    "GitHub App installation lookup failed."
-                ),
+                detail="GitHub App installation lookup failed.",
             )
 
         return response.json()
@@ -144,9 +139,7 @@ class GitHubAPIService:
             if response.status_code != 200:
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail=(
-                        "GitHub repository listing failed."
-                    ),
+                    detail="GitHub repository listing failed.",
                 )
 
             data = response.json()
@@ -188,7 +181,9 @@ class GitHubAPIService:
         if response.status_code == 404:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="GitHub repository not found or not accessible.",
+                detail=(
+                    "GitHub repository not found or not accessible."
+                ),
             )
 
         if response.status_code != 200:
@@ -271,12 +266,16 @@ class GitHubAPIService:
         content: str,
         branch: str,
         commit_message: str,
+        overwrite_existing: bool = True,
     ) -> dict:
         """
         Create or update a file in a GitHub repository.
 
-        Uses the OAuth user access token belonging to the
-        authorized GitHub user.
+        When overwrite_existing=False, an existing file is preserved
+        and no GitHub update is performed.
+
+        This is required for QABook Sync Repository behavior:
+        user-written automation test files must never be overwritten.
         """
         if not user_access_token:
             raise HTTPException(
@@ -332,20 +331,43 @@ class GitHubAPIService:
             timeout=15,
         )
 
-        payload = {
-            "message": commit_message,
-            "content": encoded_content,
-            "branch": branch,
-        }
-
         if existing_file.status_code == 200:
             existing_data = existing_file.json()
+
+            if not overwrite_existing:
+                return {
+                    "created": False,
+                    "updated": False,
+                    "skipped": True,
+                    "path": file_path,
+                }
+
             sha = existing_data.get("sha")
 
-            if sha:
-                payload["sha"] = sha
+            if not sha:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=(
+                        "GitHub existing file information "
+                        "did not contain a file SHA."
+                    ),
+                )
 
-        elif existing_file.status_code != 404:
+            payload = {
+                "message": commit_message,
+                "content": encoded_content,
+                "branch": branch,
+                "sha": sha,
+            }
+
+        elif existing_file.status_code == 404:
+            payload = {
+                "message": commit_message,
+                "content": encoded_content,
+                "branch": branch,
+            }
+
+        else:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="GitHub file lookup failed.",
@@ -361,12 +383,18 @@ class GitHubAPIService:
         if response.status_code not in {200, 201}:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=(
-                    "GitHub framework file upload failed."
-                ),
+                detail="GitHub framework file upload failed.",
             )
 
-        return response.json()
+        response_data = response.json()
+
+        return {
+            **response_data,
+            "created": response.status_code == 201,
+            "updated": response.status_code == 200,
+            "skipped": False,
+            "path": file_path,
+        }
 
     # ------------------------------------------------------------------
     # GitHub Actions
@@ -387,13 +415,13 @@ class GitHubAPIService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="GitHub user access token is required.",
             )
-    
+
         if not repository_owner or not repository_name:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="GitHub repository information is required.",
             )
-    
+
         response = requests.get(
             f"{self.GITHUB_API_URL}/repos/"
             f"{repository_owner}/"
@@ -401,27 +429,30 @@ class GitHubAPIService:
             headers=self._headers(user_access_token),
             timeout=15,
         )
-    
+
         if response.status_code == 404:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="GitHub Actions public key could not be found.",
             )
-    
+
         if response.status_code != 200:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="GitHub Actions public key lookup failed.",
             )
-    
+
         data = response.json()
-    
+
         if not data.get("key") or not data.get("key_id"):
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="GitHub did not return a valid Actions public key.",
+                detail=(
+                    "GitHub did not return a valid Actions "
+                    "public key."
+                ),
             )
-    
+
         return data
 
     def create_or_update_actions_secret(
@@ -507,8 +538,8 @@ class GitHubAPIService:
         """
         Trigger a GitHub repository_dispatch event.
 
-        QABook will use this for controlled automation actions
-        such as Bug Retest execution.
+        QABook uses this for controlled automation actions
+        such as automation runs and Bug Retest execution.
         """
         if not user_access_token:
             raise HTTPException(
