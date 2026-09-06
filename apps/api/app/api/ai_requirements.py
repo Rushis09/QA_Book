@@ -27,9 +27,12 @@ router = APIRouter(
 def generate_requirements(
     request: GenerateRequirementRequest,
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(get_current_admin),
 ):
-    service = AIRequirementService(db)
+    service = AIRequirementService(
+        db=db,
+        admin=admin,
+    )
 
     try:
         return service.generate_requirements(
@@ -44,6 +47,12 @@ def generate_requirements(
             detail=str(error),
         )
 
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=500,
+            detail=str(error),
+        )
+
 
 @router.post(
     "/generate-from-brd",
@@ -52,9 +61,12 @@ def generate_requirements(
 def generate_requirements_from_brd(
     request: GenerateRequirementsFromBRDRequest,
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(get_current_admin),
 ):
-    service = AIRequirementService(db)
+    service = AIRequirementService(
+        db=db,
+        admin=admin,
+    )
 
     try:
         return service.generate_requirements_from_brd(

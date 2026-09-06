@@ -47,11 +47,13 @@ export default function RequirementsPage() {
 
   const { showNotification } = useNotification();
 
-  const { selectedProject } = useWorkspace();
+  const {
+  selectedProject,
+  isAllProjects,
+} = useWorkspace();
 
   async function loadData() {
-
-    if (!selectedProject) {
+    if (!selectedProject && !isAllProjects) {
       setRequirements([]);
       setLoading(false);
       return;
@@ -60,9 +62,11 @@ export default function RequirementsPage() {
     try {
       setLoading(true);
 
+      const projectId = selectedProject?.id;
+
       const requirementsData =
         await requirementService.getRequirements(
-          selectedProject?.id
+          projectId,
         );
       
       setRequirements(requirementsData);
@@ -78,7 +82,7 @@ export default function RequirementsPage() {
 
   useEffect(() => {
     loadData();
-  }, [selectedProject]);
+  }, [selectedProject, isAllProjects]);
 
   function handleEdit(requirement: Requirement) {
     setSelectedRequirement(requirement);

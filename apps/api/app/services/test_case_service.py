@@ -1,3 +1,6 @@
+from app.models.admin import Admin
+from app.models.project import Project
+from app.models.requirement import Requirement
 from app.models.test_case import TestCase
 from app.models.test_scenario import TestScenario
 from app.repositories.test_case_repository import (
@@ -20,6 +23,7 @@ class TestCaseService:
     def create(
         self,
         test_case_data: TestCaseCreate,
+        admin: Admin,
     ):
         scenario = (
             self.repository.session.query(
@@ -36,6 +40,11 @@ class TestCaseService:
             raise ValueError(
                 "Test Scenario not found"
             )
+
+        self._validate_scenario_access(
+            scenario=scenario,
+            admin=admin,
+        )
 
         test_case_code = generate_sequential_code(
             db=self.repository.session,
@@ -79,25 +88,77 @@ class TestCaseService:
 
     def get_all(
         self,
-        project_id: int | None = None,
+        project_id: int | None,
+        admin: Admin,
     ):
-        return self.repository.get_all(
-            project_id,
+        if project_id is not None:
+            self._validate_project_access(
+                project_id=project_id,
+                admin=admin,
+            )
+
+            return self.repository.get_all(
+                project_id,
+            )
+
+        if admin.role == "PLATFORM_ADMIN":
+            return self.repository.get_all()
+
+        return self.repository.get_by_owner(
+            admin.id
         )
 
     def get_by_id(
         self,
         test_case_id: int,
+        admin: Admin,
     ):
-        return self.repository.get_by_id(
-            test_case_id,
+        test_case = self.repository.get_by_id(
+            test_case_id
         )
+
+        if test_case is None:
+            return None
+
+        self._validate_test_case_access(
+            test_case=test_case,
+            admin=admin,
+        )
+
+        return test_case
 
     def update(
         self,
         test_case: TestCase,
         test_case_data: TestCaseUpdate,
+        admin: Admin,
     ):
+        self._validate_test_case_access(
+            test_case=test_case,
+            admin=admin,
+        )
+
+        scenario = (
+            self.repository.session.query(
+                TestScenario
+            )
+            .filter(
+                TestScenario.id
+                == test_case_data.scenario_id
+            )
+            .first()
+        )
+
+        if not scenario:
+            raise ValueError(
+                "Test Scenario not found"
+            )
+
+        self._validate_scenario_access(
+            scenario=scenario,
+            admin=admin,
+        )
+
         test_case.scenario_id = (
             test_case_data.scenario_id
         )
@@ -144,7 +205,126 @@ class TestCaseService:
     def delete(
         self,
         test_case: TestCase,
+        admin: Admin,
     ):
+        self._validate_test_case_access(
+            test_case=test_case,
+            admin=admin,
+        )
+
         self.repository.delete(
             test_case
+        )
+
+    def _validate_project_access(
+        self,
+        project_id: int,
+        admin: Admin,
+    ):
+        project = (
+            self.repository.session.query(
+                Project
+            )
+            .filter(
+                Project.id == project_id
+            )
+            .first()
+        )
+
+        if project is None:
+            raise ValueError(
+                "Project not found"
+            )
+
+        if (
+            admin.role != "PLATFORM_ADMIN"
+            and project.admin_id != admin.id
+        ):
+            raise ValueError(
+                "You do not have access to this project."
+            )
+
+    def _validate_scenario_access(
+        self,
+        scenario: TestScenario,
+        admin: Admin,
+    ):
+        if admin.role == "PLATFORM_ADMIN":
+            return
+
+        requirement = (
+            self.repository.session.query(
+                Requirement
+            )
+            .filter(
+                Requirement.id
+                == scenario.requirement_id
+            )
+            .first()
+        )
+
+        if requirement is None:
+            raise ValueError(
+                "Requirement not found"
+            )
+
+        self._validate_requirement_access(
+            requirement=requirement,
+            admin=admin,
+        )
+
+    def _validate_requirement_access(
+        self,
+        requirement: Requirement,
+        admin: Admin,
+    ):
+        if admin.role == "PLATFORM_ADMIN":
+            return
+
+        project = (
+            self.repository.session.query(
+                Project
+            )
+            .filter(
+                Project.id
+                == requirement.project_id
+            )
+            .first()
+        )
+
+        if (
+            project is None
+            or project.admin_id != admin.id
+        ):
+            raise ValueError(
+                "You do not have access to this requirement."
+            )
+
+    def _validate_test_case_access(
+        self,
+        test_case: TestCase,
+        admin: Admin,
+    ):
+        if admin.role == "PLATFORM_ADMIN":
+            return
+
+        scenario = (
+            self.repository.session.query(
+                TestScenario
+            )
+            .filter(
+                TestScenario.id
+                == test_case.scenario_id
+            )
+            .first()
+        )
+
+        if scenario is None:
+            raise ValueError(
+                "Test Scenario not found"
+            )
+
+        self._validate_scenario_access(
+            scenario=scenario,
+            admin=admin,
         )

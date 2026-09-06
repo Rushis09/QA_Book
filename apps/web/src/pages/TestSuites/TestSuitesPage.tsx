@@ -14,7 +14,6 @@ import { useNavigate } from "react-router-dom";
 
 import { useNotification } from "../../contexts/NotificationContext";
 
-import { projectService } from "../../services/projectService";
 import { testSuiteService } from "../../services/testSuiteService";
 
 import type { Project } from "../../types/project";
@@ -49,37 +48,39 @@ export default function TestSuitesPage() {
   const { showNotification } =
     useNotification();
 
-  const { selectedProject } =
-    useWorkspace();
+  const {
+    selectedProject,
+    isAllProjects,
+    projects: workspaceProjects,
+  } = useWorkspace();
 
   const navigate = useNavigate();
 
   async function loadData() {
-     if (!selectedProject) {
+    if (!selectedProject && !isAllProjects) {
       setTestSuites([]);
-      setProjects([]);
+      setProjects(workspaceProjects);
       setLoading(false);
       return;
     }
+
     try {
       setLoading(true);
 
-      const [
-        suiteData,
-        projectData,
-      ] = await Promise.all([
-        testSuiteService.getTestSuites(
-          selectedProject.id,
-        ),
-        projectService.getProjects(),
-      ]);
+      const projectId =
+        selectedProject?.id;
+
+      const suiteData =
+        await testSuiteService.getTestSuites(
+          projectId,
+        );
 
       setTestSuites(suiteData);
-      setProjects(projectData);
-
+      setProjects(workspaceProjects);
       setError("");
     } catch (error) {
       console.error(error);
+
       setError(
         "Failed to load test suites.",
       );
@@ -90,7 +91,11 @@ export default function TestSuitesPage() {
 
   useEffect(() => {
     loadData();
-  }, [selectedProject]);
+  }, [
+    selectedProject,
+    isAllProjects,
+    workspaceProjects,
+  ]);
 
   function handleEdit(
     testSuite: TestSuite,
@@ -117,31 +122,40 @@ export default function TestSuitesPage() {
   async function handleSave(
     data: TestSuiteFormData,
   ) {
-    if (selectedTestSuite) {
-      await testSuiteService.updateTestSuite(
-        selectedTestSuite.id,
-        data,
-      );
+    try {
+      if (selectedTestSuite) {
+        await testSuiteService.updateTestSuite(
+          selectedTestSuite.id,
+          data,
+        );
+
+        showNotification(
+          "Test suite updated successfully.",
+          "success",
+        );
+      } else {
+        await testSuiteService.createTestSuite(
+          data,
+        );
+
+        showNotification(
+          "Test suite created successfully.",
+          "success",
+        );
+      }
+
+      await loadData();
+
+      setSelectedTestSuite(null);
+      setOpenDialog(false);
+    } catch (error) {
+      console.error(error);
 
       showNotification(
-        "Test suite updated successfully.",
-        "success",
-      );
-    } else {
-      await testSuiteService.createTestSuite(
-        data,
-      );
-
-      showNotification(
-        "Test suite created successfully.",
-        "success",
+        "Failed to save test suite.",
+        "error",
       );
     }
-
-    await loadData();
-
-    setSelectedTestSuite(null);
-    setOpenDialog(false);
   }
 
   if (loading) {

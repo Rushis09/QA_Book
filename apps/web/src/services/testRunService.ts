@@ -9,17 +9,21 @@ const BASE_URL = "/test-runs";
 
 export const testRunService = {
   async getTestRuns(
-    projectId: number,
+    projectId?: number,
   ): Promise<TestRun[]> {
-    const response = await api.get<TestRun[]>(
-      BASE_URL,
-      {
-        params: {
-          project_id: projectId,
+    const response =
+      await api.get<TestRun[]>(
+        BASE_URL,
+        {
+          params:
+            projectId !== undefined
+              ? {
+                  project_id: projectId,
+                }
+              : undefined,
         },
-      },
-    );
-  
+      );
+
     return response.data;
   },
 

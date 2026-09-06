@@ -20,6 +20,7 @@ import { testExecutionService } from "../../services/testExecutionService";
 import type { Bug } from "../../types/bug";
 import type { BugFormData } from "../../types/bugForm";
 import type { TestExecution } from "../../types/testExecution";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 
 export default function BugsPage() {
   const [bugs, setBugs] =
@@ -64,6 +65,11 @@ export default function BugsPage() {
   const { showNotification } =
     useNotification();
 
+  const {
+    selectedProject,
+    isAllProjects,
+  } = useWorkspace();
+
   async function loadData() {
     try {
       setLoading(true);
@@ -95,7 +101,7 @@ export default function BugsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  },[selectedProject, isAllProjects]);
 
   function handleEdit(
     bug: Bug,

@@ -1,6 +1,10 @@
 import { Route, Routes } from "react-router-dom";
 
 import AppLayout from "./layouts/AppLayout";
+import LoginPage from "./components/auth/LoginPage";
+import ResetPasswordPage from "./components/auth/ResetPasswordPage";
+import { useAuth } from "./contexts/AuthContext";
+
 import DashboardPage from "./pages/Dashboard/DashboardPage";
 import ProjectsPage from "./pages/Projects/ProjectsPage";
 import RequirementsPage from "./pages/Requirements/RequirementsPage";
@@ -17,96 +21,106 @@ import AutomationPage from "./automation/pages/AutomationPage";
 import TestExecutionsListPage from "./pages/TestExecutions/TestExecutionsListPage";
 
 
-
-
 function NotFoundPage() {
   return <h1>404 - Page Not Found</h1>;
 }
 
+
 export default function App() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <Routes>
+      {/* Public authentication routes */}
 
-      {/* Main Application */}
-      <Route element={<AppLayout />}>
+      <Route
+        path="/reset-password"
+        element={<ResetPasswordPage />}
+      />
 
+      {!isAuthenticated ? (
         <Route
-          path="/"
-          element={<DashboardPage />}
+          path="*"
+          element={<LoginPage />}
         />
+      ) : (
+        <Route element={<AppLayout />}>
+          <Route
+            path="/"
+            element={<DashboardPage />}
+          />
 
-        <Route
-          path="/projects"
-          element={<ProjectsPage />}
-        />
+          <Route
+            path="/projects"
+            element={<ProjectsPage />}
+          />
 
-        <Route
-          path="/requirements"
-          element={<RequirementsPage />}
-        />
+          <Route
+            path="/requirements"
+            element={<RequirementsPage />}
+          />
 
-        <Route
-          path="/test-scenarios"
-          element={<TestScenariosPage />}
-        />
+          <Route
+            path="/test-scenarios"
+            element={<TestScenariosPage />}
+          />
 
-        <Route
-          path="/test-cases"
-          element={<TestCasesPage />}
-        />
+          <Route
+            path="/test-cases"
+            element={<TestCasesPage />}
+          />
 
-        <Route
-          path="/automation"
-          element={<AutomationPage />}
-        />
+          <Route
+            path="/automation"
+            element={<AutomationPage />}
+          />
 
-        <Route
-          path="/test-suites"
-          element={<TestSuitesPage />}
-        />
+          <Route
+            path="/test-suites"
+            element={<TestSuitesPage />}
+          />
 
-        <Route
-          path="/test-runs"
-          element={<TestRunsPage />}
-        />
+          <Route
+            path="/test-runs"
+            element={<TestRunsPage />}
+          />
 
-        <Route
-          path="/test-runs/:id"
-          element={<TestRunDetailsPage />}
-        />
+          <Route
+            path="/test-runs/:id"
+            element={<TestRunDetailsPage />}
+          />
 
-        <Route
-          path="/test-runs/:runId/execute"
-          element={<ExecutionPage />}
-        />
+          <Route
+            path="/test-runs/:runId/execute"
+            element={<ExecutionPage />}
+          />
 
-        <Route
-          path="/test-executions"
-          element={<TestExecutionsListPage />}
-        />
+          <Route
+            path="/test-executions"
+            element={<TestExecutionsListPage />}
+          />
 
-        <Route
-          path="/bugs"
-          element={<BugsPage />}
-        />
+          <Route
+            path="/bugs"
+            element={<BugsPage />}
+          />
 
-        <Route
-          path="/reports"
-          element={<ReportsPage />}
-        />
+          <Route
+            path="/reports"
+            element={<ReportsPage />}
+          />
 
-        <Route
-          path="/test-suites/:id/assign"
-          element={<AssignTestCasesPage />}
-        />
-
-      </Route>
+          <Route
+            path="/test-suites/:id/assign"
+            element={<AssignTestCasesPage />}
+          />
+        </Route>
+      )}
 
       <Route
         path="*"
         element={<NotFoundPage />}
       />
-
     </Routes>
   );
 }

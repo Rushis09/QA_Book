@@ -221,11 +221,15 @@ export default function GenerateRequirementDialog({
 
       onGenerated();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
 
+      const message =
+        error?.response?.data?.detail ||
+        "Failed to generate requirements.";
+
       showNotification(
-        "Failed to generate requirements.",
+        message,
         "error",
       );
     } finally {

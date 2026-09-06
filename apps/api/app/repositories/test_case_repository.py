@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session, selectinload
 
+from app.models.project import Project
 from app.models.requirement import Requirement
 from app.models.test_case import TestCase
 from app.models.test_scenario import TestScenario
@@ -49,6 +50,43 @@ class TestCaseRepository:
             )
 
         return query.all()
+
+    def get_by_owner(
+        self,
+        admin_id: int,
+    ):
+        return (
+            self.db.query(TestCase)
+            .join(
+                TestScenario,
+                TestCase.scenario_id
+                == TestScenario.id,
+            )
+            .join(
+                Requirement,
+                TestScenario.requirement_id
+                == Requirement.id,
+            )
+            .join(
+                Project,
+                Requirement.project_id
+                == Project.id,
+            )
+            .options(
+                selectinload(
+                    TestCase.scenario
+                ).selectinload(
+                    TestScenario.requirement
+                )
+            )
+            .filter(
+                Project.admin_id == admin_id
+            )
+            .order_by(
+                TestCase.test_case_code
+            )
+            .all()
+        )
 
     def get_by_id(
         self,

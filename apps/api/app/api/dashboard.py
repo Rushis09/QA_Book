@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_admin
 from app.db.session import get_db
+from app.models.admin import Admin
 from app.schemas.dashboard import DashboardSummary
-from app.services.dashboard_service import (
-    DashboardService,
-)
+from app.services.dashboard_service import DashboardService
+
 
 router = APIRouter(
     prefix="/dashboard",
@@ -19,7 +20,8 @@ router = APIRouter(
 )
 def get_dashboard_summary(
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = DashboardService(db)
 
-    return service.get_dashboard_summary()
+    return service.get_dashboard_summary(admin)

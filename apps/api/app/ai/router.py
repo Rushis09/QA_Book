@@ -1,6 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.ai.credential_schemas import (
+    AICredentialSaveRequest,
+    AICredentialStatusResponse,
+    AICredentialTestResponse,
+)
 from app.ai.schemas import (
     GenerateRequest,
     GenerateResponse,
@@ -11,7 +16,12 @@ from app.ai.service import AIService
 from app.ai.test_suite_service import (
     AITestSuiteService,
 )
+from app.auth.dependencies import get_current_admin
 from app.db.session import get_db
+from app.models.admin import Admin
+from app.ai.credential_service import (
+    AICredentialService,
+)
 
 
 router = APIRouter(
@@ -20,7 +30,7 @@ router = APIRouter(
 )
 
 
-ai_service = AIService()
+
 
 
 @router.post(
@@ -29,15 +39,33 @@ ai_service = AIService()
 )
 def generate(
     request: GenerateRequest,
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
 ):
-    response = ai_service.generate(
-        request.prompt,
+    credential_service = AICredentialService(db)
+
+    api_key = credential_service.get_api_key(
+        admin=admin,
     )
 
-    return GenerateResponse(
-        response=response,
+    ai_service = AIService(
+        api_key=api_key,
     )
 
+    try:
+        response = ai_service.generate(
+            request.prompt,
+        )
+
+        return GenerateResponse(
+            response=response,
+        )
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        )
 
 @router.post(
     "/recommend-test-cases",
@@ -66,3 +94,102 @@ def recommend_test_cases(
             status_code=400,
             detail=str(error),
         )
+
+
+@router.get(
+    "/credentials",
+    response_model=AICredentialStatusResponse,
+)
+def get_ai_credential_status(
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    service = AICredentialService(db)
+
+    credential = service.get_credential(
+        admin=admin,
+    )
+
+    return AICredentialStatusResponse(
+        provider="gemini",
+        configured=credential is not None,
+    )
+
+
+@router.post(
+    "/credentials",
+)
+def save_ai_credential(
+    request: AICredentialSaveRequest,
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    service = AICredentialService(db)
+
+    service.save_credential(
+        admin=admin,
+        provider=request.provider,
+        api_key=request.api_key,
+    )
+
+    return {
+        "message": "AI API key saved successfully.",
+        "provider": request.provider.strip().lower(),
+    }
+
+
+@router.post(
+    "/credentials/test",
+    response_model=AICredentialTestResponse,
+)
+def test_ai_credential(
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    service = AICredentialService(db)
+
+    try:
+        api_key = service.get_api_key(
+            admin=admin,
+        )
+
+        test_service = AIService(
+            api_key=api_key,
+        )
+
+        test_service.generate(
+            "Reply with exactly: QABook AI connection successful"
+        )
+
+        return AICredentialTestResponse(
+            provider="gemini",
+            connected=True,
+            message="Gemini API connection successful.",
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Gemini API connection failed: {error}",
+        )
+
+
+@router.delete(
+    "/credentials",
+)
+def delete_ai_credential(
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    service = AICredentialService(db)
+
+    service.delete_credential(
+        admin=admin,
+    )
+
+    return {
+        "message": "AI API key removed successfully.",
+    }

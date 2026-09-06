@@ -9,15 +9,18 @@ const BASE_URL = "/test-suites";
 
 export const testSuiteService = {
   async getTestSuites(
-    projectId: number,
+    projectId?: number,
   ): Promise<TestSuite[]> {
     const response =
       await api.get<TestSuite[]>(
         BASE_URL,
         {
-          params: {
-            project_id: projectId,
-          },
+          params:
+            projectId !== undefined
+              ? {
+                  project_id: projectId,
+                }
+              : undefined,
         },
       );
 

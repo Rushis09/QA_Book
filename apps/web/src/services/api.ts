@@ -2,7 +2,9 @@ import axios from "axios";
 
 import { getApiBaseUrl } from "../config/environment";
 
-const api = axios.create();
+const api = axios.create({
+  withCredentials: true,
+});
 
 api.interceptors.request.use((config) => {
   config.baseURL = getApiBaseUrl();

@@ -48,6 +48,11 @@ class AutomationProject(Base):
         nullable=True,
     )
 
+    ci_secret_hash = Column(
+        String(128),
+        nullable=True,
+    )
+
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -68,5 +73,12 @@ class AutomationProject(Base):
     mappings = relationship(
         "AutomationTestMapping",
         back_populates="automation_project",
+        cascade="all, delete-orphan",
+    )
+
+    github_connection = relationship(
+        "GitHubConnection",
+        back_populates="automation_project",
+        uselist=False,
         cascade="all, delete-orphan",
     )

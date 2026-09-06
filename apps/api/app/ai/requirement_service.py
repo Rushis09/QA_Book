@@ -1,5 +1,8 @@
 from sqlalchemy.orm import Session
 
+from app.ai.credential_service import (
+    AICredentialService,
+)
 from app.ai.prompts.brd_requirements import (
     build_brd_requirement_prompt,
 )
@@ -7,6 +10,7 @@ from app.ai.prompts.requirements import (
     build_requirement_prompt,
 )
 from app.ai.service import AIService
+from app.models.admin import Admin
 from app.repositories.document_repository import (
     DocumentRepository,
 )
@@ -23,10 +27,23 @@ class AIRequirementService:
     def __init__(
         self,
         db: Session,
+        admin: Admin,
     ):
         self.db = db
-        self.ai_service = AIService()
+        self.admin = admin
         self.storage_service = StorageService()
+
+        credential_service = AICredentialService(
+            db,
+        )
+
+        api_key = credential_service.get_api_key(
+            admin=admin,
+        )
+
+        self.ai_service = AIService(
+            api_key=api_key,
+        )
 
     def generate_requirements(
         self,
@@ -91,8 +108,10 @@ class AIRequirementService:
                 "Only DOCX BRD documents are supported."
             )
 
-        file_content = self.storage_service.download_file(
-            document.storage_key
+        file_content = (
+            self.storage_service.download_file(
+                document.storage_key
+            )
         )
 
         brd_text = DocumentExtractor.extract_docx(

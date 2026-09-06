@@ -1,11 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  MenuItem,
   Paper,
+  Select,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 
@@ -16,7 +25,9 @@ import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useNotification } from "../../contexts/NotificationContext";
 
 import { testCaseService } from "../../services/testCaseService";
-import automationService from "../services/automationService";
+import automationService, {
+  type GitHubRepository,
+} from "../services/automationService";
 
 import AutomationMappingDialog from "../components/AutomationMappingDialog";
 import AutomationMappingTable from "../components/AutomationMappingTable";
@@ -28,73 +39,95 @@ import type {
 } from "../types/automation";
 
 export default function AutomationPage() {
-  const { selectedProject } = useWorkspace();
+  const {
+    selectedProject
+  } = useWorkspace();
+
+  const effectiveProject = selectedProject;
+
   const { showNotification } = useNotification();
 
   const [automationProject, setAutomationProject] =
     useState<AutomationProject | null>(null);
 
-  const [testCases, setTestCases] =
-    useState<TestCase[]>([]);
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [mappings, setMappings] = useState<AutomationTestMapping[]>([]);
 
-  const [mappings, setMappings] =
-    useState<AutomationTestMapping[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deinitializing, setDeinitializing] = useState(false);
+  const [startingRun, setStartingRun] = useState(false);
+  const [bulkMapping, setBulkMapping] = useState(false);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [error, setError] = useState("");
 
-  const [saving, setSaving] =
-    useState(false);
+  const [name, setName] = useState("");
+  const [framework] = useState("Python + pytest + Playwright");
 
-  const [deinitializing, setDeinitializing] =
-    useState(false);
-
-  const [downloading, setDownloading] =
-    useState(false);
-
-  const [startingRun, setStartingRun] =
-    useState(false);
-
-  const [bulkMapping, setBulkMapping] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-  const [name, setName] =
-    useState("");
-
-  const [framework, setFramework] =
-    useState("Python + pytest + Playwright");
-
-  const [mappingDialogOpen, setMappingDialogOpen] =
-    useState(false);
+  const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
 
   const [selectedTestCase, setSelectedTestCase] =
     useState<TestCase | null>(null);
 
   const [selectedMapping, setSelectedMapping] =
-    useState<AutomationTestMapping | undefined>(
-      undefined,
-    );
+    useState<AutomationTestMapping | undefined>(undefined);
 
-  const [automationRun, setAutomationRun] =
-    useState<{
-      test_run_id: number;
-      run_code: string;
-      automation_token: string;
-    } | null>(null);
+  const [automationRun, setAutomationRun] = useState<{
+    test_run_id: number;
+    run_code: string;
+    automation_token: string;
+  } | null>(null);
 
-  const [
-    deinitializeConfirmOpen,
-    setDeinitializeConfirmOpen,
-  ] = useState(false);
+  const [deinitializeConfirmOpen, setDeinitializeConfirmOpen] =
+    useState(false);
+
+  const [repositoryDialogOpen, setRepositoryDialogOpen] = useState(false);
+
+  const [repositories, setRepositories] = useState<GitHubRepository[]>([]);
+
+  const [repositoriesLoading, setRepositoriesLoading] = useState(false);
+
+  const [repositorySaving, setRepositorySaving] = useState(false);
+
+  const [selectedRepository, setSelectedRepository] =
+    useState<GitHubRepository | null>(null);
+
+  const [selectedBranch, setSelectedBranch] = useState("main");
+
+  const [repositoryError, setRepositoryError] = useState("");
+
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [githubConnectionLoading, setGithubConnectionLoading] = useState(false);
+  const [generatingFramework, setGeneratingFramework] = useState(false);
+
+  const loadGitHubConnection = async (automationProjectId: number) => {
+    try {
+      setGithubConnectionLoading(true);
+
+      const connection =
+        await automationService.getGitHubConnection(automationProjectId);
+
+      setGithubConnected(connection.connected);
+    } catch (error) {
+      console.error("Failed to load GitHub connection:", error);
+      setGithubConnected(false);
+    } finally {
+      setGithubConnectionLoading(false);
+    }
+  };
+
+  const mappedTestCaseIds = useMemo(
+    () => new Set(mappings.map((mapping) => mapping.test_case_id)),
+    [mappings]
+  );
 
   async function loadAutomationData() {
-    if (!selectedProject) {
+    if (!effectiveProject) {
       setAutomationProject(null);
       setTestCases([]);
       setMappings([]);
+      setAutomationRun(null);
+      setGithubConnected(false);
       setError("");
       setLoading(false);
       return;
@@ -104,46 +137,31 @@ export default function AutomationPage() {
       setLoading(true);
       setError("");
 
-      /*
-       * Test cases are independent of the automation project.
-       * Always load them first.
-       */
-      const testCaseData =
-        await testCaseService.getTestCases(
-          selectedProject.id,
-        );
+      const testCaseData = await testCaseService.getTestCases(
+        effectiveProject.id
+      );
 
       setTestCases(
         testCaseData.filter(
-          (testCase) =>
-            testCase.automation_eligibility ===
-            "Eligible",
-        ),
+          (testCase) => testCase.automation_eligibility === "Eligible"
+        )
       );
 
-      /*
-       * An automation project is optional.
-       * A 404 simply means automation has not been
-       * initialized for this QABook project yet.
-       */
-      let automationProjectData:
-        | AutomationProject
-        | null = null;
+      let automationProjectData: AutomationProject | null = null;
 
       try {
         automationProjectData =
           await automationService.getAutomationProjectByProjectId(
-            selectedProject.id,
+            effectiveProject.id
           );
       } catch (error) {
-        const status =
-          (
-            error as {
-              response?: {
-                status?: number;
-              };
-            }
-          ).response?.status;
+        const status = (
+          error as {
+            response?: {
+              status?: number;
+            };
+          }
+        ).response?.status;
 
         if (status !== 404) {
           throw error;
@@ -154,16 +172,17 @@ export default function AutomationPage() {
         setAutomationProject(null);
         setMappings([]);
         setAutomationRun(null);
+        setGithubConnected(false);
         return;
       }
 
-      setAutomationProject(
-        automationProjectData,
-      );
+      setAutomationProject(automationProjectData);
+
+      await loadGitHubConnection(automationProjectData.id);
 
       const mappingData =
         await automationService.getAutomationTestMappings(
-          automationProjectData.id,
+          automationProjectData.id
         );
 
       setMappings(mappingData);
@@ -172,10 +191,9 @@ export default function AutomationPage() {
 
       setAutomationProject(null);
       setMappings([]);
+      setGithubConnected(false);
 
-      setError(
-        "Failed to load automation data.",
-      );
+      setError("Failed to load automation workspace.");
     } finally {
       setLoading(false);
     }
@@ -183,21 +201,17 @@ export default function AutomationPage() {
 
   useEffect(() => {
     loadAutomationData();
-  }, [selectedProject]);
+  }, [effectiveProject]);
 
   async function handleInitialize() {
-    if (
-      !selectedProject ||
-      automationProject ||
-      saving
-    ) {
+    if (!effectiveProject || automationProject || saving) {
       return;
     }
 
     if (!name.trim()) {
       showNotification(
-        "Automation project name is required.",
-        "error",
+        "Automation workspace name is required.",
+        "error"
       );
       return;
     }
@@ -207,7 +221,7 @@ export default function AutomationPage() {
       setError("");
 
       await automationService.createAutomationProject({
-        project_id: selectedProject.id,
+        project_id: effectiveProject.id,
         name: name.trim(),
         framework,
         status: "Active",
@@ -219,19 +233,17 @@ export default function AutomationPage() {
       await loadAutomationData();
 
       showNotification(
-        "Automation project initialized successfully.",
-        "success",
+        "Automation workspace created successfully.",
+        "success"
       );
     } catch (error) {
       console.error(error);
 
-      setError(
-        "Failed to initialize automation project.",
-      );
+      setError("Failed to create automation workspace.");
 
       showNotification(
-        "Failed to initialize automation project.",
-        "error",
+        "Failed to create automation workspace.",
+        "error"
       );
     } finally {
       setSaving(false);
@@ -239,10 +251,7 @@ export default function AutomationPage() {
   }
 
   function handleDeinitialize() {
-    if (
-      !automationProject ||
-      deinitializing
-    ) {
+    if (!automationProject || deinitializing) {
       return;
     }
 
@@ -259,7 +268,7 @@ export default function AutomationPage() {
       setError("");
 
       await automationService.deleteAutomationProject(
-        automationProject.id,
+        automationProject.id
       );
 
       setAutomationRun(null);
@@ -267,19 +276,17 @@ export default function AutomationPage() {
       await loadAutomationData();
 
       showNotification(
-        "Automation deinitialized successfully.",
-        "success",
+        "Automation workspace removed successfully.",
+        "success"
       );
     } catch (error) {
       console.error(error);
 
-      setError(
-        "Failed to deinitialize automation.",
-      );
+      setError("Failed to remove automation workspace.");
 
       showNotification(
-        "Failed to deinitialize automation.",
-        "error",
+        "Failed to remove automation workspace.",
+        "error"
       );
     } finally {
       setDeinitializing(false);
@@ -287,18 +294,202 @@ export default function AutomationPage() {
     }
   }
 
-  async function handleStartAutomationRun() {
+  async function handleConnectGitHub() {
+    if (!automationProject) {
+      return;
+    }
+
+    try {
+      setGithubConnectionLoading(true);
+
+      const response = await automationService.authorizeGitHub(
+        automationProject.id
+      );
+
+      window.location.href = response.authorization_url;
+    } catch (error) {
+      console.error(error);
+
+      showNotification(
+        "Failed to start GitHub authorization.",
+        "error"
+      );
+    } finally {
+      setGithubConnectionLoading(false);
+    }
+  }
+
+  async function handleGenerateFramework() {
+    if (!automationProject || generatingFramework) {
+      return;
+    }
+
+    if (!githubConnected) {
+      showNotification(
+        "Connect GitHub before generating the framework.",
+        "error"
+      );
+      return;
+    }
+
+    try {
+      setGeneratingFramework(true);
+      setError("");
+
+      const response =
+        await automationService.generateGitHubFramework(
+          automationProject.id
+        );
+
+      setAutomationProject((current) =>
+        current
+          ? {
+              ...current,
+              repository_url:
+                response.repository_url,
+            }
+          : current
+      );
+
+      showNotification(
+        "Framework generated and pushed to GitHub successfully.",
+        "success"
+      );
+
+      await loadGitHubConnection(automationProject.id);
+    } catch (error) {
+      console.error(error);
+
+      showNotification(
+        "Failed to generate and push the automation framework.",
+        "error"
+      );
+    } finally {
+      setGeneratingFramework(false);
+    }
+  }
+
+  async function handleOpenRepositoryDialog() {
+    if (!automationProject) {
+      return;
+    }
+
+    setRepositoryDialogOpen(true);
+    setRepositoryError("");
+    setRepositoriesLoading(true);
+
+    try {
+      const response =
+        await automationService.getGitHubRepositories(
+          automationProject.id
+        );
+
+      setRepositories(response.repositories);
+
+      if (
+        automationProject.repository_url &&
+        response.repositories.length > 0
+      ) {
+        const currentRepository = response.repositories.find(
+          (repository) =>
+            repository.html_url ===
+            automationProject.repository_url
+        );
+
+        if (currentRepository) {
+          setSelectedRepository(currentRepository);
+          setSelectedBranch(
+            currentRepository.default_branch || "main"
+          );
+        }
+      }
+    } catch (error) {
+      console.error(error);
+
+      setRepositoryError(
+        "GitHub is not connected or repositories could not be loaded."
+      );
+    } finally {
+      setRepositoriesLoading(false);
+    }
+  }
+
+  async function handleSaveRepository() {
     if (
       !automationProject ||
-      startingRun
+      !selectedRepository ||
+      repositorySaving
     ) {
+      return;
+    }
+
+    try {
+      setRepositorySaving(true);
+      setRepositoryError("");
+
+      const response =
+        await automationService.selectGitHubRepository(
+          automationProject.id,
+          {
+            repository_owner:
+              selectedRepository.owner.login,
+            repository_name:
+              selectedRepository.name,
+            branch: selectedBranch.trim() || "main",
+          }
+        );
+
+      setAutomationProject((current) =>
+        current
+          ? {
+              ...current,
+              repository_url:
+                response.repository_url,
+            }
+          : current
+      );
+
+      setGithubConnected(true);
+
+      setRepositoryDialogOpen(false);
+
+      showNotification(
+        "GitHub repository connected successfully.",
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+
+      setRepositoryError(
+        "Failed to connect the selected repository."
+      );
+
+      showNotification(
+        "Failed to connect GitHub repository.",
+        "error"
+      );
+    } finally {
+      setRepositorySaving(false);
+    }
+  }
+
+  async function handleStartAutomationRun() {
+    if (!automationProject || startingRun) {
       return;
     }
 
     if (mappings.length === 0) {
       showNotification(
         "Map at least one test case before starting automation.",
-        "error",
+        "error"
+      );
+      return;
+    }
+
+    if (!automationProject.repository_url) {
+      showNotification(
+        "Connect a GitHub repository before starting automation.",
+        "error"
       );
       return;
     }
@@ -308,26 +499,25 @@ export default function AutomationPage() {
 
       const result =
         await automationService.startAutomationRun(
-          automationProject.id,
+          automationProject.id
         );
 
       setAutomationRun({
         test_run_id: result.test_run_id,
         run_code: result.run_code,
-        automation_token:
-          result.automation_token,
+        automation_token: result.automation_token,
       });
 
       showNotification(
         `Automation run ${result.run_code} created successfully.`,
-        "success",
+        "success"
       );
     } catch (error) {
       console.error(error);
 
       showNotification(
         "Failed to start automation run.",
-        "error",
+        "error"
       );
     } finally {
       setStartingRun(false);
@@ -343,27 +533,23 @@ export default function AutomationPage() {
       `pytest --qabook-token "${automationRun.automation_token}"`;
 
     try {
-      await navigator.clipboard.writeText(
-        command,
-      );
+      await navigator.clipboard.writeText(command);
 
       showNotification(
         "Automation command copied to clipboard.",
-        "success",
+        "success"
       );
     } catch (error) {
       console.error(error);
 
       showNotification(
         "Failed to copy automation command.",
-        "error",
+        "error"
       );
     }
   }
 
-  async function handleBulkMap(
-    testCaseIds: number[],
-  ) {
+  async function handleBulkMap(testCaseIds: number[]) {
     if (
       !automationProject ||
       bulkMapping ||
@@ -381,91 +567,36 @@ export default function AutomationPage() {
             automation_project_id:
               automationProject.id,
             test_case_ids: testCaseIds,
-          },
+          }
         );
 
       setMappings(result);
 
       showNotification(
         `${testCaseIds.length} test case${
-          testCaseIds.length === 1
-            ? ""
-            : "s"
+          testCaseIds.length === 1 ? "" : "s"
         } mapped successfully.`,
-        "success",
+        "success"
       );
     } catch (error) {
       console.error(error);
 
       showNotification(
         "Failed to map selected test cases.",
-        "error",
+        "error"
       );
     } finally {
       setBulkMapping(false);
     }
   }
 
-  async function handleDownloadFramework() {
-    if (!automationProject || downloading) {
-      return;
-    }
-
-    try {
-      setDownloading(true);
-
-      const blob =
-        await automationService.downloadAutomationFramework(
-          automationProject.id,
-        );
-
-      const url =
-        window.URL.createObjectURL(blob);
-
-      const link =
-        document.createElement("a");
-
-      link.href = url;
-
-      link.download =
-        `${automationProject.name
-          .trim()
-          .replace(/\s+/g, "_")}.zip`;
-
-      document.body.appendChild(link);
-
-      link.click();
-
-      link.remove();
-
-      window.URL.revokeObjectURL(url);
-
-      showNotification(
-        "Automation framework downloaded successfully.",
-        "success",
-      );
-    } catch (error) {
-      console.error(error);
-
-      showNotification(
-        "Failed to download automation framework.",
-        "error",
-      );
-    } finally {
-      setDownloading(false);
-    }
-  }
-
-  function handleMapTestCase(
-    testCase: TestCase,
-  ) {
+  function handleMapTestCase(testCase: TestCase) {
     if (!automationProject) {
       return;
     }
 
     const mapping = mappings.find(
-      (item) =>
-        item.test_case_id === testCase.id,
+      (item) => item.test_case_id === testCase.id
     );
 
     setSelectedTestCase(testCase);
@@ -477,50 +608,56 @@ export default function AutomationPage() {
     test_name: string;
     test_file_path: string;
   }) {
-    if (
-      !automationProject ||
-      !selectedTestCase
-    ) {
+    if (!automationProject || !selectedTestCase) {
       return;
     }
 
-    if (selectedMapping) {
-      await automationService.updateAutomationTestMapping(
-        selectedMapping.id,
-        data,
-      );
+    try {
+      if (selectedMapping) {
+        await automationService.updateAutomationTestMapping(
+          selectedMapping.id,
+          data
+        );
+
+        showNotification(
+          "Automation mapping updated successfully.",
+          "success"
+        );
+      } else {
+        await automationService.createAutomationTestMapping({
+          automation_project_id:
+            automationProject.id,
+          test_case_id: selectedTestCase.id,
+          test_name: data.test_name,
+          test_file_path: data.test_file_path,
+        });
+
+        showNotification(
+          "Test case mapped successfully.",
+          "success"
+        );
+      }
+
+      const mappingData =
+        await automationService.getAutomationTestMappings(
+          automationProject.id
+        );
+
+      setMappings(mappingData);
+    } catch (error) {
+      console.error(error);
 
       showNotification(
-        "Automation mapping updated successfully.",
-        "success",
+        "Failed to save automation mapping.",
+        "error"
       );
-    } else {
-      await automationService.createAutomationTestMapping({
-        automation_project_id:
-          automationProject.id,
-        test_case_id:
-          selectedTestCase.id,
-        test_name: data.test_name,
-        test_file_path:
-          data.test_file_path,
-      });
 
-      showNotification(
-        "Test case mapped successfully.",
-        "success",
-      );
+      throw error;
     }
-
-    const mappingData =
-      await automationService.getAutomationTestMappings(
-        automationProject.id,
-      );
-
-    setMappings(mappingData);
   }
 
   async function handleUnmap(
-    mapping: AutomationTestMapping,
+    mapping: AutomationTestMapping
   ) {
     if (!automationProject) {
       return;
@@ -528,26 +665,26 @@ export default function AutomationPage() {
 
     try {
       await automationService.deleteAutomationTestMapping(
-        mapping.id,
+        mapping.id
       );
 
       const mappingData =
         await automationService.getAutomationTestMappings(
-          automationProject.id,
+          automationProject.id
         );
 
       setMappings(mappingData);
 
       showNotification(
         "Test case unmapped successfully.",
-        "success",
+        "success"
       );
     } catch (error) {
       console.error(error);
 
       showNotification(
         "Failed to unmap test case.",
-        "error",
+        "error"
       );
     }
   }
@@ -558,290 +695,557 @@ export default function AutomationPage() {
     setSelectedMapping(undefined);
   }
 
-  if (!selectedProject) {
+  if (!effectiveProject) {
     return (
       <Alert severity="info">
-        Please select a project to manage automation.
+        Select a specific project to open its automation workspace.
       </Alert>
     );
   }
 
   if (loading) {
-    return <CircularProgress />;
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          py: 8,
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
 
-  return (
-    <PageHeader
-      title="Automation"
-      actionLabel={
-        automationProject
-          ? deinitializing
-            ? "Deinitializing..."
-            : "Deinitialize Automation"
-          : saving
-            ? "Initializing..."
-            : "Initialize Automation"
-      }
-      onAction={
-        automationProject
-          ? handleDeinitialize
-          : handleInitialize
-      }
-    >
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        gutterBottom
+  if (!automationProject) {
+    return (
+      <PageHeader
+        title="Automation"
+        actionLabel={
+          saving
+            ? "Creating..."
+            : "Create Automation Workspace"
+        }
+        onAction={handleInitialize}
       >
-        Automation workspace for project{" "}
-        <strong>
-          {selectedProject.project_code}
-        </strong>
-        {" — "}
-        {selectedProject.name}
-      </Typography>
-
-      {error && (
-        <Alert
-          severity="error"
-          sx={{ mt: 2 }}
-        >
-          {error}
-        </Alert>
-      )}
-
-      {!automationProject ? (
-        <Paper
-          elevation={1}
-          sx={{
-            p: 3,
-            mt: 2,
-          }}
-        >
-          <Stack spacing={2}>
-            <Typography variant="h6">
-              Initialize Automation
-            </Typography>
-
+        <Stack spacing={3}>
+          <Box>
             <Typography
               variant="body2"
               color="text.secondary"
             >
-              Create an automation workspace for this
-              QABook project.
+              Set up automated testing for{" "}
+              <strong>
+                {effectiveProject.project_code}
+              </strong>{" "}
+              — {effectiveProject.name}.
             </Typography>
+          </Box>
 
-            <Box>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-              >
-                Automation Project Name
-              </Typography>
+          {error && (
+            <Alert severity="error">
+              {error}
+            </Alert>
+          )}
 
-              <input
-                value={name}
-                onChange={(event) =>
-                  setName(event.target.value)
-                }
-                placeholder="Example: OrangeHRM Automation"
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  marginTop: "6px",
-                  boxSizing: "border-box",
-                  border: "1px solid #ccc",
-                  borderRadius: "4px",
-                  fontSize: "14px",
-                }}
-              />
-            </Box>
-
-            <Box>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-              >
-                Framework
-              </Typography>
-
-              <input
-                value={framework}
-                onChange={(event) =>
-                  setFramework(event.target.value)
-                }
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  marginTop: "6px",
-                  boxSizing: "border-box",
-                  border: "1px solid #ccc",
-                  borderRadius: "4px",
-                  fontSize: "14px",
-                }}
-              />
-            </Box>
-
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
-              Enter the automation project name and
-              click "Initialize Automation" above.
-            </Typography>
-          </Stack>
-        </Paper>
-      ) : (
-        <>
           <Paper
-            elevation={1}
+            elevation={0}
             sx={{
-              p: 3,
-              mt: 2,
-              mb: 3,
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+              p: 4,
             }}
           >
-            <Stack spacing={2}>
-              <Typography variant="h6">
-                {automationProject.name}
-              </Typography>
-
-              <Typography variant="body2">
-                <strong>Framework:</strong>{" "}
-                {automationProject.framework}
-              </Typography>
-
-              <Typography variant="body2">
-                <strong>Status:</strong>{" "}
-                {automationProject.status}
-              </Typography>
-
-              <Typography variant="body2">
-                <strong>Repository:</strong>{" "}
-                {automationProject.repository_url ||
-                  "Not configured"}
-              </Typography>
-
+            <Stack spacing={3}>
               <Box>
-                <Stack
-                  direction="row"
-                  spacing={2}
-                >
-                  <Button
-                    variant="contained"
-                    onClick={
-                      handleDownloadFramework
-                    }
-                    disabled={downloading}
-                  >
-                    {downloading
-                      ? "Downloading..."
-                      : "Download Framework"}
-                  </Button>
-
-                  <Button
-                    variant="outlined"
-                    onClick={
-                      handleStartAutomationRun
-                    }
-                    disabled={
-                      startingRun ||
-                      mappings.length === 0
-                    }
-                  >
-                    {startingRun
-                      ? "Starting..."
-                      : "Run Automation"}
-                  </Button>
-                </Stack>
-              </Box>
-            </Stack>
-          </Paper>
-
-          {automationRun && (
-            <Paper
-              elevation={1}
-              sx={{
-                p: 3,
-                mb: 3,
-              }}
-            >
-              <Stack spacing={2}>
                 <Typography variant="h6">
-                  Automation Run Created
-                </Typography>
-
-                <Typography variant="body2">
-                  <strong>Run:</strong>{" "}
-                  {automationRun.run_code}
-                </Typography>
-
-                <Typography variant="body2">
-                  <strong>Test Run ID:</strong>{" "}
-                  {automationRun.test_run_id}
+                  Create your automation workspace
                 </Typography>
 
                 <Typography
                   variant="body2"
                   color="text.secondary"
+                  sx={{ mt: 0.5 }}
                 >
-                  Run the downloaded automation framework
-                  using the command below.
+                  Connect your QA project to a persistent
+                  Playwright automation repository.
                 </Typography>
+              </Box>
+
+              <TextField
+                label="Automation workspace name"
+                value={name}
+                onChange={(event) =>
+                  setName(event.target.value)
+                }
+                placeholder="Example: OrangeHRM E2E Automation"
+                fullWidth
+              />
+
+              <TextField
+                label="Automation framework"
+                value={framework}
+                fullWidth
+                disabled
+                helperText="The current QABook automation framework."
+              />
+
+              <Alert severity="info">
+                After setup, you will connect GitHub,
+                select a repository, map eligible test
+                cases, and execute automation through your
+                CI/CD workflow.
+              </Alert>
+            </Stack>
+          </Paper>
+        </Stack>
+      </PageHeader>
+    );
+  }
+
+  const repositoryConnected =
+    Boolean(automationProject.repository_url);
+
+  return (
+    <PageHeader
+      title="Automation"
+      actionLabel={
+        deinitializing
+          ? "Removing..."
+          : "Workspace Settings"
+      }
+      onAction={handleDeinitialize}
+    >
+      <Stack spacing={3}>
+        {/* Workspace overview */}
+        <Box>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: {
+                xs: "column",
+                md: "row",
+              },
+              justifyContent: "space-between",
+              alignItems: {
+                xs: "flex-start",
+                md: "center",
+              },
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                <Typography variant="h5">
+                  {automationProject.name}
+                </Typography>
+
+                <Chip
+                  label={automationProject.status}
+                  size="small"
+                  color={
+                    automationProject.status ===
+                    "Active"
+                      ? "success"
+                      : "default"
+                  }
+                />
+              </Box>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                {effectiveProject.project_code} ·{" "}
+                {effectiveProject.name}
+              </Typography>
+            </Box>
+
+            <Chip
+              label={`${mappings.length} mapped test${
+                mappings.length === 1 ? "" : "s"
+              }`}
+              variant="outlined"
+            />
+          </Box>
+        </Box>
+
+        {error && (
+          <Alert severity="error">
+            {error}
+          </Alert>
+        )}
+
+        {/* Source control */}
+        <Paper
+          elevation={0}
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+            overflow: "hidden",
+          }}
+        >
+          <Box sx={{ p: 3 }}>
+            <Stack spacing={0.5}>
+              <Typography variant="h6">
+                Source control
+              </Typography>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                Your automation code lives in GitHub.
+                Clone it locally, make changes, and push
+                them back to the repository.
+              </Typography>
+            </Stack>
+          </Box>
+
+          <Divider />
+
+          <Box sx={{ p: 3 }}>
+            <Stack spacing={2.5}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: {
+                    xs: "column",
+                    md: "row",
+                  },
+                  justifyContent: "space-between",
+                  gap: 2,
+                }}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Repository
+                  </Typography>
+
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      mt: 0.5,
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {automationProject.repository_url ||
+                      "No repository connected"}
+                  </Typography>
+                </Box>
 
                 <Box
                   sx={{
-                    p: 2,
-                    borderRadius: 1,
-                    backgroundColor:
-                      "action.hover",
-                    fontFamily:
-                      "monospace",
-                    overflowX: "auto",
+                    display: "flex",
+                    flexDirection: {
+                      xs: "column",
+                      sm: "row",
+                    },
+                    gap: 1,
                   }}
                 >
-                  pytest --qabook-token
-                  {" "}
-                  &lt;AUTOMATION_TOKEN&gt;
-                </Box>
-
-                <Box>
                   <Button
                     variant="contained"
+                    onClick={handleConnectGitHub}
+                    disabled={
+                      githubConnectionLoading ||
+                      generatingFramework
+                    }
+                  >
+                    {githubConnectionLoading
+                      ? "Connecting..."
+                      : githubConnected
+                        ? "Reconnect GitHub"
+                        : "Connect GitHub"}
+                  </Button>
+                    
+                  <Button
+                    variant="outlined"
+                    onClick={handleGenerateFramework}
+                    disabled={
+                      !githubConnected ||
+                      generatingFramework
+                    }
+                  >
+                    {generatingFramework
+                      ? "Generating Framework..."
+                      : "Generate Framework"}
+                  </Button>
+
+                  <Button
+                    variant={
+                      repositoryConnected
+                        ? "contained"
+                        : "outlined"
+                    }
+                    onClick={handleOpenRepositoryDialog}
+                    disabled={
+                      githubConnectionLoading ||
+                      generatingFramework
+                    }
+                  >
+                    {repositoryConnected
+                      ? "Change Repository"
+                      : "Select Repository"}
+                  </Button>
+                </Box>
+              </Box>
+
+              {githubConnected && !repositoryConnected && (
+                <Alert severity="info">
+                  GitHub is connected. Generate the framework to
+                  create a new repository and push the automation
+                  framework automatically.
+                </Alert>
+              )}
+
+              {repositoryConnected && (
+                <Alert severity="success">
+                  GitHub repository connected. Clone the
+                  repository locally to implement and
+                  maintain your automated tests.
+                </Alert>
+              )}
+            </Stack>
+          </Box>
+        </Paper>
+
+        {/* Execution */}
+        <Paper
+          elevation={0}
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+            p: 3,
+          }}
+        >
+          <Stack spacing={2.5}>
+            <Box>
+              <Typography variant="h6">
+                Automation execution
+              </Typography>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                QABook creates the Test Run and execution
+                scope. Your Git/CI pipeline performs the
+                actual Playwright execution and reports
+                results back to QABook.
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: {
+                  xs: "column",
+                  sm: "row",
+                },
+                alignItems: {
+                  xs: "stretch",
+                  sm: "center",
+                },
+                gap: 2,
+              }}
+            >
+              <Button
+                variant="contained"
+                onClick={handleStartAutomationRun}
+                disabled={
+                  startingRun ||
+                  mappings.length === 0 ||
+                  !repositoryConnected
+                }
+              >
+                {startingRun
+                  ? "Creating Run..."
+                  : "Create Automation Run"}
+              </Button>
+
+              {!repositoryConnected && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  Connect a GitHub repository first.
+                </Typography>
+              )}
+
+              {repositoryConnected &&
+                mappings.length === 0 && (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    Map at least one eligible test case
+                    first.
+                  </Typography>
+                )}
+            </Box>
+
+            {automationRun && (
+              <Box
+                sx={{
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  p: 2.5,
+                }}
+              >
+                <Stack spacing={2}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: {
+                        xs: "column",
+                        sm: "row",
+                      },
+                      justifyContent: "space-between",
+                      gap: 1,
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="subtitle1">
+                        {automationRun.run_code}
+                      </Typography>
+
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                      >
+                        Test Run ID{" "}
+                        {automationRun.test_run_id}
+                      </Typography>
+                    </Box>
+
+                    <Chip
+                      label="Ready for execution"
+                      color="info"
+                      size="small"
+                    />
+                  </Box>
+
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 1,
+                      backgroundColor: "action.hover",
+                      fontFamily: "monospace",
+                      overflowX: "auto",
+                    }}
+                  >
+                    pytest --qabook-token
+                    {" "}
+                    &lt;AUTOMATION_TOKEN&gt;
+                  </Box>
+
+                  <Button
+                    variant="outlined"
                     onClick={
                       handleCopyAutomationCommand
                     }
+                    sx={{ alignSelf: "flex-start" }}
                   >
-                    Copy Automation Command
+                    Copy Execution Command
                   </Button>
-                </Box>
-              </Stack>
-            </Paper>
-          )}
+                </Stack>
+              </Box>
+            )}
+          </Stack>
+        </Paper>
 
-          <Typography
-            variant="h6"
-            sx={{ mb: 1 }}
-          >
-            Test Case Automation Mapping
-          </Typography>
+        {/* Automated coverage */}
+        <Paper
+          elevation={0}
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+            overflow: "hidden",
+          }}
+        >
+          <Box sx={{ p: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: {
+                  xs: "column",
+                  md: "row",
+                },
+                justifyContent: "space-between",
+                gap: 2,
+              }}
+            >
+              <Box>
+                <Typography variant="h6">
+                  Automated test coverage
+                </Typography>
 
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mb: 2 }}
-          >
-            Eligible test cases for this automation
-            project.
-          </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 0.5 }}
+                >
+                  Manage which eligible QABook test cases
+                  are represented in the automation suite.
+                </Typography>
+              </Box>
 
-          <AutomationMappingTable
-            testCases={testCases}
-            mappings={mappings}
-            onMap={handleMapTestCase}
-            onBulkMap={handleBulkMap}
-            onUnmap={handleUnmap}
-          />
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                <Chip
+                  label={`${testCases.length} eligible`}
+                  size="small"
+                  variant="outlined"
+                />
+
+                <Chip
+                  label={`${mappedTestCaseIds.size} mapped`}
+                  size="small"
+                  color={
+                    mappedTestCaseIds.size > 0
+                      ? "success"
+                      : "default"
+                  }
+                />
+              </Box>
+            </Box>
+          </Box>
+
+          <Divider />
+
+          <Box sx={{ p: 2 }}>
+            <AutomationMappingTable
+              testCases={testCases}
+              mappings={mappings}
+              onMap={handleMapTestCase}
+              onBulkMap={handleBulkMap}
+              onUnmap={handleUnmap}
+            />
+          </Box>
 
           {bulkMapping && (
             <Box
@@ -849,20 +1253,229 @@ export default function AutomationPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
-                mt: 2,
+                px: 3,
+                pb: 2,
               }}
             >
               <CircularProgress size={20} />
+
               <Typography
                 variant="body2"
                 color="text.secondary"
               >
-                Mapping selected test cases...
+                Updating automation coverage...
               </Typography>
             </Box>
           )}
-        </>
-      )}
+        </Paper>
+
+        {/* Workflow guidance */}
+        <Alert severity="info">
+          <Typography variant="body2">
+            <strong>Recommended workflow:</strong>{" "}
+            Connect GitHub → generate the framework → QABook creates
+            a new GitHub repository and pushes the framework → clone
+            the repository locally → implement tests → push changes
+            to Git → create a QABook Test Run → execute through
+            CI/CD → results update the corresponding Test Executions.
+          </Typography>
+        </Alert>
+
+        {/* Danger zone */}
+        <Paper
+          elevation={0}
+          sx={{
+            border: "1px solid",
+            borderColor: "error.light",
+            borderRadius: 2,
+            p: 3,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: {
+                xs: "column",
+                md: "row",
+              },
+              justifyContent: "space-between",
+              alignItems: {
+                xs: "flex-start",
+                md: "center",
+              },
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography
+                variant="subtitle1"
+                color="error.main"
+              >
+                Remove automation workspace
+              </Typography>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                This removes the QABook automation
+                workspace and mappings. Your QABook project,
+                test cases, and GitHub repository are not
+                deleted.
+              </Typography>
+            </Box>
+
+            <Button
+              color="error"
+              variant="outlined"
+              onClick={handleDeinitialize}
+              disabled={deinitializing}
+            >
+              {deinitializing
+                ? "Removing..."
+                : "Remove Workspace"}
+            </Button>
+          </Box>
+        </Paper>
+      </Stack>
+
+      {/* GitHub repository selection */}
+      <Dialog
+        open={repositoryDialogOpen}
+        onClose={() => {
+          if (!repositorySaving) {
+            setRepositoryDialogOpen(false);
+          }
+        }}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          Select GitHub repository
+        </DialogTitle>
+
+        <DialogContent>
+          <Stack spacing={3} sx={{ pt: 1 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
+              Select the repository where the persistent
+              QABook automation framework will live.
+            </Typography>
+
+            {repositoryError && (
+              <Alert severity="error">
+                {repositoryError}
+              </Alert>
+            )}
+
+            {repositoriesLoading ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  py: 5,
+                }}
+              >
+                <CircularProgress />
+              </Box>
+            ) : repositories.length === 0 ? (
+              <Alert severity="info">
+                No repositories are available to the
+                connected GitHub App installation.
+              </Alert>
+            ) : (
+              <>
+                <Select
+                  value={
+                    selectedRepository
+                      ? selectedRepository.full_name
+                      : ""
+                  }
+                  displayEmpty
+                  fullWidth
+                  onChange={(event) => {
+                    const repository =
+                      repositories.find(
+                        (item) =>
+                          item.full_name ===
+                          event.target.value
+                      ) || null;
+
+                    setSelectedRepository(repository);
+
+                    if (repository) {
+                      setSelectedBranch(
+                        repository.default_branch ||
+                          "main"
+                      );
+                    }
+                  }}
+                >
+                  <MenuItem value="" disabled>
+                    Select repository
+                  </MenuItem>
+
+                  {repositories.map((repository) => (
+                    <MenuItem
+                      key={repository.id}
+                      value={repository.full_name}
+                    >
+                      {repository.full_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+
+                <TextField
+                  label="Branch"
+                  value={selectedBranch}
+                  onChange={(event) =>
+                    setSelectedBranch(event.target.value)
+                  }
+                  fullWidth
+                  helperText="The branch QABook should associate with this automation project."
+                />
+
+                {selectedRepository && (
+                  <Alert severity="success">
+                    Selected repository:{" "}
+                    <strong>
+                      {selectedRepository.full_name}
+                    </strong>
+                  </Alert>
+                )}
+              </>
+            )}
+          </Stack>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => {
+              setRepositoryDialogOpen(false);
+            }}
+            disabled={repositorySaving}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={handleSaveRepository}
+            disabled={
+              repositorySaving ||
+              repositoriesLoading ||
+              !selectedRepository
+            }
+          >
+            {repositorySaving
+              ? "Connecting..."
+              : "Connect Repository"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <AutomationMappingDialog
         open={mappingDialogOpen}
@@ -874,9 +1487,9 @@ export default function AutomationPage() {
 
       <ConfirmDialog
         open={deinitializeConfirmOpen}
-        title="Deinitialize Automation"
-        message="Are you sure you want to deinitialize automation? This will remove the automation project and its test case mappings. Your QABook project and test cases will not be deleted."
-        confirmText="Deinitialize"
+        title="Remove Automation Workspace"
+        message="Are you sure you want to remove this automation workspace? This will remove the QABook automation project and its mappings. Your QABook project, test cases, and GitHub repository will not be deleted."
+        confirmText="Remove Workspace"
         cancelText="Cancel"
         onConfirm={confirmDeinitialize}
         onCancel={() => {

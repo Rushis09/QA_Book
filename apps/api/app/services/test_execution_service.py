@@ -3,10 +3,16 @@ from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.models.admin import Admin
 from app.models.bug import Bug
 from app.models.bug_retest import BugRetest
+from app.models.project import Project
+from app.models.requirement import Requirement
+from app.models.test_case import TestCase
 from app.models.test_execution import TestExecution
 from app.models.test_run import TestRun
+from app.models.test_scenario import TestScenario
+from app.models.test_suite import TestSuite
 from app.repositories.test_execution_repository import (
     TestExecutionRepository,
 )
@@ -23,16 +29,36 @@ class TestExecutionService:
         self.repository = TestExecutionRepository(db)
         self.test_run_service = TestRunService(db)
 
-    def get_test_executions(self):
-        return self.repository.get_all()
+    def get_test_executions(
+        self,
+        admin: Admin,
+    ):
+        if admin.role == "PLATFORM_ADMIN":
+            return self.repository.get_all()
 
-    def get_test_execution(self, execution_id: int):
-        execution = self.repository.get_by_id(execution_id)
+        return self.repository.get_by_owner(
+            admin.id
+        )
+
+    def get_test_execution(
+        self,
+        execution_id: int,
+        admin: Admin | None = None,
+    ):
+        execution = self.repository.get_by_id(
+            execution_id
+        )
 
         if not execution:
             raise HTTPException(
                 status_code=404,
                 detail="Test Execution not found",
+            )
+
+        if admin is not None:
+            self._validate_execution_access(
+                execution,
+                admin,
             )
 
         return execution
@@ -41,6 +67,7 @@ class TestExecutionService:
         self,
         run_id: int,
         test_case_id: int,
+        admin: Admin | None = None,
     ):
         execution = (
             self.repository.get_by_run_and_test_case(
@@ -53,6 +80,12 @@ class TestExecutionService:
             raise HTTPException(
                 status_code=404,
                 detail="Test Execution not found",
+            )
+
+        if admin is not None:
+            self._validate_execution_access(
+                execution,
+                admin,
             )
 
         return execution
@@ -105,10 +138,19 @@ class TestExecutionService:
             run.id
         )
 
-    def get_or_create_executions(self, run_id: int):
-        run = self.test_run_service.get_test_run(run_id)
+    def get_or_create_executions(
+        self,
+        run_id: int,
+        admin: Admin | None = None,
+    ):
+        run = self.test_run_service.get_test_run(
+            run_id,
+            admin,
+        )
 
-        executions = self.repository.get_by_run_id(run_id)
+        executions = self.repository.get_by_run_id(
+            run_id
+        )
 
         if executions:
             return executions
@@ -120,14 +162,30 @@ class TestExecutionService:
                 status="Not Executed",
             )
 
-            self.repository.create(execution)
+            self.repository.create(
+                execution,
+                commit=False,
+            )
 
-        return self.repository.get_by_run_id(run_id)
+        return self.repository.get_by_run_id(
+            run_id
+        )
 
     def create_test_execution(
         self,
         data: TestExecutionCreate,
+        admin: Admin | None = None,
     ):
+        if admin is not None:
+            self._validate_run_access(
+                data.run_id,
+                admin,
+            )
+            self._validate_test_case_for_run(
+                data.run_id,
+                data.test_case_id,
+            )
+
         execution = TestExecution(
             run_id=data.run_id,
             test_case_id=data.test_case_id,
@@ -144,9 +202,11 @@ class TestExecutionService:
         self,
         execution_id: int,
         data: TestExecutionUpdate,
+        admin: Admin | None = None,
     ):
         execution = self.get_test_execution(
-            execution_id
+            execution_id,
+            admin,
         )
 
         execution.status = data.status
@@ -155,7 +215,9 @@ class TestExecutionService:
         execution.executed_by = data.executed_by
         execution.executed_at = data.executed_at
 
-        self._update_bug_retest_status(execution)
+        self._update_bug_retest_status(
+            execution
+        )
 
         updated_execution = self.repository.update(
             execution
@@ -211,7 +273,7 @@ class TestExecutionService:
         execution: TestExecution,
     ):
         run = self.test_run_service.get_test_run(
-            execution.run_id
+            execution.run_id,
         )
 
         if run.execution_type != "Automated":
@@ -258,7 +320,14 @@ class TestExecutionService:
     def get_execution_summary(
         self,
         run_id: int,
+        admin: Admin | None = None,
     ):
+        if admin is not None:
+            self._validate_run_access(
+                run_id,
+                admin,
+            )
+
         executions = self.repository.get_by_run_id(
             run_id
         )
@@ -318,9 +387,175 @@ class TestExecutionService:
     def delete_test_execution(
         self,
         execution_id: int,
+        admin: Admin | None = None,
     ):
         execution = self.get_test_execution(
-            execution_id
+            execution_id,
+            admin,
         )
 
         self.repository.delete(execution)
+
+    def _validate_execution_access(
+        self,
+        execution: TestExecution,
+        admin: Admin,
+    ):
+        if admin.role == "PLATFORM_ADMIN":
+            return
+
+        run = (
+            self.db.query(TestRun)
+            .filter(
+                TestRun.id == execution.run_id
+            )
+            .first()
+        )
+
+        if not run:
+            raise HTTPException(
+                status_code=404,
+                detail="Test Run not found",
+            )
+
+        self._validate_run_access(
+            run.id,
+            admin,
+        )
+
+    def _validate_run_access(
+        self,
+        run_id: int,
+        admin: Admin,
+    ):
+        run = (
+            self.db.query(TestRun)
+            .filter(
+                TestRun.id == run_id
+            )
+            .first()
+        )
+
+        if not run:
+            raise HTTPException(
+                status_code=404,
+                detail="Test Run not found",
+            )
+
+        if admin.role == "PLATFORM_ADMIN":
+            return
+
+        suite = (
+            self.db.query(TestSuite)
+            .filter(
+                TestSuite.id == run.suite_id
+            )
+            .first()
+        )
+
+        if not suite:
+            raise HTTPException(
+                status_code=404,
+                detail="Test Suite not found",
+            )
+
+        project = (
+            self.db.query(Project)
+            .filter(
+                Project.id == suite.project_id
+            )
+            .first()
+        )
+
+        if not project:
+            raise HTTPException(
+                status_code=404,
+                detail="Project not found",
+            )
+
+        if project.admin_id != admin.id:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "You do not have access to "
+                    "this Test Run."
+                ),
+            )
+
+    def _validate_test_case_for_run(
+        self,
+        run_id: int,
+        test_case_id: int,
+    ):
+        run = (
+            self.db.query(TestRun)
+            .filter(
+                TestRun.id == run_id
+            )
+            .first()
+        )
+
+        if not run:
+            raise HTTPException(
+                status_code=404,
+                detail="Test Run not found",
+            )
+
+        test_case = (
+            self.db.query(TestCase)
+            .filter(
+                TestCase.id == test_case_id
+            )
+            .first()
+        )
+
+        if not test_case:
+            raise HTTPException(
+                status_code=404,
+                detail="Test Case not found",
+            )
+
+        scenario = (
+            self.db.query(TestScenario)
+            .filter(
+                TestScenario.id
+                == test_case.scenario_id
+            )
+            .first()
+        )
+
+        if not scenario:
+            raise HTTPException(
+                status_code=400,
+                detail="Test Case scenario not found.",
+            )
+
+        requirement = (
+            self.db.query(Requirement)
+            .filter(
+                Requirement.id
+                == scenario.requirement_id
+            )
+            .first()
+        )
+
+        if not requirement:
+            raise HTTPException(
+                status_code=400,
+                detail="Test Case requirement not found.",
+            )
+
+        if requirement.project_id != (
+            self.db.query(TestSuite.project_id)
+            .filter(
+                TestSuite.id == run.suite_id
+            )
+            .scalar()
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Test Case does not belong "
+                    "to the Test Run project."
+                ),
+            )

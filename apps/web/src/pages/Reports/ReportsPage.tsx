@@ -9,32 +9,31 @@ import {
 } from "@mui/material";
 
 import { reportService } from "../../services/reportService";
-
-import type { ReportSummary } from "../../types/report";
-import RequirementCoverageTable from "../../components/reports/RequirementCoverageTable";
-import TraceabilityTable from "../../components/reports/TraceabilityTable";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 
 import type {
+  ReportSummary,
+  RequirementCoverage,
   TraceabilityItem,
 } from "../../types/report";
 
-import type {
-  RequirementCoverage,
-} from "../../types/report";
+import RequirementCoverageTable from "../../components/reports/RequirementCoverageTable";
+import TraceabilityTable from "../../components/reports/TraceabilityTable";
 
 export default function ReportsPage() {
+  const {
+    selectedProject,
+    isAllProjects,
+  } = useWorkspace();
+
   const [summary, setSummary] =
-    useState<ReportSummary | null>(
-      null,
-    );
+    useState<ReportSummary | null>(null);
 
   const [coverage, setCoverage] =
-    useState<RequirementCoverage[]>(
-    [],
-  );
+    useState<RequirementCoverage[]>([]);
 
   const [traceability, setTraceability] =
-  useState<TraceabilityItem[]>([]);
+    useState<TraceabilityItem[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -44,34 +43,43 @@ export default function ReportsPage() {
 
   useEffect(() => {
     async function loadReport() {
+      if (!selectedProject && !isAllProjects) {
+        setSummary(null);
+        setCoverage([]);
+        setTraceability([]);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
 
+        const projectId =
+          selectedProject?.id;
+
         const [
-            summaryData,
-            coverageData,
-            traceabilityData,
-          ] = await Promise.all([
-            reportService.getSummary(),
-            reportService.getRequirementCoverage(),
-            reportService.getTraceability(),
-          ]);
+          summaryData,
+          coverageData,
+          traceabilityData,
+        ] = await Promise.all([
+          reportService.getSummary(projectId),
+          reportService.getRequirementCoverage(
+            projectId,
+          ),
+          reportService.getTraceability(
+            projectId,
+          ),
+        ]);
 
-          setSummary(summaryData);
+        setSummary(summaryData);
 
-          setCoverage(
-            coverageData.coverage,
-          );
+        setCoverage(
+          coverageData.coverage,
+        );
 
-          setTraceability(
-            traceabilityData.traceability,
-          );
-
-          setSummary(summaryData);
-
-          setCoverage(
-            coverageData.coverage,
-          );
+        setTraceability(
+          traceabilityData.traceability,
+        );
 
         setError("");
       } catch (error) {
@@ -86,7 +94,10 @@ export default function ReportsPage() {
     }
 
     loadReport();
-  }, []);
+  }, [
+    selectedProject,
+    isAllProjects,
+  ]);
 
   if (loading) {
     return <CircularProgress />;
@@ -169,12 +180,17 @@ export default function ReportsPage() {
 
             <Typography
               sx={{
-                 mt: 2,
-                 fontWeight: 600,
-                }}
-              >
-                Pass Rate:{" "}
-                {summary?.execution_summary.pass_percentage}%
+                mt: 2,
+                fontWeight: 600,
+              }}
+            >
+              Pass Rate:{" "}
+              {
+                summary
+                  ?.execution_summary
+                  .pass_percentage
+              }
+              %
             </Typography>
           </Paper>
         </Grid>
@@ -192,7 +208,8 @@ export default function ReportsPage() {
               Total Bugs:{" "}
               {
                 summary
-                  ?.bug_summary.total
+                  ?.bug_summary
+                  .total
               }
             </Typography>
 
@@ -200,7 +217,8 @@ export default function ReportsPage() {
               Open:{" "}
               {
                 summary
-                  ?.bug_summary.open
+                  ?.bug_summary
+                  .open
               }
             </Typography>
 
@@ -217,7 +235,8 @@ export default function ReportsPage() {
               Fixed:{" "}
               {
                 summary
-                  ?.bug_summary.fixed
+                  ?.bug_summary
+                  .fixed
               }
             </Typography>
 
@@ -225,28 +244,30 @@ export default function ReportsPage() {
               Closed:{" "}
               {
                 summary
-                  ?.bug_summary.closed
+                  ?.bug_summary
+                  .closed
               }
+            </Typography>
 
-              <Typography>
-                Reopened:{" "}
-                {
-                  summary
-                    ?.bug_summary
-                    .reopened
-                }
-              </Typography>
+            <Typography>
+              Reopened:{" "}
+              {
+                summary
+                  ?.bug_summary
+                  .reopened
+              }
             </Typography>
           </Paper>
         </Grid>
       </Grid>
-          <RequirementCoverageTable
-            coverage={coverage}
-          />
 
-          <TraceabilityTable
-          traceability={traceability}
-        />
+      <RequirementCoverageTable
+        coverage={coverage}
+      />
+
+      <TraceabilityTable
+        traceability={traceability}
+      />
     </>
   );
 }

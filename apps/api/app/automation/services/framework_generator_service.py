@@ -59,6 +59,15 @@ class FrameworkGeneratorService:
                 self._gitignore_content(),
             )
 
+            # GitHub Actions
+            self._add_file(
+                zip_file,
+                ".github/workflows/qabook.yml",
+                self._github_workflow_content(
+                    automation_project
+                ),
+            )
+
             # QABook metadata
             self._add_file(
                 zip_file,
@@ -285,6 +294,9 @@ Python + pytest + Playwright
 ## Project Structure
 
     .
+    ├── .github/
+    │   └── workflows/
+    │       └── qabook.yml
     ├── tests/
     │   └── ui/
     ├── pages/
@@ -333,14 +345,10 @@ Example:
     BASE_URL=https://example.com
     QABOOK_API_URL=http://127.0.0.1:8000
 
-For QABook execution reporting, the automation
-token is supplied at runtime through:
+For normal local development, no QABook
+automation token is required.
 
-    QABOOK_AUTOMATION_TOKEN
-
-The token should not be stored in `.env`.
-
-## Run Tests
+## Run Tests Locally
 
 Run all automation tests:
 
@@ -350,18 +358,25 @@ Run only automation tests:
 
     pytest -m automation
 
-Normal local pytest execution does not require
-a QABook token.
+Local execution does not send results to QABook.
 
-For CI/CD or another QABook-controlled execution
-environment, provide:
+## CI/CD
 
-    QABOOK_AUTOMATION_TOKEN=<AUTOMATION_TOKEN>
+Pushing changes to the GitHub repository automatically
+starts the QABook GitHub Actions workflow.
 
-The existing CLI option can also be used as an
-explicit override:
+The workflow:
 
-    pytest --qabook-token <AUTOMATION_TOKEN>
+1. Authenticates with QABook.
+2. Creates or obtains the appropriate QABook Test Run.
+3. Receives the execution context.
+4. Runs the mapped automation tests.
+5. Reports Passed/Failed results back to QABook.
+
+The QABook CI authentication value is stored as a
+GitHub Actions repository secret.
+
+It must never be committed to the repository.
 
 ## QABook Integration
 
@@ -389,10 +404,10 @@ Example:
 QABook-specific Test Case IDs are intentionally kept
 outside the automation test source code.
 
-When a QABook automation token is supplied at runtime,
-the framework can resolve the Test Executions belonging
-to that Test Run and associate mapped automation tests
-with their corresponding QABook Test Cases.
+During CI/CD execution, QABook supplies the execution
+context and automation token at runtime.
+
+The token is never stored in the repository.
 
 ## Page Objects
 
@@ -569,7 +584,7 @@ def pytest_runtest_teardown(
     nextitem,
 ):
     """
-    Report a passed mapped test to QABook.
+    Report automation results to QABook.
 
     QABook reporting is completely disabled when
     no automation token is supplied.
@@ -590,9 +605,6 @@ def pytest_runtest_teardown(
     )
 
     if report is None:
-        return
-
-    if not report.passed:
         return
 
     test_file = Path(
@@ -624,9 +636,18 @@ def pytest_runtest_teardown(
         test_case_id,
     )
 
+    if report.passed:
+        execution_status = "Passed"
+    elif report.failed:
+        execution_status = "Failed"
+    elif report.skipped:
+        execution_status = "Blocked"
+    else:
+        return
+
     client.update_test_execution(
         execution["id"],
-        "Passed",
+        execution_status,
     )
 '''
 
@@ -806,4 +827,137 @@ reports/*
 # OS
 .DS_Store
 Thumbs.db
+"""
+
+    @staticmethod
+    def _github_workflow_content(
+        automation_project: AutomationProject,
+    ) -> str:
+        return f"""name: QABook Automation
+
+on:
+  push:
+    branches:
+      - "**"
+
+  repository_dispatch:
+    types:
+      - qabook-retest
+
+permissions:
+  contents: read
+
+jobs:
+  automation:
+    name: Run QABook Automation
+    runs-on: ubuntu-latest
+
+    env:
+      QABOOK_API_URL: ${{{{ secrets.QABOOK_API_URL }}}}
+      QABOOK_CI_SECRET: ${{{{ secrets.QABOOK_CI_SECRET }}}}
+      QABOOK_AUTOMATION_PROJECT_ID: "{automation_project.id}"
+      QABOOK_REPOSITORY: "${{{{ github.repository }}}}"
+      QABOOK_COMMIT_SHA: "${{{{ github.sha }}}}"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: |
+          playwright install --with-deps
+
+      - name: Create QABook Test Run
+        id: qabook_run
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          response=$(curl --fail-with-body --silent --show-error \\
+            --request POST \\
+            --header "Content-Type: application/json" \\
+            --header "X-QABook-CI-Secret: $QABOOK_CI_SECRET" \\
+            --data "{{
+              \\"automation_project_id\\": $QABOOK_AUTOMATION_PROJECT_ID,
+              \\"repository\\": \\"$QABOOK_REPOSITORY\\",
+              \\"commit_sha\\": \\"$QABOOK_COMMIT_SHA\\",
+              \\"event_type\\": \\"${{{{ github.event_name }}}}\\",
+              \\"retest_run_id\\": \\"${{{{ github.event.client_payload.run_id || '' }}}}\\"
+            }}" \\
+            "$QABOOK_API_URL/automation-projects/$QABOOK_AUTOMATION_PROJECT_ID/ci/run")
+
+          echo "$response" > qabook-run.json
+
+          python - <<'PY'
+          import json
+          import os
+
+          with open("qabook-run.json", "r", encoding="utf-8") as file:
+              data = json.load(file)
+
+          token = data.get("automation_token")
+          test_files = data.get("test_files", [])
+
+          if not token:
+              raise SystemExit(
+                  "QABook did not return an automation token."
+              )
+
+          with open(
+              os.environ["GITHUB_OUTPUT"],
+              "a",
+              encoding="utf-8",
+          ) as output:
+              output.write(f"automation_token={{token}}\\n")
+              output.write(
+                  "test_files="
+                  + json.dumps(test_files)
+                  + "\\n"
+              )
+          PY
+
+      - name: Run automation tests
+        env:
+          QABOOK_AUTOMATION_TOKEN: ${{{{ steps.qabook_run.outputs.automation_token }}}}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+
+          with open("qabook-run.json", "r", encoding="utf-8") as file:
+              data = json.load(file)
+
+          test_files = data.get("test_files", [])
+
+          if not test_files:
+              raise SystemExit(
+                  "QABook returned no test files for this execution."
+              )
+
+          command = [
+              sys.executable,
+              "-m",
+              "pytest",
+              *test_files,
+          ]
+
+          result = subprocess.run(command)
+
+          raise SystemExit(result.returncode)
+          PY
 """

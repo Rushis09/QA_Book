@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-  Alert,
   CircularProgress,
   Typography,
 } from "@mui/material";
@@ -12,6 +11,7 @@ import ProjectTable from "../../components/projects/ProjectTable";
 import BRDDocumentDialog from "../../components/projects/BRDDocumentDialog";
 
 import { useNotification } from "../../contexts/NotificationContext";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 
 import { projectService } from "../../services/projectService";
 import { documentService } from "../../services/documentService";
@@ -20,14 +20,13 @@ import { exportService } from "../../services/exportService";
 import type { Project } from "../../types/project";
 
 export default function ProjectsPage() {
-  const [projects, setProjects] =
-    useState<Project[]>([]);
+  const {
+    projects,
+    loading,
+    refreshProjects,
+  } = useWorkspace();
 
-  const [loading, setLoading] =
-    useState(true);
 
-  const [error, setError] =
-    useState("");
 
   const [openDialog, setOpenDialog] =
     useState(false);
@@ -52,30 +51,6 @@ export default function ProjectsPage() {
 
   const { showNotification } =
     useNotification();
-
-  async function loadProjects() {
-    try {
-      setLoading(true);
-
-      const data =
-        await projectService.getProjects();
-
-      setProjects(data);
-      setError("");
-    } catch (error) {
-      console.error(error);
-
-      setError(
-        "Failed to load projects.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadProjects();
-  }, []);
 
   async function handleEdit(
     project: Project,
@@ -241,7 +216,7 @@ export default function ProjectsPage() {
         projectToDelete.id,
       );
 
-      await loadProjects();
+      await refreshProjects();
 
       showNotification(
         "Project deleted successfully.",
@@ -328,7 +303,7 @@ export default function ProjectsPage() {
         );
       }
 
-      await loadProjects();
+      await refreshProjects();
 
       setSelectedProject(null);
       setExistingBrdFileName(undefined);
@@ -347,13 +322,7 @@ export default function ProjectsPage() {
     return <CircularProgress />;
   }
 
-  if (error) {
-    return (
-      <Alert severity="error">
-        {error}
-      </Alert>
-    );
-  }
+
 
   return (
     <>

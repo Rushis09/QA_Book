@@ -23,8 +23,13 @@ from app.models.admin import Admin
 from app.models.document import Document
 from app.automation.models.automation_project import AutomationProject
 from app.automation.models.automation_test_mapping import AutomationTestMapping
+from app.automation.models.github_connection import GitHubConnection
+from app.automation.models.github_oauth_state import GitHubOAuthState
 from app.models.code_sequence import CodeSequence
 from app.models.bug_retest import BugRetest
+from app.models.password_reset_token import PasswordResetToken
+from app.models.ai_credential import AICredential
+
 
 config = context.config
 

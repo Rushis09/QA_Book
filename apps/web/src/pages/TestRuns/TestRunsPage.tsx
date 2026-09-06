@@ -53,13 +53,16 @@ export default function TestRunsPage() {
   const { showNotification } =
     useNotification();
 
-  const { selectedProject } =
-    useWorkspace();
+  const {
+    selectedProject,
+    isAllProjects,
+    projects: workspaceProjects,
+  } = useWorkspace();
 
   const navigate = useNavigate();
 
   async function loadData() {
-    if (!selectedProject) {
+    if (!selectedProject && !isAllProjects) {
       setTestRuns([]);
       setTestSuites([]);
       setLoading(false);
@@ -69,15 +72,18 @@ export default function TestRunsPage() {
     try {
       setLoading(true);
 
+      const projectId =
+        selectedProject?.id;
+
       const [
         runData,
         suiteData,
       ] = await Promise.all([
         testRunService.getTestRuns(
-          selectedProject.id,
+          projectId,
         ),
         testSuiteService.getTestSuites(
-          selectedProject.id,
+          projectId,
         ),
       ]);
 
@@ -98,7 +104,11 @@ export default function TestRunsPage() {
 
   useEffect(() => {
     loadData();
-  }, [selectedProject]);
+  }, [
+    selectedProject,
+    isAllProjects,
+    workspaceProjects,
+  ]);
 
   function handleEdit(
     testRun: TestRun,

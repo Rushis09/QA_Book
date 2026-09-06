@@ -1,6 +1,12 @@
 from sqlalchemy.orm import Session, selectinload
 
+from app.models.project import Project
+from app.models.test_case import TestCase
 from app.models.test_execution import TestExecution
+from app.models.test_run import TestRun
+from app.models.test_scenario import TestScenario
+from app.models.requirement import Requirement
+from app.models.test_suite import TestSuite
 
 
 class TestExecutionRepository:
@@ -13,6 +19,34 @@ class TestExecutionRepository:
             .options(
                 selectinload(TestExecution.test_run),
                 selectinload(TestExecution.test_case),
+            )
+            .all()
+        )
+
+    def get_by_owner(
+        self,
+        admin_id: int,
+    ):
+        return (
+            self.db.query(TestExecution)
+            .join(
+                TestRun,
+                TestExecution.run_id == TestRun.id,
+            )
+            .join(
+                TestSuite,
+                TestRun.suite_id == TestSuite.id,
+            )
+            .join(
+                Project,
+                TestSuite.project_id == Project.id,
+            )
+            .options(
+                selectinload(TestExecution.test_run),
+                selectinload(TestExecution.test_case),
+            )
+            .filter(
+                Project.admin_id == admin_id
             )
             .all()
         )
@@ -32,7 +66,7 @@ class TestExecutionRepository:
             )
             .first()
         )
-    
+
     def get_by_run_id(
         self,
         run_id: int,
@@ -70,10 +104,14 @@ class TestExecutionRepository:
     def create(
         self,
         execution: TestExecution,
+        commit: bool = True,
     ):
         self.db.add(execution)
-        self.db.commit()
-        self.db.refresh(execution)
+        self.db.flush()
+
+        if commit:
+            self.db.commit()
+            self.db.refresh(execution)
 
         return self.get_by_id(execution.id)
 

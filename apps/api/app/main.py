@@ -23,6 +23,9 @@ from app.automation.api.automation_test_mapping import (
 from app.automation.api.framework import (
     router as framework_router,
 )
+from app.automation.api.github import router as github_router
+from app.models.password_reset_token import PasswordResetToken
+from app.models.ai_credential import AICredential
 
 
 # Import models so SQLAlchemy registers all ORM mappings
@@ -47,7 +50,7 @@ from app.api import ai_test_cases
 from app.api.documents import router as document_router
 from app.automation.models.automation_project import AutomationProject
 from app.automation.models.automation_test_mapping import AutomationTestMapping
-
+from app.automation.models.github_connection import GitHubConnection
 
 app = FastAPI(
     title="QABook API",
@@ -72,6 +75,7 @@ app.include_router(auth_router)
 app.include_router(automation_project_router)
 app.include_router(automation_test_mapping_router)
 app.include_router(framework_router)
+app.include_router(github_router)
 app.include_router(ai_requirement_router)
 app.include_router(ai_scenarios.router)
 app.include_router(ai_test_cases.router)
@@ -88,7 +92,6 @@ app.include_router(test_run_router)
 app.include_router(test_execution_router)
 app.include_router(bug_router)
 app.include_router(report_router)
-
 
 
 @app.get("/")

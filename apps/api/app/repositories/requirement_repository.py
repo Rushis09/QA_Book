@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session, selectinload
 
+from app.models.project import Project
 from app.models.requirement import Requirement
 
 
@@ -13,60 +14,137 @@ class RequirementRepository:
     def session(self) -> Session:
         return self.db
 
-    def create(self, requirement: Requirement) -> Requirement:
+    def create(
+        self,
+        requirement: Requirement,
+    ) -> Requirement:
         self.db.add(requirement)
         self.db.commit()
         self.db.refresh(requirement)
 
         return (
             self.db.query(Requirement)
-            .options(selectinload(Requirement.project))
-            .filter(Requirement.id == requirement.id)
+            .options(
+                selectinload(
+                    Requirement.project
+                )
+            )
+            .filter(
+                Requirement.id == requirement.id
+            )
             .first()
         )
 
     def get_all(self) -> list[Requirement]:
         return (
             self.db.query(Requirement)
-            .options(selectinload(Requirement.project))
-            .all()
-        )
-    
-    def get_by_project(self, project_id: int) -> list[Requirement]:
-        return (
-            self.db.query(Requirement)
-            .options(selectinload(Requirement.project))
-            .filter(Requirement.project_id == project_id)
-            .order_by(Requirement.requirement_code)
+            .options(
+                selectinload(
+                    Requirement.project
+                )
+            )
+            .order_by(
+                Requirement.requirement_code
+            )
             .all()
         )
 
-    def get_by_id(self, requirement_id: int) -> Requirement | None:
+    def get_by_owner(
+        self,
+        admin_id: int,
+    ) -> list[Requirement]:
         return (
             self.db.query(Requirement)
-            .options(selectinload(Requirement.project))
-            .filter(Requirement.id == requirement_id)
+            .join(
+                Project,
+                Requirement.project_id
+                == Project.id,
+            )
+            .options(
+                selectinload(
+                    Requirement.project
+                )
+            )
+            .filter(
+                Project.admin_id == admin_id
+            )
+            .order_by(
+                Requirement.requirement_code
+            )
+            .all()
+        )
+
+    def get_by_project(
+        self,
+        project_id: int,
+    ) -> list[Requirement]:
+        return (
+            self.db.query(Requirement)
+            .options(
+                selectinload(
+                    Requirement.project
+                )
+            )
+            .filter(
+                Requirement.project_id
+                == project_id
+            )
+            .order_by(
+                Requirement.requirement_code
+            )
+            .all()
+        )
+
+    def get_by_id(
+        self,
+        requirement_id: int,
+    ) -> Requirement | None:
+        return (
+            self.db.query(Requirement)
+            .options(
+                selectinload(
+                    Requirement.project
+                )
+            )
+            .filter(
+                Requirement.id
+                == requirement_id
+            )
             .first()
         )
 
     def get_last(self) -> Requirement | None:
         return (
             self.db.query(Requirement)
-            .order_by(Requirement.id.desc())
+            .order_by(
+                Requirement.id.desc()
+            )
             .first()
         )
 
-    def update(self, requirement: Requirement) -> Requirement:
+    def update(
+        self,
+        requirement: Requirement,
+    ) -> Requirement:
         self.db.commit()
         self.db.refresh(requirement)
 
         return (
             self.db.query(Requirement)
-            .options(selectinload(Requirement.project))
-            .filter(Requirement.id == requirement.id)
+            .options(
+                selectinload(
+                    Requirement.project
+                )
+            )
+            .filter(
+                Requirement.id == requirement.id
+            )
             .first()
         )
 
-    def delete(self, requirement: Requirement):
+    def delete(
+        self,
+        requirement: Requirement,
+    ):
         self.db.delete(requirement)
         self.db.commit()

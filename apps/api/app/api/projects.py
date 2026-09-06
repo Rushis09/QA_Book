@@ -1,15 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_admin
 from app.db.session import get_db
+from app.models.admin import Admin
 from app.models.project import Project
 from app.schemas.project import (
     ProjectCreate,
     ProjectUpdate,
     ProjectResponse,
 )
-from app.auth.dependencies import get_current_admin
-from app.models.admin import Admin
 from app.utils.code_generator import generate_sequential_code
 
 
@@ -26,6 +26,7 @@ router = APIRouter(
 def create_project(
     project: ProjectCreate,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     db_project = Project(
         project_code=generate_sequential_code(
@@ -33,6 +34,7 @@ def create_project(
             entity_type="project",
             prefix="PRJ",
         ),
+        admin_id=admin.id,
         name=project.name,
         description=project.description,
         status=project.status,
@@ -53,9 +55,29 @@ def create_project(
     response_model=list[ProjectResponse],
 )
 def get_projects(
+    owner_id: int | None = Query(
+        default=None,
+        description="Filter projects by owner. Platform Admin only.",
+    ),
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
-    return db.query(Project).all()
+    query = db.query(Project)
+
+    if admin.role == "PLATFORM_ADMIN":
+        if owner_id is not None:
+            query = query.filter(
+                Project.admin_id == owner_id
+            )
+
+        return query.order_by(Project.id).all()
+
+    return (
+        query
+        .filter(Project.admin_id == admin.id)
+        .order_by(Project.id)
+        .all()
+    )
 
 
 @router.get(
@@ -65,12 +87,18 @@ def get_projects(
 def get_project(
     project_id: int,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
-    project = (
-        db.query(Project)
-        .filter(Project.id == project_id)
-        .first()
+    query = db.query(Project).filter(
+        Project.id == project_id
     )
+
+    if admin.role != "PLATFORM_ADMIN":
+        query = query.filter(
+            Project.admin_id == admin.id
+        )
+
+    project = query.first()
 
     if not project:
         raise HTTPException(
@@ -89,12 +117,18 @@ def update_project(
     project_id: int,
     project_data: ProjectUpdate,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
-    project = (
-        db.query(Project)
-        .filter(Project.id == project_id)
-        .first()
+    query = db.query(Project).filter(
+        Project.id == project_id
     )
+
+    if admin.role != "PLATFORM_ADMIN":
+        query = query.filter(
+            Project.admin_id == admin.id
+        )
+
+    project = query.first()
 
     if not project:
         raise HTTPException(
@@ -121,12 +155,18 @@ def update_project(
 def delete_project(
     project_id: int,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
-    project = (
-        db.query(Project)
-        .filter(Project.id == project_id)
-        .first()
+    query = db.query(Project).filter(
+        Project.id == project_id
     )
+
+    if admin.role != "PLATFORM_ADMIN":
+        query = query.filter(
+            Project.admin_id == admin.id
+        )
+
+    project = query.first()
 
     if not project:
         raise HTTPException(

@@ -10,6 +10,7 @@ from app.auth.security import (
 from app.db.session import get_db
 from app.models.admin import Admin
 
+
 security = HTTPBearer()
 
 
@@ -19,11 +20,7 @@ def get_current_admin(
     ),
     db: Session = Depends(get_db),
 ):
-    print("=== AUTH START ===")
-
     token = credentials.credentials
-
-    print("Token:", token[:30], "...")
 
     try:
         payload = jwt.decode(
@@ -32,13 +29,17 @@ def get_current_admin(
             algorithms=[ALGORITHM],
         )
 
-        print("Payload:", payload)
+        admin_id = payload.get("sub")
 
-        username = payload.get("sub")
+        if admin_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication token.",
+            )
 
-        print("Username:", username)
-
-        if username is None:
+        try:
+            admin_id = int(admin_id)
+        except (TypeError, ValueError):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication token.",
@@ -52,11 +53,9 @@ def get_current_admin(
 
     admin = (
         db.query(Admin)
-        .filter(Admin.username == username)
+        .filter(Admin.id == admin_id)
         .first()
     )
-
-    print("Admin:", admin)
 
     if admin is None:
         raise HTTPException(

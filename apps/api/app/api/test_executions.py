@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_admin
 from app.db.session import get_db
+from app.models.admin import Admin
 from app.schemas.test_execution import (
     TestExecutionCreate,
     TestExecutionResponse,
@@ -10,6 +12,7 @@ from app.schemas.test_execution import (
 from app.services.test_execution_service import (
     TestExecutionService,
 )
+
 
 router = APIRouter(
     prefix="/test-executions",
@@ -24,11 +27,13 @@ router = APIRouter(
 def create_test_execution(
     test_execution: TestExecutionCreate,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestExecutionService(db)
 
     return service.create_test_execution(
         test_execution,
+        admin,
     )
 
 
@@ -39,12 +44,15 @@ def create_test_execution(
 def get_run_executions(
     run_id: int,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestExecutionService(db)
 
     return service.get_or_create_executions(
         run_id,
+        admin,
     )
+
 
 @router.get(
     "/run/{run_id}/test-case/{test_case_id}",
@@ -54,13 +62,16 @@ def get_execution_by_run_and_test_case(
     run_id: int,
     test_case_id: int,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestExecutionService(db)
 
     return service.get_execution_by_run_and_test_case(
         run_id,
         test_case_id,
+        admin,
     )
+
 
 @router.get(
     "/run/{run_id}/summary",
@@ -68,12 +79,15 @@ def get_execution_by_run_and_test_case(
 def get_execution_summary(
     run_id: int,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestExecutionService(db)
 
     return service.get_execution_summary(
         run_id,
+        admin,
     )
+
 
 @router.get(
     "/",
@@ -81,10 +95,14 @@ def get_execution_summary(
 )
 def get_test_executions(
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestExecutionService(db)
 
-    return service.get_test_executions()
+    return service.get_test_executions(
+        admin,
+    )
+
 
 @router.get(
     "/token/{automation_token}",
@@ -99,6 +117,7 @@ def get_executions_by_token(
     return service.get_executions_by_token(
         automation_token,
     )
+
 
 @router.get(
     "/token/{automation_token}/test-case/{test_case_id}",
@@ -116,6 +135,7 @@ def get_execution_by_token_and_test_case(
         test_case_id,
     )
 
+
 @router.get(
     "/{execution_id}",
     response_model=TestExecutionResponse,
@@ -123,11 +143,13 @@ def get_execution_by_token_and_test_case(
 def get_test_execution(
     execution_id: int,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestExecutionService(db)
 
     return service.get_test_execution(
         execution_id,
+        admin,
     )
 
 
@@ -139,12 +161,14 @@ def update_test_execution(
     execution_id: int,
     test_execution: TestExecutionUpdate,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestExecutionService(db)
 
     return service.update_test_execution(
         execution_id,
         test_execution,
+        admin,
     )
 
 
@@ -154,11 +178,13 @@ def update_test_execution(
 def delete_test_execution(
     execution_id: int,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestExecutionService(db)
 
     service.delete_test_execution(
         execution_id,
+        admin,
     )
 
     return {

@@ -19,18 +19,17 @@ import PageHeader from "../../components/common/PageHeader";
 import DataGridLayout from "../../components/common/DataGridLayout";
 import TestScenarioDialog from "../../components/testScenarios/TestScenarioDialog";
 import TestScenarioTable from "../../components/testScenarios/TestScenarioTable";
+import GenerateScenarioDialog from "../../components/testScenarios/GenerateScenarioDialog";
+
 import { useNotification } from "../../contexts/NotificationContext";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
+
 import { requirementService } from "../../services/requirementService";
 import { testScenarioService } from "../../services/testScenarioService";
 
 import type { Requirement } from "../../types/requirement";
 import type { TestScenario } from "../../types/testScenario";
 import type { TestScenarioFormData } from "../../types/testScenarioForm";
-import GenerateScenarioDialog from "../../components/testScenarios/GenerateScenarioDialog";
-import { projectService } from "../../services/projectService";
-import type { Project } from "../../types/project";
-
 
 export default function TestScenariosPage() {
   const [testScenarios, setTestScenarios] =
@@ -40,10 +39,7 @@ export default function TestScenariosPage() {
     useState<Requirement[]>([]);
 
   const [selectedRequirementIds, setSelectedRequirementIds] =
-  useState<number[]>([]);
-
-  const [projects, setProjects] =
-    useState<Project[]>([]);
+    useState<number[]>([]);
 
   const [openGenerateDialog, setOpenGenerateDialog] =
     useState(false);
@@ -79,37 +75,39 @@ export default function TestScenariosPage() {
   const { showNotification } =
     useNotification();
 
-  const { selectedProject } =
-    useWorkspace();
+  const {
+    selectedProject,
+    isAllProjects,
+    projects,
+  } = useWorkspace();
 
   async function loadData() {
-
-    if (!selectedProject) {
+    if (!selectedProject && !isAllProjects) {
       setTestScenarios([]);
       setRequirements([]);
       setLoading(false);
       return;
     }
+
     try {
       setLoading(true);
 
-     const [
+      const projectId = selectedProject?.id;
+
+      const [
         testScenarioData,
         requirementData,
-        projectData,
       ] = await Promise.all([
         testScenarioService.getTestScenarios(
-          selectedProject.id,
+          projectId,
         ),
         requirementService.getRequirements(
-          selectedProject.id,
+          projectId,
         ),
-        projectService.getProjects(),
       ]);
 
       setTestScenarios(testScenarioData);
       setRequirements(requirementData);
-      setProjects(projectData);
 
       setError("");
     } catch (error) {
@@ -124,16 +122,16 @@ export default function TestScenariosPage() {
 
   useEffect(() => {
     loadData();
-  }, [selectedProject]);
-  
+  }, [selectedProject, isAllProjects]);
+
   const filteredTestScenarios =
-  selectedRequirementIds.length === 0
-    ? testScenarios
-    : testScenarios.filter((scenario) =>
-        selectedRequirementIds.includes(
-          scenario.requirement_id,
-        ),
-      );
+    selectedRequirementIds.length === 0
+      ? testScenarios
+      : testScenarios.filter((scenario) =>
+          selectedRequirementIds.includes(
+            scenario.requirement_id,
+          ),
+        );
 
   function handleEdit(
     testScenario: TestScenario,
@@ -149,7 +147,6 @@ export default function TestScenariosPage() {
     setTestScenarioToDelete(testScenario);
     setConfirmOpen(true);
   }
-
 
   function clearSelection() {
     setSelectedTestScenarioIds([]);
@@ -236,69 +233,80 @@ export default function TestScenariosPage() {
   return (
     <>
       <PageHeader
-          title="Test Scenarios"
-          actionLabel="New Test Scenario"
-          onAction={() => {
-            if (selectedRequirementIds.length !== 1) {
-              showNotification(
-                "Please select exactly one requirement to create a test scenario.",
-                "warning",
-              );
-              return;
-            }
-          
-            setOpenDialog(true);
-          }}
-          secondaryActionLabel="✨ Generate with AI"
-          onSecondaryAction={() => {
-            if (selectedRequirementIds.length !== 1) {
-              showNotification(
-                "Please select exactly one requirement to generate scenarios.",
-                "warning",
-              );
-              return;
-            }
-          
-            setOpenGenerateDialog(true);
-          }}
-
-          selectionCount={
-            selectedTestScenarioIds.length
+        title="Test Scenarios"
+        actionLabel="New Test Scenario"
+        onAction={() => {
+          if (selectedRequirementIds.length !== 1) {
+            showNotification(
+              "Please select exactly one requirement to create a test scenario.",
+              "warning",
+            );
+            return;
           }
 
-          selectionActions={
-            selectedTestScenarioIds.length === 1
+          setOpenDialog(true);
+        }}
+        secondaryActionLabel="âœ¨ Generate with AI"
+        onSecondaryAction={() => {
+          if (selectedRequirementIds.length !== 1) {
+            showNotification(
+              "Please select exactly one requirement to generate scenarios.",
+              "warning",
+            );
+            return;
+          }
+
+          setOpenGenerateDialog(true);
+        }}
+        selectionCount={
+          selectedTestScenarioIds.length
+        }
+        selectionActions={
+          selectedTestScenarioIds.length === 1
+            ? [
+                {
+                  label: "Edit",
+                  onClick: () => {
+                    const scenario =
+                      testScenarios.find(
+                        (s) =>
+                          s.id ===
+                          selectedTestScenarioIds[0],
+                      );
+
+                    if (scenario) {
+                      handleEdit(scenario);
+                    }
+                  },
+                },
+                {
+                  label: "Delete",
+                  color: "error",
+                  onClick: () => {
+                    const scenario =
+                      testScenarios.find(
+                        (s) =>
+                          s.id ===
+                          selectedTestScenarioIds[0],
+                      );
+
+                    if (scenario) {
+                      handleDelete(scenario);
+                    }
+                  },
+                },
+                {
+                  label: "Clear Selection",
+                  variant: "outlined",
+                  onClick: clearSelection,
+                },
+              ]
+            : selectedTestScenarioIds.length > 1
               ? [
                   {
-                    label: "Edit",
-                    onClick: () => {
-                      const scenario =
-                        testScenarios.find(
-                          (s) =>
-                            s.id ===
-                            selectedTestScenarioIds[0],
-                        );
-                      
-                      if (scenario) {
-                        handleEdit(scenario);
-                      }
-                    },
-                  },
-                  {
-                    label: "Delete",
+                    label: "Delete Selected",
                     color: "error",
-                    onClick: () => {
-                      const scenario =
-                        testScenarios.find(
-                          (s) =>
-                            s.id ===
-                            selectedTestScenarioIds[0],
-                        );
-                      
-                      if (scenario) {
-                        handleDelete(scenario);
-                      }
-                    },
+                    onClick: handleBulkDelete,
                   },
                   {
                     label: "Clear Selection",
@@ -306,23 +314,9 @@ export default function TestScenariosPage() {
                     onClick: clearSelection,
                   },
                 ]
-              : selectedTestScenarioIds.length > 1
-                ? [
-                    {
-                      label: "Delete Selected",
-                      color: "error",
-                      onClick: handleBulkDelete,
-                    },
-                    {
-                      label: "Clear Selection",
-                      variant: "outlined",
-                      onClick: clearSelection,
-                    },
-                  ]
-                : undefined
-          }
-
-        >
+              : undefined
+        }
+      >
         <Box
           sx={{
             display: "flex",
@@ -335,14 +329,18 @@ export default function TestScenariosPage() {
             variant="body2"
             color="text.secondary"
           >
-            Total Test Scenarios: {filteredTestScenarios.length}
+            Total Test Scenarios:{" "}
+            {filteredTestScenarios.length}
           </Typography>
-        
-          <FormControl size="small" sx={{ maxWidth: 420 }}>
+
+          <FormControl
+            size="small"
+            sx={{ maxWidth: 420 }}
+          >
             <InputLabel shrink>
               Requirements
             </InputLabel>
-        
+
             <Select
               multiple
               displayEmpty
@@ -355,15 +353,18 @@ export default function TestScenariosPage() {
                 if (selected.length === 0) {
                   return "All Requirements";
                 }
-              
-                const selectedRequirements = requirements.filter((r) =>
-                  selected.includes(r.id),
-                );
-              
-                if (selectedRequirements.length === 1) {
+
+                const selectedRequirements =
+                  requirements.filter((r) =>
+                    selected.includes(r.id),
+                  );
+
+                if (
+                  selectedRequirements.length === 1
+                ) {
                   return `${selectedRequirements[0].requirement_code} - ${selectedRequirements[0].module}`;
                 }
-              
+
                 return `${selectedRequirements.length} Requirements Selected`;
               }}
             >
@@ -373,7 +374,7 @@ export default function TestScenariosPage() {
                     selectedRequirementIds.length === 0
                   }
                 />
-              
+
                 <ListItemText
                   primary="All Requirements"
                 />
@@ -401,8 +402,12 @@ export default function TestScenariosPage() {
 
         <DataGridLayout>
           <TestScenarioTable
-            testScenarios={filteredTestScenarios}
-            selectedIds={selectedTestScenarioIds}
+            testScenarios={
+              filteredTestScenarios
+            }
+            selectedIds={
+              selectedTestScenarioIds
+            }
             onSelectionChange={
               setSelectedTestScenarioIds
             }
@@ -479,31 +484,31 @@ export default function TestScenariosPage() {
                     ),
                 ),
               );
-            
+
               showNotification(
                 "Test scenarios deleted successfully.",
                 "success",
               );
-            
+
               clearSelection();
               setBulkDeleteScenarios([]);
             } else if (testScenarioToDelete) {
               await testScenarioService.deleteTestScenario(
                 testScenarioToDelete.id,
               );
-            
+
               showNotification(
                 "Test scenario deleted successfully.",
                 "success",
               );
-            
+
               setTestScenarioToDelete(null);
             }
-          
+
             await loadData();
           } catch (error) {
             console.error(error);
-          
+
             showNotification(
               bulkDeleteScenarios.length > 0
                 ? "Failed to delete test scenarios."

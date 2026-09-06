@@ -3,8 +3,12 @@ from datetime import datetime
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.models.admin import Admin
 from app.models.bug import Bug
+from app.models.project import Project
 from app.models.test_execution import TestExecution
+from app.models.test_run import TestRun
+from app.models.test_suite import TestSuite
 from app.repositories.bug_repository import BugRepository
 from app.schemas.bug import BugCreate, BugUpdate
 from app.utils.code_generator import generate_sequential_code
@@ -67,12 +71,19 @@ class BugService:
 
     def get_bugs(
         self,
+        admin: Admin,
     ):
-        return self.repository.get_all()
+        if admin.role == "PLATFORM_ADMIN":
+            return self.repository.get_all()
+
+        return self.repository.get_by_owner(
+            admin.id,
+        )
 
     def get_bug(
         self,
         bug_id: int,
+        admin: Admin | None = None,
     ):
         bug = self.repository.get_by_id(
             bug_id,
@@ -84,11 +95,18 @@ class BugService:
                 detail="Bug not found",
             )
 
+        if admin:
+            self._validate_bug_access(
+                bug,
+                admin,
+            )
+
         return bug
 
     def create_bug(
         self,
         data: BugCreate,
+        admin: Admin,
     ):
         execution = self.db.get(
             TestExecution,
@@ -100,6 +118,11 @@ class BugService:
                 status_code=404,
                 detail="Test execution not found",
             )
+
+        self._validate_execution_access(
+            execution,
+            admin,
+        )
 
         bug_code = generate_sequential_code(
             db=self.db,
@@ -133,7 +156,13 @@ class BugService:
         self,
         bug_id: int,
         data: BugUpdate,
+        admin: Admin,
     ):
+        bug = self.get_bug(
+            bug_id,
+            admin,
+        )
+
         execution = self.db.get(
             TestExecution,
             data.execution_id,
@@ -145,8 +174,9 @@ class BugService:
                 detail="Test execution not found",
             )
 
-        bug = self.get_bug(
-            bug_id,
+        self._validate_execution_access(
+            execution,
+            admin,
         )
 
         self._validate_status_transition(
@@ -176,14 +206,93 @@ class BugService:
     def delete_bug(
         self,
         bug_id: int,
+        admin: Admin,
     ):
         bug = self.get_bug(
             bug_id,
+            admin,
         )
 
         self.repository.delete(
             bug,
         )
+
+    def _validate_bug_access(
+        self,
+        bug: Bug,
+        admin: Admin,
+    ):
+        execution = self.db.get(
+            TestExecution,
+            bug.execution_id,
+        )
+
+        if not execution:
+            raise HTTPException(
+                status_code=404,
+                detail="Test execution not found",
+            )
+
+        self._validate_execution_access(
+            execution,
+            admin,
+        )
+
+    def _validate_execution_access(
+        self,
+        execution: TestExecution,
+        admin: Admin,
+    ):
+        if admin.role == "PLATFORM_ADMIN":
+            return
+
+        run = (
+            self.db.query(TestRun)
+            .filter(
+                TestRun.id == execution.run_id,
+            )
+            .first()
+        )
+
+        if not run:
+            raise HTTPException(
+                status_code=404,
+                detail="Test Run not found",
+            )
+
+        suite = (
+            self.db.query(TestSuite)
+            .filter(
+                TestSuite.id == run.suite_id,
+            )
+            .first()
+        )
+
+        if not suite:
+            raise HTTPException(
+                status_code=404,
+                detail="Test Suite not found",
+            )
+
+        project = (
+            self.db.query(Project)
+            .filter(
+                Project.id == suite.project_id,
+            )
+            .first()
+        )
+
+        if not project:
+            raise HTTPException(
+                status_code=404,
+                detail="Project not found",
+            )
+
+        if project.admin_id != admin.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have access to this project.",
+            )
 
     def _validate_status_transition(
         self,

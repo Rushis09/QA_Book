@@ -5,99 +5,147 @@ import {
   useState,
 } from "react";
 
-import { jwtDecode } from "jwt-decode";
+import api from "../services/api";
 
 import {
   resetToDemo,
   setEnvironment,
 } from "../config/environment";
 
-interface JwtPayload {
-  sub: string;
-  exp: number;
+interface Account {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  is_active: boolean;
 }
 
 interface AuthContextType {
   isAuthenticated: boolean;
   token: string | null;
+  account: Account | null;
   username: string | null;
-  login: (token: string) => void;
+  role: string | null;
+  login: (token: string) => Promise<void>;
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(
-  null,
-);
+const AuthContext =
+  createContext<AuthContextType | null>(null);
 
 export function AuthProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [token, setToken] = useState<string | null>(
-    null,
-  );
+  const [token, setToken] =
+    useState<string | null>(null);
 
-  const [username, setUsername] = useState<string | null>(
-    null,
-  );
+  const [account, setAccount] =
+    useState<Account | null>(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  async function loadAccount() {
+    try {
+      const response =
+        await api.get<Account>("/auth/me");
+
+      setAccount(response.data);
+      setToken(
+        localStorage.getItem(
+          "access_token",
+        ),
+      );
+    } catch {
+      localStorage.removeItem(
+        "access_token",
+      );
+
+      setToken(null);
+      setAccount(null);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    const storedToken = localStorage.getItem(
-      "access_token",
-    );
+    const storedToken =
+      localStorage.getItem(
+        "access_token",
+      );
 
-    if (storedToken) {
-      try {
-        const decoded =
-          jwtDecode<JwtPayload>(storedToken);
-
-        setToken(storedToken);
-        setUsername(decoded.sub);
-      } catch {
-        localStorage.removeItem(
-          "access_token",
-        );
-      }
+    if (!storedToken) {
+      setLoading(false);
+      return;
     }
+
+    setToken(storedToken);
+    loadAccount();
   }, []);
 
-  function login(token: string) {
-    const decoded =
-      jwtDecode<JwtPayload>(token);
-
+  async function login(
+    accessToken: string,
+  ) {
     localStorage.setItem(
       "access_token",
-      token,
+      accessToken,
     );
 
     setEnvironment("production");
 
-    setToken(token);
-    setUsername(decoded.sub);
+    setToken(accessToken);
 
-    window.location.reload();
+    try {
+      const response =
+        await api.get<Account>(
+          "/auth/me",
+        );
+
+      setAccount(response.data);
+    } catch {
+      localStorage.removeItem(
+        "access_token",
+      );
+
+      setToken(null);
+      setAccount(null);
+
+      throw new Error(
+        "Failed to load account information.",
+      );
+    }
   }
 
   function logout() {
     localStorage.removeItem(
       "access_token",
     );
-  
+
     resetToDemo();
-  
+
     setToken(null);
-    setUsername(null);
+    setAccount(null);
 
     window.location.reload();
+  }
+
+  if (loading) {
+    return null;
   }
 
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated: !!token,
+        isAuthenticated:
+          !!token && !!account,
         token,
-        username,
+        account,
+        username:
+          account?.username ?? null,
+        role:
+          account?.role ?? null,
         login,
         logout,
       }}
@@ -108,7 +156,8 @@ export function AuthProvider({
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const context =
+    useContext(AuthContext);
 
   if (!context) {
     throw new Error(

@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_admin
 from app.db.session import get_db
+from app.models.admin import Admin
 from app.schemas.test_run import (
     TestRunCreate,
     TestRunResponse,
@@ -22,10 +24,14 @@ router = APIRouter(
 def create_test_run(
     test_run: TestRunCreate,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestRunService(db)
 
-    return service.create_test_run(test_run)
+    return service.create_test_run(
+        test_run,
+        admin,
+    )
 
 
 @router.get(
@@ -33,12 +39,17 @@ def create_test_run(
     response_model=list[TestRunResponse],
 )
 def get_test_runs(
-    project_id: int,
+    project_id: int | None = None,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestRunService(db)
 
-    return service.get_test_runs(project_id)
+    return service.get_test_runs(
+        project_id,
+        admin,
+    )
+
 
 @router.get(
     "/code/{run_code}",
@@ -47,12 +58,15 @@ def get_test_runs(
 def get_test_run_by_code(
     run_code: str,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestRunService(db)
 
     return service.get_test_run_by_code(
         run_code,
+        admin,
     )
+
 
 @router.get(
     "/{test_run_id}",
@@ -61,10 +75,14 @@ def get_test_run_by_code(
 def get_test_run(
     test_run_id: int,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestRunService(db)
 
-    return service.get_test_run(test_run_id)
+    return service.get_test_run(
+        test_run_id,
+        admin,
+    )
 
 
 @router.put(
@@ -75,16 +93,17 @@ def update_test_run(
     test_run_id: int,
     test_run: TestRunUpdate,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestRunService(db)
 
     return service.update_test_run(
         test_run_id,
         test_run,
+        admin,
     )
 
 
-# NEW ENDPOINT
 @router.post(
     "/{test_run_id}/finish",
     response_model=TestRunResponse,
@@ -92,11 +111,13 @@ def update_test_run(
 def finish_test_run(
     test_run_id: int,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestRunService(db)
 
     return service.finish_test_run(
         test_run_id,
+        admin,
     )
 
 
@@ -106,10 +127,14 @@ def finish_test_run(
 def delete_test_run(
     test_run_id: int,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = TestRunService(db)
 
-    service.delete_test_run(test_run_id)
+    service.delete_test_run(
+        test_run_id,
+        admin,
+    )
 
     return {
         "message": "Test Run deleted successfully",

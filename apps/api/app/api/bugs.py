@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_admin
 from app.db.session import get_db
+from app.models.admin import Admin
 from app.schemas.bug import (
     BugCreate,
     BugResponse,
     BugUpdate,
 )
-from app.services.bug_service import (
-    BugService,
-)
+from app.services.bug_service import BugService
 
 from app.schemas.bug_retest import (
     BugRetestCreate,
@@ -17,10 +17,12 @@ from app.schemas.bug_retest import (
 )
 from app.services.bug_retest_service import BugRetestService
 
+
 router = APIRouter(
     prefix="/bugs",
     tags=["Bugs"],
 )
+
 
 @router.post(
     "/",
@@ -29,12 +31,15 @@ router = APIRouter(
 def create_bug(
     bug: BugCreate,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = BugService(db)
 
     return service.create_bug(
         bug,
+        admin,
     )
+
 
 @router.get(
     "/",
@@ -42,10 +47,14 @@ def create_bug(
 )
 def get_bugs(
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = BugService(db)
 
-    return service.get_bugs()
+    return service.get_bugs(
+        admin,
+    )
+
 
 @router.post(
     "/{bug_id}/retest",
@@ -55,13 +64,22 @@ def create_bug_retest(
     bug_id: int,
     retest: BugRetestCreate,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
+    bug_service = BugService(db)
+
+    bug_service.get_bug(
+        bug_id,
+        admin,
+    )
+
     service = BugRetestService(db)
 
     return service.create_retest(
         bug_id,
         retest,
     )
+
 
 @router.get(
     "/{bug_id}",
@@ -70,12 +88,15 @@ def create_bug_retest(
 def get_bug(
     bug_id: int,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = BugService(db)
 
     return service.get_bug(
         bug_id,
+        admin,
     )
+
 
 @router.put(
     "/{bug_id}",
@@ -85,13 +106,16 @@ def update_bug(
     bug_id: int,
     bug: BugUpdate,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = BugService(db)
 
     return service.update_bug(
         bug_id,
         bug,
+        admin,
     )
+
 
 @router.delete(
     "/{bug_id}",
@@ -99,11 +123,13 @@ def update_bug(
 def delete_bug(
     bug_id: int,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
     service = BugService(db)
 
     service.delete_bug(
         bug_id,
+        admin,
     )
 
     return {

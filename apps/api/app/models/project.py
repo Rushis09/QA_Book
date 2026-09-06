@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, DateTime, Integer, String, Text
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -11,6 +11,13 @@ class Project(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     project_code = Column(String(20), unique=True, nullable=False)
+
+    admin_id = Column(
+        Integer,
+        ForeignKey("admins.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     name = Column(String(100), nullable=False)
 
@@ -37,16 +44,23 @@ class Project(Base):
         nullable=False,
     )
 
+    admin = relationship(
+        "Admin",
+        back_populates="projects",
+    )
+
     requirements = relationship(
         "Requirement",
         back_populates="project",
         cascade="all, delete-orphan",
     )
+
     test_suites = relationship(
         "TestSuite",
         back_populates="project",
         cascade="all, delete-orphan",
     )
+
     documents = relationship(
         "Document",
         back_populates="project",

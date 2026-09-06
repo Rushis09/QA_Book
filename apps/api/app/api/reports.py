@@ -1,21 +1,16 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_admin
 from app.db.session import get_db
-
-from app.schemas.report import (
-    ReportSummary,
-    RequirementCoverageResponse,
-)
-
-from app.services.report_service import (
-    ReportService,
-)
+from app.models.admin import Admin
 from app.schemas.report import (
     ReportSummary,
     RequirementCoverageResponse,
     TraceabilityResponse,
 )
+from app.services.report_service import ReportService
+
 
 router = APIRouter(
     prefix="/reports",
@@ -28,48 +23,69 @@ router = APIRouter(
     response_model=ReportSummary,
 )
 def get_summary(
-    db: Session = Depends(
-        get_db,
-    ),
+    project_id: int | None = None,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
-    service = ReportService(
-        db,
-    )
+    service = ReportService(db)
 
-    return service.get_summary()
+    try:
+        return service.get_summary(
+            admin=admin,
+            project_id=project_id,
+        )
+    except ValueError as ex:
+        raise HTTPException(
+            status_code=403,
+            detail=str(ex),
+        )
+
 
 @router.get(
     "/coverage",
     response_model=RequirementCoverageResponse,
 )
 def get_requirement_coverage(
-    db: Session = Depends(
-        get_db,
-    ),
+    project_id: int | None = None,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
-    service = ReportService(
-        db,
-    )
+    service = ReportService(db)
 
-    return {
-        "coverage": service.get_requirement_coverage(),
-    }
+    try:
+        return {
+            "coverage": service.get_requirement_coverage(
+                admin=admin,
+                project_id=project_id,
+            ),
+        }
+    except ValueError as ex:
+        raise HTTPException(
+            status_code=403,
+            detail=str(ex),
+        )
+
 
 @router.get(
     "/traceability",
     response_model=TraceabilityResponse,
 )
 def get_traceability(
-    db: Session = Depends(
-        get_db,
-    ),
+    project_id: int | None = None,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
-    service = ReportService(
-        db,
-    )
+    service = ReportService(db)
 
-    return {
-        "traceability": (
-            service.get_traceability()
-        ),
-    }
+    try:
+        return {
+            "traceability": service.get_traceability(
+                admin=admin,
+                project_id=project_id,
+            ),
+        }
+    except ValueError as ex:
+        raise HTTPException(
+            status_code=403,
+            detail=str(ex),
+        )

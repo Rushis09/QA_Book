@@ -23,7 +23,6 @@ import GenerateTestCaseDialog from "../../components/testCases/GenerateTestCaseD
 import { useNotification } from "../../contexts/NotificationContext";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 
-import { projectService } from "../../services/projectService";
 import { requirementService } from "../../services/requirementService";
 import { testCaseService } from "../../services/testCaseService";
 import { testScenarioService } from "../../services/testScenarioService";
@@ -89,11 +88,14 @@ export default function TestCasesPage() {
   const { showNotification } =
     useNotification();
 
-  const { selectedProject } =
-    useWorkspace();
+  const {
+    selectedProject,
+    isAllProjects,
+    projects: workspaceProjects,
+  } = useWorkspace();
 
   async function loadData() {
-    if (!selectedProject) {
+    if (!selectedProject && !isAllProjects) {
       setTestCases([]);
       setScenarios([]);
       setRequirements([]);
@@ -110,28 +112,31 @@ export default function TestCasesPage() {
     try {
       setLoading(true);
 
+      const projectId =
+        selectedProject?.id;
+
       const [
         testCaseData,
         scenarioData,
-        projectData,
         requirementData,
       ] = await Promise.all([
         testCaseService.getTestCases(
-          selectedProject.id,
+          projectId,
         ),
         testScenarioService.getTestScenarios(
-          selectedProject.id,
+          projectId,
         ),
-        projectService.getProjects(),
         requirementService.getRequirements(
-          selectedProject.id,
+          projectId,
         ),
       ]);
 
       setTestCases(testCaseData);
       setScenarios(scenarioData);
-      setProjects(projectData);
       setRequirements(requirementData);
+
+      setProjects(workspaceProjects);
+
       setSelectedRequirementIds([]);
       setSelectedScenarioIds([]);
       setSelectedAutomationEligibility("");
@@ -152,7 +157,11 @@ export default function TestCasesPage() {
 
   useEffect(() => {
     loadData();
-  }, [selectedProject]);
+  }, [
+    selectedProject,
+    isAllProjects,
+    workspaceProjects,
+  ]);
 
   const filteredTestCases = testCases.filter(
     (testCase) => {
@@ -461,16 +470,16 @@ export default function TestCasesPage() {
                 if (selected.length === 0) {
                   return "All Requirements";
                 }
-              
+
                 const selectedRequirements =
                   requirements.filter((r) =>
                     selected.includes(r.id),
                   );
-                
+
                 if (selectedRequirements.length === 1) {
                   return `${selectedRequirements[0].requirement_code} - ${selectedRequirements[0].module}`;
                 }
-              
+
                 return `${selectedRequirements.length} Requirements Selected`;
               }}
             >
@@ -482,7 +491,7 @@ export default function TestCasesPage() {
                 />
                 <ListItemText primary="All Requirements" />
               </MenuItem>
-                
+
               {requirements.map(
                 (requirement) => (
                   <MenuItem
@@ -502,7 +511,7 @@ export default function TestCasesPage() {
               )}
             </Select>
           </FormControl>
-            
+
           <FormControl
             size="small"
             sx={{
@@ -513,7 +522,7 @@ export default function TestCasesPage() {
             <InputLabel shrink>
               Scenarios
             </InputLabel>
-            
+
             <Select
               multiple
               displayEmpty
@@ -526,16 +535,16 @@ export default function TestCasesPage() {
                 if (selected.length === 0) {
                   return "All Scenarios";
                 }
-              
+
                 const selectedScenarios =
                   filteredScenarios.filter((scenario) =>
                     selected.includes(scenario.id),
                   );
-                
+
                 if (selectedScenarios.length === 1) {
                   return `${selectedScenarios[0].scenario_code} - ${selectedScenarios[0].title}`;
                 }
-              
+
                 return `${selectedScenarios.length} Scenarios Selected`;
               }}
             >
@@ -547,7 +556,7 @@ export default function TestCasesPage() {
                 />
                 <ListItemText primary="All Scenarios" />
               </MenuItem>
-                
+
               {filteredScenarios.map((scenario) => (
                 <MenuItem
                   key={scenario.id}
@@ -565,7 +574,7 @@ export default function TestCasesPage() {
               ))}
             </Select>
           </FormControl>
-            
+
           <FormControl
             size="small"
             sx={{
@@ -576,7 +585,7 @@ export default function TestCasesPage() {
             <InputLabel id="automation-status-label">
               Automation Status
             </InputLabel>
-            
+
             <Select
               labelId="automation-status-label"
               value={selectedAutomationStatus}
@@ -592,17 +601,17 @@ export default function TestCasesPage() {
               <MenuItem value="">
                 All
               </MenuItem>
-            
+
               <MenuItem value="Not Automated">
                 Not Automated
               </MenuItem>
-            
+
               <MenuItem value="Automated">
                 Automated
               </MenuItem>
             </Select>
           </FormControl>
-            
+
           <FormControl
             size="small"
             sx={{
@@ -613,7 +622,7 @@ export default function TestCasesPage() {
             <InputLabel id="automation-eligibility-label">
               Automation Eligibility
             </InputLabel>
-            
+
             <Select
               labelId="automation-eligibility-label"
               value={selectedAutomationEligibility}
@@ -629,11 +638,11 @@ export default function TestCasesPage() {
               <MenuItem value="">
                 All
               </MenuItem>
-            
+
               <MenuItem value="Eligible">
                 Eligible
               </MenuItem>
-            
+
               <MenuItem value="Not Suitable">
                 Not Suitable
               </MenuItem>

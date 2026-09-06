@@ -1,12 +1,14 @@
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.bug import Bug
-from app.models.test_execution import TestExecution
+from app.models.project import Project
 from app.models.requirement import Requirement
-from app.models.test_scenario import TestScenario
 from app.models.test_case import TestCase
 from app.models.test_execution import TestExecution
+from app.models.test_run import TestRun
+from app.models.test_scenario import TestScenario
+from app.models.test_suite import TestSuite
+
 
 class ReportRepository:
     def __init__(
@@ -17,39 +19,50 @@ class ReportRepository:
 
     def get_execution_summary(
         self,
+        project_ids: list[int] | None = None,
     ):
-        total = (
+        query = (
             self.db.query(TestExecution)
-            .count()
+            .join(
+                TestRun,
+                TestExecution.run_id == TestRun.id,
+            )
+            .join(
+                TestSuite,
+                TestRun.suite_id == TestSuite.id,
+            )
         )
 
+        if project_ids is not None:
+            query = query.filter(
+                TestSuite.project_id.in_(project_ids)
+            )
+
+        total = query.count()
+
         passed = (
-            self.db.query(TestExecution)
-            .filter(
+            query.filter(
                 TestExecution.status == "Passed",
             )
             .count()
         )
 
         failed = (
-            self.db.query(TestExecution)
-            .filter(
+            query.filter(
                 TestExecution.status == "Failed",
             )
             .count()
         )
 
         blocked = (
-            self.db.query(TestExecution)
-            .filter(
+            query.filter(
                 TestExecution.status == "Blocked",
             )
             .count()
         )
 
         not_executed = (
-            self.db.query(TestExecution)
-            .filter(
+            query.filter(
                 TestExecution.status == "Not Executed",
             )
             .count()
@@ -75,47 +88,61 @@ class ReportRepository:
 
     def get_bug_summary(
         self,
+        project_ids: list[int] | None = None,
     ):
-        total = (
+        query = (
             self.db.query(Bug)
-            .count()
+            .join(
+                TestExecution,
+                Bug.execution_id == TestExecution.id,
+            )
+            .join(
+                TestRun,
+                TestExecution.run_id == TestRun.id,
+            )
+            .join(
+                TestSuite,
+                TestRun.suite_id == TestSuite.id,
+            )
         )
 
+        if project_ids is not None:
+            query = query.filter(
+                TestSuite.project_id.in_(project_ids)
+            )
+
+        total = query.count()
+
         open_count = (
-            self.db.query(Bug)
-            .filter(
+            query.filter(
                 Bug.status == "Open",
             )
             .count()
         )
 
         in_progress = (
-            self.db.query(Bug)
-            .filter(
+            query.filter(
                 Bug.status == "In Progress",
             )
             .count()
         )
 
         fixed = (
-            self.db.query(Bug)
-            .filter(
+            query.filter(
                 Bug.status == "Fixed",
             )
             .count()
         )
 
         closed = (
-            self.db.query(Bug)
-            .filter(
+            query.filter(
                 Bug.status == "Closed",
             )
             .count()
         )
 
         reopened = (
-            self.db.query(Bug)
-            .filter(
+            query.filter(
                 Bug.status == "Reopened",
             )
             .count()
@@ -129,33 +156,38 @@ class ReportRepository:
             "closed": closed,
             "reopened": reopened,
         }
-    
+
     def get_requirement_coverage(
         self,
+        project_ids: list[int] | None = None,
     ):
+        query = self.db.query(Requirement)
+
+        if project_ids is not None:
+            query = query.filter(
+                Requirement.project_id.in_(project_ids)
+            )
+
+        requirements = query.all()
+
         coverage = []
-    
-        requirements = (
-            self.db.query(Requirement)
-            .all()
-        )
-    
+
         for requirement in requirements:
             scenario_count = len(
                 requirement.test_scenarios
             )
-    
+
             test_case_count = sum(
                 len(scenario.test_cases)
                 for scenario in requirement.test_scenarios
             )
-    
+
             coverage_percentage = (
                 100.0
                 if scenario_count > 0
                 else 0.0
             )
-    
+
             coverage.append(
                 {
                     "requirement_id": requirement.id,
@@ -166,60 +198,85 @@ class ReportRepository:
                     "coverage_percentage": coverage_percentage,
                 }
             )
-    
-        return coverage
-    
-    def get_traceability(
-            self,
-        ):
-            traceability = []
 
-            requirements = (
-                self.db.query(Requirement)
-                .all()
+        return coverage
+
+    def get_traceability(
+        self,
+        project_ids: list[int] | None = None,
+    ):
+        query = self.db.query(Requirement)
+
+        if project_ids is not None:
+            query = query.filter(
+                Requirement.project_id.in_(project_ids)
             )
 
-            for requirement in requirements:
-                for scenario in requirement.test_scenarios:
-                    for test_case in scenario.test_cases:
+        requirements = query.all()
 
-                        execution = (
-                            self.db.query(TestExecution)
+        traceability = []
+
+        for requirement in requirements:
+            for scenario in requirement.test_scenarios:
+                for test_case in scenario.test_cases:
+
+                    execution_query = (
+                        self.db.query(TestExecution)
+                        .join(
+                            TestRun,
+                            TestExecution.run_id == TestRun.id,
+                        )
+                        .join(
+                            TestSuite,
+                            TestRun.suite_id == TestSuite.id,
+                        )
+                        .filter(
+                            TestExecution.test_case_id
+                            == test_case.id,
+                        )
+                    )
+
+                    if project_ids is not None:
+                        execution_query = execution_query.filter(
+                            TestSuite.project_id.in_(project_ids)
+                        )
+
+                    execution = (
+                        execution_query
+                        .order_by(
+                            TestExecution.id.desc()
+                        )
+                        .first()
+                    )
+
+                    bug = None
+
+                    if execution:
+                        bug = (
+                            self.db.query(Bug)
                             .filter(
-                                TestExecution.test_case_id
-                                == test_case.id,
+                                Bug.execution_id
+                                == execution.id,
                             )
                             .first()
                         )
 
-                        bug = None
+                    traceability.append(
+                        {
+                            "requirement_code": requirement.requirement_code,
+                            "scenario_code": scenario.scenario_code,
+                            "test_case_code": test_case.test_case_code,
+                            "execution_status": (
+                                execution.status
+                                if execution
+                                else None
+                            ),
+                            "bug_code": (
+                                bug.bug_code
+                                if bug
+                                else None
+                            ),
+                        }
+                    )
 
-                        if execution:
-                            bug = (
-                                self.db.query(Bug)
-                                .filter(
-                                    Bug.execution_id
-                                    == execution.id,
-                                )
-                                .first()
-                            )
-
-                        traceability.append(
-                            {
-                                "requirement_code": requirement.requirement_code,
-                                "scenario_code": scenario.scenario_code,
-                                "test_case_code": test_case.test_case_code,
-                                "execution_status": (
-                                    execution.status
-                                    if execution
-                                    else None
-                                ),
-                                "bug_code": (
-                                    bug.bug_code
-                                    if bug
-                                    else None
-                                ),
-                            }
-                        )
-
-            return traceability
+        return traceability
