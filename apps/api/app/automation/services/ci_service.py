@@ -48,7 +48,10 @@ class CIService:
         if not mappings:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No automated test cases are mapped to this automation project.",
+                detail=(
+                    "No automated test cases are mapped to "
+                    "this automation project."
+                ),
             )
 
         test_files = [
@@ -60,11 +63,14 @@ class CIService:
         if not test_files:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No automated test files are configured for this automation project.",
+                detail=(
+                    "No automated test files are configured "
+                    "for this automation project."
+                ),
             )
 
-        if data.retest_run_id is not None:
-            return self._prepare_retest_run(
+        if data.run_id is not None:
+            return self._prepare_existing_run(
                 automation_project,
                 data,
                 test_files,
@@ -76,6 +82,77 @@ class CIService:
             mappings,
             test_files,
         )
+
+    def _prepare_existing_run(
+        self,
+        automation_project: AutomationProject,
+        data: CIRunRequest,
+        test_files: list[str],
+    ):
+        test_run = self.test_run_service.get_test_run(
+            data.run_id
+        )
+
+        if test_run.execution_type != "Automated":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Test Run must be Automated.",
+            )
+
+        if test_run.suite.project_id != automation_project.project_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "Test Run does not belong to the "
+                    "automation project."
+                ),
+            )
+
+        if not test_run.automation_token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Test Run does not have an automation token."
+                ),
+            )
+
+        executions = (
+            self.test_execution_service.get_executions_by_token(
+                test_run.automation_token
+            )
+        )
+
+        if not executions:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Test Run does not contain any test executions."
+                ),
+            )
+
+        if data.event_type == "qabook-retest":
+            if len(executions) != 1:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "Retest Test Run must contain exactly "
+                        "one test execution."
+                    ),
+                )
+
+            scoped_test_files = test_files_for_retest(
+                executions[0].test_case_id,
+                self.mapping_repository,
+                automation_project.id,
+            )
+        else:
+            scoped_test_files = test_files
+
+        return {
+            "test_run_id": test_run.id,
+            "automation_token": test_run.automation_token,
+            "test_files": scoped_test_files,
+        }
 
     def _create_push_run(
         self,
@@ -119,48 +196,6 @@ class CIService:
             "test_files": test_files,
         }
 
-    def _prepare_retest_run(
-        self,
-        automation_project: AutomationProject,
-        data: CIRunRequest,
-        test_files: list[str],
-    ):
-        test_run = self.test_run_service.get_test_run(
-            data.retest_run_id
-        )
-
-        if test_run.execution_type != "Automated":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Retest Test Run must be Automated.",
-            )
-
-        if not test_run.automation_token:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Retest Test Run does not have an automation token.",
-            )
-
-        execution = self.test_execution_service.get_executions_by_token(
-            test_run.automation_token
-        )
-
-        if len(execution) != 1:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Retest Test Run must contain exactly one test execution.",
-            )
-
-        return {
-            "test_run_id": test_run.id,
-            "automation_token": test_run.automation_token,
-            "test_files": test_files_for_retest(
-                execution[0].test_case_id,
-                self.mapping_repository,
-                automation_project.id,
-            ),
-        }
-
     def _get_or_create_ci_suite(
         self,
         project_id: int,
@@ -183,23 +218,22 @@ class CIService:
                 suite_code=self._generate_suite_code(),
                 project_id=project_id,
                 name="CI Automation Suite",
-                description="Automatically managed suite for GitHub Actions CI runs.",
+                description=(
+                    "Automatically managed suite for "
+                    "GitHub Actions CI runs."
+                ),
             )
+
             self.db.add(suite)
             self.db.flush()
-
-        test_case_ids = [
-            mapping.test_case_id
-            for mapping in mappings
-        ]
 
         test_cases = [
             mapping.test_case
             for mapping in mappings
-            if mapping.test_case_id in test_case_ids
         ]
 
         suite.test_cases = test_cases
+
         self.db.flush()
 
         return suite
@@ -221,7 +255,10 @@ class CIService:
         if not automation_project.repository_url:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Automation project is not connected to a GitHub repository.",
+                detail=(
+                    "Automation project is not connected "
+                    "to a GitHub repository."
+                ),
             )
 
         expected_repository = (
@@ -233,7 +270,10 @@ class CIService:
         if expected_repository != repository:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="GitHub repository does not belong to this automation project.",
+                detail=(
+                    "GitHub repository does not belong to "
+                    "this automation project."
+                ),
             )
 
 
@@ -251,12 +291,18 @@ def test_files_for_retest(
             if not mapping.test_file_path:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Retest test case has no automated test file.",
+                    detail=(
+                        "Retest test case has no automated "
+                        "test file."
+                    ),
                 )
 
             return [mapping.test_file_path]
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
-        detail="Retest test case is not mapped to this automation project.",
+        detail=(
+            "Retest test case is not mapped to this "
+            "automation project."
+        ),
     )

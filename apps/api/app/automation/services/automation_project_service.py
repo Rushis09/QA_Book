@@ -12,6 +12,7 @@ from app.automation.schemas.automation_project import (
     AutomationProjectCreate,
     AutomationProjectUpdate,
 )
+from app.automation.services.github_api_service import GitHubAPIService
 from app.models.admin import Admin
 from app.models.test_suite import TestSuite
 from app.repositories.test_suite_repository import TestSuiteRepository
@@ -221,6 +222,43 @@ class AutomationProjectService:
                     detail="No mapped test cases found",
                 )
 
+            if not automation_project.repository_url:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="GitHub repository is not connected",
+                )
+
+            github_connection = automation_project.github_connection
+
+            if not github_connection:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="GitHub connection is not configured",
+                )
+
+            if not github_connection.github_access_token:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="GitHub access token is not available",
+                )
+
+            repository_path = (
+                automation_project.repository_url
+                .rstrip("/")
+                .split("github.com/")[-1]
+            )
+
+            repository_parts = repository_path.split("/", 1)
+
+            if len(repository_parts) != 2:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid GitHub repository URL",
+                )
+
+            repository_owner = repository_parts[0]
+            repository_name = repository_parts[1]
+
             suite = TestSuite(
                 suite_code=self._generate_suite_code(),
                 project_id=automation_project.project_id,
@@ -258,6 +296,18 @@ class AutomationProjectService:
             )
 
             self.db.commit()
+
+            github_api_service = GitHubAPIService()
+
+            github_api_service.dispatch_repository_event(
+                user_access_token=github_connection.github_access_token,
+                repository_owner=repository_owner,
+                repository_name=repository_name,
+                event_type="qabook-automation-run",
+                client_payload={
+                    "run_id": run.id,
+                },
+            )
 
             return {
                 "automation_project_id": automation_project.id,
