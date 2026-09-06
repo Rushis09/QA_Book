@@ -324,110 +324,110 @@ class GitHubConnectionService:
             self.db.rollback()
             raise
 
-        def _sync_framework_files(
-            self,
-            buffer: BytesIO,
-            user_access_token: str,
-            repository_owner: str,
-            repository_name: str,
-            branch: str,
-        ) -> dict:
-            """
-            Sync QABook-managed framework files.
-    
-            Existing test files are preserved.
-            New test files are created.
-            The QABook manifest is refreshed.
-            The GitHub Actions workflow is refreshed.
-            """
-    
-            created_test_files: list[str] = []
-            skipped_test_files: list[str] = []
-            manifest_updated = False
-            workflow_updated = False
-    
-            buffer.seek(0)
-    
-            with ZipFile(buffer, "r") as zip_file:
-                for zip_info in zip_file.infolist():
-                    if zip_info.is_dir():
-                        continue
-                    
-                    file_path = (
-                        zip_info.filename
-                        .replace("\\", "/")
-                        .lstrip("/")
+    def _sync_framework_files(
+        self,
+        buffer: BytesIO,
+        user_access_token: str,
+        repository_owner: str,
+        repository_name: str,
+        branch: str,
+    ) -> dict:
+        """
+        Sync QABook-managed framework files.
+
+        Existing test files are preserved.
+        New test files are created.
+        The QABook manifest is refreshed.
+        The GitHub Actions workflow is refreshed.
+        """
+
+        created_test_files: list[str] = []
+        skipped_test_files: list[str] = []
+        manifest_updated = False
+        workflow_updated = False
+
+        buffer.seek(0)
+
+        with ZipFile(buffer, "r") as zip_file:
+            for zip_info in zip_file.infolist():
+                if zip_info.is_dir():
+                    continue
+
+                file_path = (
+                    zip_info.filename
+                    .replace("\\", "/")
+                    .lstrip("/")
+                )
+
+                content = zip_file.read(
+                    zip_info
+                ).decode("utf-8")
+
+                if file_path.startswith("tests/"):
+                    result = self.github_api.upload_file(
+                        user_access_token=user_access_token,
+                        repository_owner=repository_owner,
+                        repository_name=repository_name,
+                        file_path=file_path,
+                        content=content,
+                        branch=branch,
+                        commit_message=(
+                            "Sync QABook automation test mappings"
+                        ),
+                        overwrite_existing=False,
                     )
-    
-                    content = zip_file.read(
-                        zip_info
-                    ).decode("utf-8")
-    
-                    if file_path.startswith("tests/"):
-                        result = self.github_api.upload_file(
-                            user_access_token=user_access_token,
-                            repository_owner=repository_owner,
-                            repository_name=repository_name,
-                            file_path=file_path,
-                            content=content,
-                            branch=branch,
-                            commit_message=(
-                                "Sync QABook automation test mappings"
-                            ),
-                            overwrite_existing=False,
+
+                    if result.get("skipped"):
+                        skipped_test_files.append(
+                            file_path
                         )
-    
-                        if result.get("skipped"):
-                            skipped_test_files.append(
-                                file_path
-                            )
-                        else:
-                            created_test_files.append(
-                                file_path
-                            )
-    
-                        continue
-                    
-                    if file_path == "qabook/manifest.json":
-                        self.github_api.upload_file(
-                            user_access_token=user_access_token,
-                            repository_owner=repository_owner,
-                            repository_name=repository_name,
-                            file_path=file_path,
-                            content=content,
-                            branch=branch,
-                            commit_message=(
-                                "Update QABook automation manifest"
-                            ),
-                            overwrite_existing=True,
+                    else:
+                        created_test_files.append(
+                            file_path
                         )
-    
-                        manifest_updated = True
-    
-                        continue
-                    
-                    if file_path == ".github/workflows/qabook.yml":
-                        self.github_api.upload_file(
-                            user_access_token=user_access_token,
-                            repository_owner=repository_owner,
-                            repository_name=repository_name,
-                            file_path=file_path,
-                            content=content,
-                            branch=branch,
-                            commit_message=(
-                                "Update QABook GitHub Actions workflow"
-                            ),
-                            overwrite_existing=True,
-                        )
-    
-                        workflow_updated = True
-    
-            return {
-                "created_test_files": created_test_files,
-                "skipped_test_files": skipped_test_files,
-                "manifest_updated": manifest_updated,
-                "workflow_updated": workflow_updated,
-            }
+
+                    continue
+
+                if file_path == "qabook/manifest.json":
+                    self.github_api.upload_file(
+                        user_access_token=user_access_token,
+                        repository_owner=repository_owner,
+                        repository_name=repository_name,
+                        file_path=file_path,
+                        content=content,
+                        branch=branch,
+                        commit_message=(
+                            "Update QABook automation manifest"
+                        ),
+                        overwrite_existing=True,
+                    )
+
+                    manifest_updated = True
+
+                    continue
+
+                if file_path == ".github/workflows/qabook.yml":
+                    self.github_api.upload_file(
+                        user_access_token=user_access_token,
+                        repository_owner=repository_owner,
+                        repository_name=repository_name,
+                        file_path=file_path,
+                        content=content,
+                        branch=branch,
+                        commit_message=(
+                            "Update QABook GitHub Actions workflow"
+                        ),
+                        overwrite_existing=True,
+                    )
+
+                    workflow_updated = True
+
+        return {
+            "created_test_files": created_test_files,
+            "skipped_test_files": skipped_test_files,
+            "manifest_updated": manifest_updated,
+            "workflow_updated": workflow_updated,
+        }
 
     def _get_authorized_automation_project(
         self,
