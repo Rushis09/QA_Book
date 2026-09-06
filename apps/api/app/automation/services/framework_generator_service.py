@@ -1082,15 +1082,15 @@ jobs:
               encoding="utf-8",
           ) as output:
               output.write(
-                  f"automation_token={{token}}\\\\n"
+                  f"automation_token={{token}}\\n"
               )
               output.write(
-                  f"test_run_id={{test_run_id}}\\\\n"
+                  f"test_run_id={{test_run_id}}\\n"
               )
               output.write(
                   "test_files="
                   + json.dumps(test_files)
-                  + "\\\\n"
+                  + "\\n"
               )
           PY
 
