@@ -1965,17 +1965,23 @@ export default function AutomationPage() {
             </Box>
 
             <Box>
+              <Typography variant="h6">
+                1. Clone the repository
+              </Typography>
+
               <Typography
-                variant="caption"
+                variant="body2"
                 color="text.secondary"
+                sx={{ mt: 0.5 }}
               >
-                Clone command
+                Open Terminal or Command Prompt, navigate to
+                the folder where you want the project, and run:
               </Typography>
 
               <Paper
                 elevation={0}
                 sx={{
-                  mt: 1,
+                  mt: 1.5,
                   p: 2,
                   border: "1px solid",
                   borderColor: "divider",
@@ -2024,40 +2030,244 @@ export default function AutomationPage() {
 
             <Box>
               <Typography variant="h6">
-                How to use it
+                2. Enter the repository
               </Typography>
 
-              <Stack spacing={1} sx={{ mt: 1 }}>
-                <Typography variant="body2">
-                  <strong>1.</strong> Open Terminal or
-                  Command Prompt.
-                </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                Move into the cloned repository folder:
+              </Typography>
 
-                <Typography variant="body2">
-                  <strong>2.</strong> Navigate to the folder
-                  where you want the repository.
+              <Paper
+                elevation={0}
+                sx={{
+                  mt: 1.5,
+                  p: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1.5,
+                  bgcolor: "action.hover",
+                }}
+              >
+                <Typography
+                  component="code"
+                  variant="body2"
+                  sx={{
+                    display: "block",
+                    fontFamily:
+                      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  }}
+                >
+                  cd &lt;repository-folder&gt;
                 </Typography>
+              </Paper>
+            </Box>
 
-                <Typography variant="body2">
-                  <strong>3.</strong> Paste and run the clone
-                  command above.
-                </Typography>
+            <Box>
+              <Typography variant="h6">
+                3. Create a virtual environment
+              </Typography>
 
-                <Typography variant="body2">
-                  <strong>4.</strong> Open the cloned folder
-                  in VS Code.
+              <Paper
+                elevation={0}
+                sx={{
+                  mt: 1.5,
+                  p: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1.5,
+                  bgcolor: "action.hover",
+                }}
+              >
+                <Typography
+                  component="code"
+                  variant="body2"
+                  sx={{
+                    display: "block",
+                    fontFamily:
+                      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  }}
+                >
+                  python -m venv .venv
                 </Typography>
+              </Paper>
+            </Box>
 
-                <Typography variant="body2">
-                  <strong>5.</strong> Implement and maintain
-                  your Playwright tests under tests/.
-                </Typography>
+            <Box>
+              <Typography variant="h6">
+                4. Activate the virtual environment
+              </Typography>
 
-                <Typography variant="body2">
-                  <strong>6.</strong> Commit and push your
-                  changes to GitHub.
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                Windows PowerShell:
+              </Typography>
+
+              <Paper
+                elevation={0}
+                sx={{
+                  mt: 1.5,
+                  p: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1.5,
+                  bgcolor: "action.hover",
+                }}
+              >
+                <Typography
+                  component="code"
+                  variant="body2"
+                  sx={{
+                    display: "block",
+                    fontFamily:
+                      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  }}
+                >
+                  .\\.venv\\Scripts\\Activate.ps1
                 </Typography>
-              </Stack>
+              </Paper>
+            </Box>
+
+            <Box>
+              <Typography variant="h6">
+                5. Install dependencies
+              </Typography>
+
+              <Paper
+                elevation={0}
+                sx={{
+                  mt: 1.5,
+                  p: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1.5,
+                  bgcolor: "action.hover",
+                }}
+              >
+                <Typography
+                  component="code"
+                  variant="body2"
+                  sx={{
+                    display: "block",
+                    fontFamily:
+                      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  }}
+                >
+                  pip install -r requirements.txt
+                </Typography>
+              </Paper>
+            </Box>
+
+            <Box>
+              <Typography variant="h6">
+                6. Install Playwright browsers
+              </Typography>
+
+              <Paper
+                elevation={0}
+                sx={{
+                  mt: 1.5,
+                  p: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1.5,
+                  bgcolor: "action.hover",
+                }}
+              >
+                <Typography
+                  component="code"
+                  variant="body2"
+                  sx={{
+                    display: "block",
+                    fontFamily:
+                      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  }}
+                >
+                  python -m playwright install
+                </Typography>
+              </Paper>
+            </Box>
+
+            <Box>
+              <Typography variant="h6">
+                7. Verify the setup
+              </Typography>
+
+              <Paper
+                elevation={0}
+                sx={{
+                  mt: 1.5,
+                  p: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1.5,
+                  bgcolor: "action.hover",
+                }}
+              >
+                <Stack spacing={0.75}>
+                  <Typography
+                    component="code"
+                    variant="body2"
+                    sx={{
+                      display: "block",
+                      fontFamily:
+                        "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                    }}
+                  >
+                    pytest --version
+                  </Typography>
+
+                  <Typography
+                    component="code"
+                    variant="body2"
+                    sx={{
+                      display: "block",
+                      fontFamily:
+                        "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                    }}
+                  >
+                    python -m playwright --version
+                  </Typography>
+                </Stack>
+              </Paper>
+            </Box>
+
+            <Box>
+              <Typography variant="h6">
+                8. Open the project in VS Code
+              </Typography>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                Open the cloned repository folder in VS Code,
+                then implement and maintain your Playwright
+                tests under tests/.
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography variant="h6">
+                9. Push your automation changes
+              </Typography>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                After implementing your tests, commit and push
+                your changes to GitHub. GitHub Actions will run
+                the configured QABook workflow automatically.
+              </Typography>
             </Box>
 
             <Alert severity="info">
