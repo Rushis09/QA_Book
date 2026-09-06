@@ -306,8 +306,16 @@ class GitHubConnectionService:
         qabook_api_url = (
             os.getenv("QABOOK_API_URL")
             or os.getenv("API_URL")
-            or "http://127.0.0.1:8000"
         )
+        
+        if not qabook_api_url:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=(
+                    "QABOOK_API_URL is not configured on the server. "
+                    "GitHub Actions cannot be configured."
+                ),
+            )
 
         encrypted_api_url = (
             public.SealedBox(key).encrypt(
