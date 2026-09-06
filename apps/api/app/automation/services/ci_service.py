@@ -15,6 +15,12 @@ from app.services.test_run_service import TestRunService
 
 
 class CIService:
+    ALLOWED_EVENT_TYPES = {
+        "push",
+        "qabook-automation-run",
+        "qabook-retest",
+    }
+
     def __init__(self, db: Session):
         self.db = db
         self.automation_project_service = AutomationProjectService(db)
@@ -33,6 +39,8 @@ class CIService:
                 provided_secret,
             )
         )
+
+        self._validate_event_type(data.event_type)
 
         self._validate_repository(
             automation_project,
@@ -227,12 +235,10 @@ class CIService:
             self.db.add(suite)
             self.db.flush()
 
-        test_cases = [
+        suite.test_cases = [
             mapping.test_case
             for mapping in mappings
         ]
-
-        suite.test_cases = test_cases
 
         self.db.flush()
 
@@ -246,6 +252,16 @@ class CIService:
             entity_type="test_suite",
             prefix="TS",
         )
+
+    @staticmethod
+    def _validate_event_type(event_type: str):
+        if event_type not in CIService.ALLOWED_EVENT_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Unsupported CI event type: {event_type}"
+                ),
+            )
 
     @staticmethod
     def _validate_repository(

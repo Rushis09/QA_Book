@@ -6,7 +6,7 @@ class CIRunRequest(BaseModel):
     repository: str
     commit_sha: str
     event_type: str
-    retest_run_id: int | None = None
+    run_id: int | None = None
 
 
 class CIRunResponse(BaseModel):

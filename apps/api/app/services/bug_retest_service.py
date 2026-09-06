@@ -1,6 +1,8 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, selectinload
 
+from app.automation.models.automation_project import AutomationProject
+from app.automation.services.github_api_service import GitHubAPIService
 from app.models.bug import Bug
 from app.models.bug_retest import BugRetest
 from app.models.test_execution import TestExecution
@@ -40,7 +42,7 @@ class BugRetestService:
                     status_code=400,
                     detail="Bug already has an active retest.",
                 )
-        
+
             raise HTTPException(
                 status_code=400,
                 detail=(
@@ -48,6 +50,7 @@ class BugRetestService:
                     "status before creating a retest."
                 ),
             )
+
         original_execution = self.db.get(
             TestExecution,
             bug.execution_id,
@@ -68,7 +71,10 @@ class BugRetestService:
         if test_case not in original_run.suite.test_cases:
             raise HTTPException(
                 status_code=400,
-                detail="Bug test case is not part of the original test suite.",
+                detail=(
+                    "Bug test case is not part of the "
+                    "original test suite."
+                ),
             )
 
         execution_type = data.execution_type
@@ -81,6 +87,54 @@ class BugRetestService:
                 status_code=400,
                 detail="Execution type must be Manual or Automated.",
             )
+
+        automation_project = None
+
+        if execution_type == "Automated":
+            automation_project = (
+                self.db.query(AutomationProject)
+                .filter(
+                    AutomationProject.project_id
+                    == original_run.suite.project_id
+                )
+                .first()
+            )
+
+            if not automation_project:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "No automation project is configured "
+                        "for this project."
+                    ),
+                )
+
+            if not automation_project.repository_url:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Automation project is not connected "
+                        "to a GitHub repository."
+                    ),
+                )
+
+            if not automation_project.github_connection:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "GitHub connection is not configured "
+                        "for this automation project."
+                    ),
+                )
+
+            if not automation_project.github_connection.github_access_token:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "GitHub access token is not available "
+                        "for this automation project."
+                    ),
+                )
 
         try:
             test_run = self.test_run_service.create_test_run_pending_commit(
@@ -116,6 +170,12 @@ class BugRetestService:
 
             self.db.commit()
 
+            if execution_type == "Automated":
+                self._dispatch_automated_retest(
+                    automation_project,
+                    test_run.id,
+                )
+
             retest = (
                 self.db.query(BugRetest)
                 .options(
@@ -142,3 +202,39 @@ class BugRetestService:
         except Exception:
             self.db.rollback()
             raise
+
+    def _dispatch_automated_retest(
+        self,
+        automation_project: AutomationProject,
+        test_run_id: int,
+    ):
+        repository_path = (
+            automation_project.repository_url
+            .rstrip("/")
+            .split("github.com/")[-1]
+        )
+
+        repository_parts = repository_path.split("/", 1)
+
+        if len(repository_parts) != 2:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid GitHub repository URL.",
+            )
+
+        repository_owner = repository_parts[0]
+        repository_name = repository_parts[1]
+
+        github_connection = automation_project.github_connection
+
+        GitHubAPIService().dispatch_repository_event(
+            user_access_token=(
+                github_connection.github_access_token
+            ),
+            repository_owner=repository_owner,
+            repository_name=repository_name,
+            event_type="qabook-retest",
+            client_payload={
+                "run_id": test_run_id,
+            },
+        )
