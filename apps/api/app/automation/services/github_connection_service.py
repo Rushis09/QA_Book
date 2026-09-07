@@ -117,13 +117,8 @@ class GitHubConnectionService:
                 private=True,
             )
 
-            repository_owner = repository[
-                "owner"
-            ]["login"]
-
-            repository_name = repository[
-                "name"
-            ]
+            repository_owner = repository["owner"]["login"]
+            repository_name = repository["name"]
 
             branch = (
                 repository.get("default_branch")
@@ -206,11 +201,10 @@ class GitHubConnectionService:
         admin_id: int,
     ) -> dict:
         """
-        Synchronize newly mapped automation test cases into
-        the existing GitHub repository.
+        Synchronize the existing GitHub repository.
 
-        Existing test files are never overwritten.
-        The QABook manifest is always refreshed.
+        User-owned test and project files are preserved.
+        QABook-managed infrastructure files are refreshed.
         """
 
         try:
@@ -263,18 +257,9 @@ class GitHubConnectionService:
                     ),
                 )
 
-            repository_owner = (
-                connection.repository_owner
-            )
-
-            repository_name = (
-                connection.repository_name
-            )
-
-            branch = (
-                connection.branch
-                or "main"
-            )
+            repository_owner = connection.repository_owner
+            repository_name = connection.repository_name
+            branch = connection.branch or "main"
 
             buffer = self.framework_generator.generate(
                 automation_project
@@ -311,8 +296,14 @@ class GitHubConnectionService:
                 "skipped_test_files": (
                     result["skipped_test_files"]
                 ),
+                "updated_infrastructure_files": (
+                    result["updated_infrastructure_files"]
+                ),
                 "manifest_updated": (
                     result["manifest_updated"]
+                ),
+                "workflow_updated": (
+                    result["workflow_updated"]
                 ),
                 "message": (
                     "Automation repository synchronized "
@@ -333,16 +324,20 @@ class GitHubConnectionService:
         branch: str,
     ) -> dict:
         """
-        Sync QABook-managed framework files.
+        Sync generated framework files.
 
-        Existing test files are preserved.
-        New test files are created.
-        The QABook manifest is refreshed.
-        The GitHub Actions workflow is refreshed.
+        User-owned files are preserved.
+
+        QABook-managed infrastructure is refreshed so that
+        reporting, CI/CD, configuration, and generated
+        framework behavior remain compatible with the
+        current QABook version.
         """
 
         created_test_files: list[str] = []
         skipped_test_files: list[str] = []
+        updated_infrastructure_files: list[str] = []
+
         manifest_updated = False
         workflow_updated = False
 
@@ -363,6 +358,12 @@ class GitHubConnectionService:
                     zip_info
                 ).decode("utf-8")
 
+                # -------------------------------------------------
+                # User-owned test files
+                # -------------------------------------------------
+                #
+                # Never overwrite these files.
+                #
                 if file_path.startswith("tests/"):
                     result = self.github_api.upload_file(
                         user_access_token=user_access_token,
@@ -388,25 +389,27 @@ class GitHubConnectionService:
 
                     continue
 
-                if file_path == "qabook/manifest.json":
-                    self.github_api.upload_file(
-                        user_access_token=user_access_token,
-                        repository_owner=repository_owner,
-                        repository_name=repository_name,
-                        file_path=file_path,
-                        content=content,
-                        branch=branch,
-                        commit_message=(
-                            "Update QABook automation manifest"
-                        ),
-                        overwrite_existing=True,
-                    )
-
-                    manifest_updated = True
-
+                # -------------------------------------------------
+                # User-owned framework customization directories
+                # -------------------------------------------------
+                #
+                # Do not overwrite page objects, fixtures, or
+                # test data because users may customize them.
+                #
+                if (
+                    file_path.startswith("pages/")
+                    or file_path.startswith("fixtures/")
+                    or file_path.startswith("test_data/")
+                ):
                     continue
 
-                if file_path == ".github/workflows/qabook.yml":
+                # -------------------------------------------------
+                # QABook-managed infrastructure
+                # -------------------------------------------------
+                #
+                # These files must be refreshed during Sync.
+                #
+                if self._is_qabook_managed_file(file_path):
                     self.github_api.upload_file(
                         user_access_token=user_access_token,
                         repository_owner=repository_owner,
@@ -415,19 +418,66 @@ class GitHubConnectionService:
                         content=content,
                         branch=branch,
                         commit_message=(
-                            "Update QABook GitHub Actions workflow"
+                            "Update QABook automation framework"
                         ),
                         overwrite_existing=True,
                     )
 
-                    workflow_updated = True
+                    updated_infrastructure_files.append(
+                        file_path
+                    )
+
+                    if file_path == "qabook/manifest.json":
+                        manifest_updated = True
+
+                    if (
+                        file_path
+                        == ".github/workflows/qabook.yml"
+                    ):
+                        workflow_updated = True
 
         return {
             "created_test_files": created_test_files,
             "skipped_test_files": skipped_test_files,
+            "updated_infrastructure_files": (
+                updated_infrastructure_files
+            ),
             "manifest_updated": manifest_updated,
             "workflow_updated": workflow_updated,
         }
+
+    @staticmethod
+    def _is_qabook_managed_file(
+        file_path: str,
+    ) -> bool:
+        """
+        Return True for framework infrastructure owned by
+        QABook.
+
+        These files may safely be refreshed during Sync.
+        """
+
+        if file_path == "conftest.py":
+            return True
+
+        if file_path.startswith("utils/"):
+            return True
+
+        if file_path.startswith("qabook/"):
+            return True
+
+        if file_path == ".github/workflows/qabook.yml":
+            return True
+
+        if file_path in {
+            "pytest.ini",
+            ".gitignore",
+            ".env.example",
+            "README.md",
+        }:
+            return True
+
+        return False
 
     def _get_authorized_automation_project(
         self,
@@ -572,7 +622,11 @@ class GitHubConnectionService:
                 if zip_info.is_dir():
                     continue
 
-                file_path = zip_info.filename
+                file_path = (
+                    zip_info.filename
+                    .replace("\\", "/")
+                    .lstrip("/")
+                )
 
                 content = zip_file.read(
                     zip_info
