@@ -135,6 +135,23 @@ def get_execution_by_token_and_test_case(
         test_case_id,
     )
 
+@router.put(
+    "/token/{automation_token}/test-case/{test_case_id}",
+    response_model=TestExecutionResponse,
+)
+def update_execution_by_token_and_test_case(
+    automation_token: str,
+    test_case_id: int,
+    test_execution: TestExecutionUpdate,
+    db: Session = Depends(get_db),
+):
+    service = TestExecutionService(db)
+
+    return service.update_execution_by_token_and_test_case(
+        automation_token,
+        test_case_id,
+        test_execution,
+    )
 
 @router.get(
     "/{execution_id}",

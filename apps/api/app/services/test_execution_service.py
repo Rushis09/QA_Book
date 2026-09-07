@@ -115,6 +115,39 @@ class TestExecutionService:
             test_case_id,
         )
 
+    def update_execution_by_token_and_test_case(
+        self,
+        automation_token: str,
+        test_case_id: int,
+        data: TestExecutionUpdate,
+    ):
+        execution = (
+            self.get_execution_by_token_and_test_case(
+                automation_token,
+                test_case_id,
+            )
+        )
+
+        execution.status = data.status
+        execution.actual_result = data.actual_result
+        execution.comments = data.comments
+        execution.executed_by = data.executed_by
+        execution.executed_at = data.executed_at
+
+        self._update_bug_retest_status(
+            execution
+        )
+
+        updated_execution = self.repository.update(
+            execution
+        )
+
+        self._update_automated_run_status(
+            updated_execution
+        )
+
+        return updated_execution
+
     def get_executions_by_token(
         self,
         automation_token: str,

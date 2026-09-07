@@ -776,7 +776,8 @@ def pytest_runtest_teardown(
         return
 
     client.update_test_execution(
-        execution["id"],
+        token,
+        test_case_id,
         execution_status,
     )
 '''
@@ -903,11 +904,13 @@ class QABookClient:
 
     def update_test_execution(
         self,
-        execution_id: int,
+        automation_token: str,
+        test_case_id: int,
         status: str,
     ):
         response = requests.put(
-            f"{self.base_url}/test-executions/{execution_id}",
+            f"{self.base_url}/test-executions/token/"
+            f"{automation_token}/test-case/{test_case_id}",
             json={
                 "status": status,
             },
@@ -966,10 +969,6 @@ Thumbs.db
         return f"""name: QABook Automation
 
 on:
-  push:
-    branches:
-      - "**"
-
   repository_dispatch:
     types:
       - qabook-retest
@@ -1014,22 +1013,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          RUN_ID_JSON="null"
-          EVENT_TYPE="${{{{ github.event_name }}}}"
+          RUN_ID_JSON='${{{{ github.event.client_payload.run_id }}}}'
+          EVENT_TYPE="${{{{ github.event.action }}}}"
 
-          if [ "$EVENT_TYPE" = "repository_dispatch" ]; then
-            RUN_ID_JSON='${{{{ github.event.client_payload.run_id }}}}'
-            EVENT_TYPE="${{{{ github.event.action }}}}"
+          if [ -z "$RUN_ID_JSON" ]; then
+            echo "QABook repository dispatch did not provide a run_id."
+            exit 1
+          fi
 
-            if [ -z "$RUN_ID_JSON" ]; then
-              echo "QABook repository dispatch did not provide a run_id."
-              exit 1
-            fi
-
-            if [ -z "$EVENT_TYPE" ]; then
-              echo "QABook repository dispatch did not provide an event type."
-              exit 1
-            fi
+          if [ -z "$EVENT_TYPE" ]; then
+            echo "QABook repository dispatch did not provide an event type."
+            exit 1
           fi
 
           response=$(curl --fail-with-body --silent --show-error \
