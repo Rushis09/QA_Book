@@ -600,3 +600,54 @@ class GitHubAPIService:
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="GitHub repository dispatch failed.",
         )
+
+    def revoke_oauth_token(
+        self,
+        user_access_token: str,
+    ) -> None:
+        """
+        Revoke the GitHub OAuth authorization represented by
+        the user's access token.
+
+        This revokes QABook's OAuth authorization for the
+        GitHub user. It does not delete repositories.
+        """
+        if not user_access_token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="GitHub user access token is required.",
+            )
+
+        client_id = os.getenv("GITHUB_CLIENT_ID")
+        client_secret = os.getenv("GITHUB_CLIENT_SECRET")
+
+        if not client_id or not client_secret:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=(
+                    "GitHub OAuth credentials are not configured."
+                ),
+            )
+
+        response = requests.delete(
+            f"https://api.github.com/applications/"
+            f"{client_id}/token",
+            auth=(
+                client_id,
+                client_secret,
+            ),
+            headers={
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": self.API_VERSION,
+            },
+            json={
+                "access_token": user_access_token,
+            },
+            timeout=15,
+        )
+
+        if response.status_code not in {204, 404}:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="GitHub OAuth authorization could not be revoked.",
+            )

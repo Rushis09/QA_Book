@@ -54,7 +54,32 @@ export interface GeneratedTestCase {
   expected_result: string;
 }
 
+/* ---------- AI Credentials ---------- */
+
+export interface AICredentialStatusResponse {
+  provider: string;
+  configured: boolean;
+}
+
+export interface AICredentialSaveRequest {
+  provider: string;
+  api_key: string;
+}
+
+export interface AICredentialSaveResponse {
+  message: string;
+  provider: string;
+}
+
+export interface AICredentialTestResponse {
+  provider: string;
+  connected: boolean;
+  message: string;
+}
+
 export const aiService = {
+  /* ---------- Requirements ---------- */
+
   async generateRequirements(
     request: GenerateRequirementRequest,
   ): Promise<GeneratedRequirement[]> {
@@ -79,6 +104,8 @@ export const aiService = {
     return data;
   },
 
+  /* ---------- Scenarios ---------- */
+
   async generateScenarios(
     request: GenerateScenarioRequest,
   ): Promise<GeneratedScenario[]> {
@@ -91,6 +118,8 @@ export const aiService = {
     return data;
   },
 
+  /* ---------- Test Cases ---------- */
+
   async generateTestCases(
     request: GenerateTestCaseRequest,
   ): Promise<GeneratedTestCase[]> {
@@ -101,5 +130,45 @@ export const aiService = {
       );
 
     return data;
+  },
+
+  /* ---------- AI Credentials ---------- */
+
+  async getCredentialStatus(): Promise<
+    AICredentialStatusResponse
+  > {
+    const { data } =
+      await api.get<AICredentialStatusResponse>(
+        "/ai/credentials",
+      );
+
+    return data;
+  },
+
+  async saveCredential(
+    request: AICredentialSaveRequest,
+  ): Promise<AICredentialSaveResponse> {
+    const { data } =
+      await api.post<AICredentialSaveResponse>(
+        "/ai/credentials",
+        request,
+      );
+
+    return data;
+  },
+
+  async testCredential(): Promise<
+    AICredentialTestResponse
+  > {
+    const { data } =
+      await api.post<AICredentialTestResponse>(
+        "/ai/credentials/test",
+      );
+
+    return data;
+  },
+
+  async deleteCredential(): Promise<void> {
+    await api.delete("/ai/credentials");
   },
 };

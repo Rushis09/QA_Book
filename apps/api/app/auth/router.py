@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_admin
 from app.auth.schemas import (
     AccountResponse,
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     RegisterRequest,
@@ -12,6 +13,7 @@ from app.auth.schemas import (
     WorkspaceUserResponse,
 )
 from app.auth.service import (
+    change_password,
     login,
     register,
     reset_password,
@@ -62,6 +64,25 @@ def login_admin(
         db=db,
     )
 
+
+@router.post(
+    "/change-password",
+)
+def change_password_admin(
+    request: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    change_password(
+        admin=admin,
+        current_password=request.current_password,
+        new_password=request.new_password,
+        db=db,
+    )
+
+    return {
+        "message": "Password changed successfully.",
+    }
 
 @router.post(
     "/forgot-password",

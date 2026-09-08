@@ -14,7 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+
 import LogoutIcon from "@mui/icons-material/Logout";
 import SettingsIcon from "@mui/icons-material/Settings";
 
@@ -451,36 +451,7 @@ export default function Header() {
               <MenuItem
                 onClick={() => {
                   handleAccountMenuClose();
-
-                  showNotification(
-                    "Profile will be available here.",
-                    "info",
-                  );
-                }}
-                sx={{
-                  minHeight: 36,
-                  fontSize: "0.75rem",
-                }}
-              >
-                <AccountCircleIcon
-                  fontSize="small"
-                  sx={{
-                    mr: 1.25,
-                    fontSize: 18,
-                  }}
-                />
-
-                Profile
-              </MenuItem>
-
-              <MenuItem
-                onClick={() => {
-                  handleAccountMenuClose();
-
-                  showNotification(
-                    "Settings will be available here.",
-                    "info",
-                  );
+                  navigate("/settings");
                 }}
                 sx={{
                   minHeight: 36,

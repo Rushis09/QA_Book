@@ -265,6 +265,7 @@ class GitHubConnectionService:
                 automation_project
             )
 
+            
             result = self._sync_framework_files(
                 buffer=buffer,
                 user_access_token=(
@@ -309,6 +310,65 @@ class GitHubConnectionService:
                     "Automation repository synchronized "
                     "successfully."
                 ),
+            }
+
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def disconnect_github(
+        self,
+        automation_project_id: int,
+        admin_id: int,
+    ) -> dict:
+        """
+        Disconnect GitHub from an Automation Project.
+
+        GitHub OAuth authorization is revoked when possible.
+        The Automation Project, GitHub repository, and all
+        QABook QA data remain intact.
+        """
+
+        try:
+            automation_project = (
+                self._get_authorized_automation_project(
+                    automation_project_id,
+                    admin_id,
+                )
+            )
+
+            connection = self._get_github_connection(
+                automation_project_id
+            )
+
+            if not connection:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="GitHub connection not found.",
+                )
+
+            if connection.github_access_token:
+                self.github_api.revoke_oauth_token(
+                    connection.github_access_token
+                )
+
+            github_connection_id = connection.id
+
+            self.db.delete(connection)
+            self.db.commit()
+
+            return {
+                "message": (
+                    "GitHub access disconnected successfully."
+                ),
+                "automation_project_id": (
+                    automation_project.id
+                ),
+                "github_connection_id": (
+                    github_connection_id
+                ),
+                "repository_preserved": True,
+                "automation_project_preserved": True,
             }
 
         except Exception:

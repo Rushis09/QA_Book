@@ -21,7 +21,7 @@ import ReportsPage from "./pages/Reports/ReportsPage";
 import AutomationPage from "./automation/pages/AutomationPage";
 import TestExecutionsListPage from "./pages/TestExecutions/TestExecutionsListPage";
 import ReportFocusBridge from "./components/common/ReportFocusBridge";
-
+import SettingsPage from "./pages/Settings/SettingsPage";
 function NotFoundPage() {
   return <h1>404 - Page Not Found</h1>;
 }
@@ -133,6 +133,11 @@ export default function App() {
               <Route
                 path="/reports"
                 element={<ReportsPage />}
+              />
+
+              <Route
+                path="/settings"
+                element={<SettingsPage />}
               />
 
               <Route

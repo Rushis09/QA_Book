@@ -382,6 +382,77 @@ def get_github_connection(
     }
 
 
+@router.get("/connections")
+def get_github_connections(
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    from app.automation.models.automation_project import AutomationProject
+    from app.models.project import Project
+
+    connections = (
+        db.query(GitHubConnection)
+        .join(
+            AutomationProject,
+            GitHubConnection.automation_project_id
+            == AutomationProject.id,
+        )
+        .join(
+            Project,
+            AutomationProject.project_id
+            == Project.id,
+        )
+        .filter(
+            Project.admin_id == admin.id,
+        )
+        .all()
+    )
+
+    result = []
+
+    for connection in connections:
+        automation_project = connection.automation_project
+        project = automation_project.project
+
+        repository_url = None
+
+        if (
+            connection.repository_owner
+            and connection.repository_name
+        ):
+            repository_url = (
+                f"https://github.com/"
+                f"{connection.repository_owner}/"
+                f"{connection.repository_name}"
+            )
+
+        result.append(
+            {
+                "automation_project_id": (
+                    automation_project.id
+                ),
+                "automation_project_name": (
+                    automation_project.name
+                ),
+                "project_id": project.id,
+                "project_name": project.name,
+                "github_username": (
+                    connection.github_username
+                ),
+                "repository_owner": (
+                    connection.repository_owner
+                ),
+                "repository_name": (
+                    connection.repository_name
+                ),
+                "branch": connection.branch,
+                "repository_url": repository_url,
+                "connected": True,
+            }
+        )
+
+    return result
+
 @router.post("/generate-framework")
 def generate_github_framework(
     automation_project_id: int = Query(...),
@@ -405,6 +476,19 @@ def sync_github_framework(
     service = GitHubConnectionService(db)
 
     return service.sync_framework(
+        automation_project_id=automation_project_id,
+        admin_id=admin.id,
+    )
+
+@router.delete("/connection")
+def disconnect_github(
+    automation_project_id: int = Query(...),
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    service = GitHubConnectionService(db)
+
+    return service.disconnect_github(
         automation_project_id=automation_project_id,
         admin_id=admin.id,
     )

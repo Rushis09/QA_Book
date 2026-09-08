@@ -39,6 +39,19 @@ export interface GitHubConnectionResponse {
   repository_url: string | null;
 }
 
+export interface GitHubSettingsConnection {
+  automation_project_id: number;
+  automation_project_name: string;
+  project_id: number;
+  project_name: string;
+  github_username: string | null;
+  repository_owner: string | null;
+  repository_name: string | null;
+  branch: string | null;
+  repository_url: string | null;
+  connected: boolean;
+}
+
 export interface GitHubFrameworkGenerationResponse {
   automation_project_id: number;
   github_connection_id: number;
@@ -164,13 +177,15 @@ const automationService = {
   },
 
   authorizeGitHub: async (
-    automationProjectId: number
+    automationProjectId: number,
+    returnPath?: string
   ): Promise<GitHubAuthorizationResponse> => {
     const response = await api.get<GitHubAuthorizationResponse>(
       "/automation/github/authorize",
       {
         params: {
           automation_project_id: automationProjectId,
+          ...(returnPath ? { return_path: returnPath } : {}),
         },
       }
     );
@@ -191,6 +206,24 @@ const automationService = {
     );
 
     return response.data;
+  },
+
+  getGitHubConnections: async (): Promise<GitHubSettingsConnection[]> => {
+    const response = await api.get<GitHubSettingsConnection[]>(
+      "/automation/github/connections"
+    );
+
+    return response.data;
+  },
+
+  disconnectGitHub: async (
+    automationProjectId: number
+  ): Promise<void> => {
+    await api.delete("/automation/github/connection", {
+      params: {
+        automation_project_id: automationProjectId,
+      },
+    });
   },
 
   generateGitHubFramework: async (

@@ -119,6 +119,47 @@ def login(
         "token_type": "bearer",
     }
 
+def change_password(
+    admin: Admin,
+    current_password: str,
+    new_password: str,
+    db: Session,
+):
+    if not admin.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin account is inactive.",
+        )
+
+    if not verify_password(
+        current_password,
+        admin.password_hash,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+
+    if current_password == new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from the current password.",
+        )
+
+    admin.password_hash = hash_password(new_password)
+
+    try:
+        db.commit()
+        db.refresh(admin)
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to change password.",
+        )
+
+    return admin
 
 def create_password_reset_token(
     email: str,
