@@ -1,6 +1,13 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+
 import {
   Alert,
+  Box,
   Button,
   Checkbox,
   CircularProgress,
@@ -13,8 +20,15 @@ import {
   Select,
   Stack,
   TextField,
+  Typography,
 } from "@mui/material";
+
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
+import ChecklistOutlinedIcon from "@mui/icons-material/ChecklistOutlined";
+import RemoveDoneOutlinedIcon from "@mui/icons-material/RemoveDoneOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+
 import { useNavigate, useParams } from "react-router-dom";
 
 import AssignmentHeader from "../../components/testSuites/assignment/AssignmentHeader";
@@ -30,6 +44,69 @@ import type { TestCase } from "../../types/testCase";
 import type { TestSuite } from "../../types/testSuite";
 import type { Requirement } from "../../types/requirement";
 import type { TestScenario } from "../../types/testScenario";
+
+interface PlanningMetricProps {
+  icon: ReactNode;
+  value: number;
+  label: string;
+}
+
+function PlanningMetric({
+  icon,
+  value,
+  label,
+}: PlanningMetricProps) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1.1,
+        minWidth: 0,
+      }}
+    >
+      <Box
+        sx={{
+          width: 32,
+          height: 32,
+          borderRadius: "8px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#eff6ff",
+          color: "#1570ef",
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </Box>
+
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          sx={{
+            fontSize: "0.9rem",
+            fontWeight: 750,
+            lineHeight: 1.15,
+            color: "#101828",
+          }}
+        >
+          {value}
+        </Typography>
+
+        <Typography
+          noWrap
+          sx={{
+            mt: 0.15,
+            fontSize: "0.65rem",
+            color: "#667085",
+          }}
+        >
+          {label}
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
 
 export default function AssignTestCasesPage() {
   const { id } = useParams();
@@ -57,13 +134,13 @@ export default function AssignTestCasesPage() {
     useState<number[]>([]);
 
   const [moduleFilter, setModuleFilter] =
-    useState<string>("all");
+    useState("all");
 
   const [priorityFilter, setPriorityFilter] =
-    useState<string>("all");
+    useState("all");
 
   const [statusFilter, setStatusFilter] =
-    useState<string>("all");
+    useState("all");
 
   const [search, setSearch] =
     useState("");
@@ -92,6 +169,8 @@ export default function AssignTestCasesPage() {
       }
 
       try {
+        setLoading(true);
+
         const suiteData =
           await testSuiteService.getTestSuite(
             Number(id),
@@ -125,7 +204,9 @@ export default function AssignTestCasesPage() {
             (testCase) => testCase.id,
           ),
         );
-      } catch {
+      } catch (error) {
+        console.error(error);
+
         setError(
           "Failed to load assignment data.",
         );
@@ -143,7 +224,8 @@ export default function AssignTestCasesPage() {
     setSelectedIds((previous) =>
       previous.includes(testCaseId)
         ? previous.filter(
-            (id) => id !== testCaseId,
+            (currentId) =>
+              currentId !== testCaseId,
           )
         : [...previous, testCaseId],
     );
@@ -235,7 +317,9 @@ export default function AssignTestCasesPage() {
       );
 
       navigate("/test-suites");
-    } catch {
+    } catch (error) {
+      console.error(error);
+
       setError(
         "Failed to save assignments.",
       );
@@ -245,93 +329,145 @@ export default function AssignTestCasesPage() {
   }
 
   const availableScenarios =
-    scenarios.filter(
-      (scenario) =>
-        selectedRequirementIds.length === 0 ||
-        selectedRequirementIds.includes(
-          scenario.requirement_id,
+    useMemo(
+      () =>
+        scenarios.filter(
+          (scenario) =>
+            selectedRequirementIds.length ===
+              0 ||
+            selectedRequirementIds.includes(
+              scenario.requirement_id,
+            ),
         ),
+      [
+        scenarios,
+        selectedRequirementIds,
+      ],
     );
 
   const availableModules =
-    Array.from(
-      new Set(
-        testCases.map(
-          (testCase) => testCase.module,
-        ),
-      ),
-    ).sort();
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            testCases.map(
+              (testCase) =>
+                testCase.module,
+            ),
+          ),
+        ).sort(),
+      [testCases],
+    );
 
   const filteredTestCases =
-    testCases.filter((testCase) => {
-      const matchesRequirement =
-        selectedRequirementIds.length === 0 ||
-        selectedRequirementIds.includes(
-          testCase.scenario.requirement.id,
-        );
+    useMemo(
+      () =>
+        testCases.filter((testCase) => {
+          const matchesRequirement =
+            selectedRequirementIds.length ===
+              0 ||
+            selectedRequirementIds.includes(
+              testCase.scenario.requirement.id,
+            );
 
-      const matchesScenario =
-        selectedScenarioIds.length === 0 ||
-        selectedScenarioIds.includes(
-          testCase.scenario.id,
-        );
+          const matchesScenario =
+            selectedScenarioIds.length ===
+              0 ||
+            selectedScenarioIds.includes(
+              testCase.scenario.id,
+            );
 
-      const matchesModule =
-        moduleFilter === "all" ||
-        testCase.module === moduleFilter;
+          const matchesModule =
+            moduleFilter === "all" ||
+            testCase.module ===
+              moduleFilter;
 
-      const matchesPriority =
-        priorityFilter === "all" ||
-        testCase.priority === priorityFilter;
+          const matchesPriority =
+            priorityFilter === "all" ||
+            testCase.priority ===
+              priorityFilter;
 
-      const matchesStatus =
-        statusFilter === "all" ||
-        testCase.status === statusFilter;
+          const matchesStatus =
+            statusFilter === "all" ||
+            testCase.status ===
+              statusFilter;
 
-      const searchText =
-        search.trim().toLowerCase();
+          const searchText =
+            search.trim().toLowerCase();
 
-      const matchesSearch =
-        !searchText ||
-        testCase.test_case_code
-          .toLowerCase()
-          .includes(searchText) ||
-        testCase.title
-          .toLowerCase()
-          .includes(searchText);
+          const matchesSearch =
+            !searchText ||
+            testCase.test_case_code
+              .toLowerCase()
+              .includes(searchText) ||
+            testCase.title
+              .toLowerCase()
+              .includes(searchText);
 
-      return (
-        matchesRequirement &&
-        matchesScenario &&
-        matchesModule &&
-        matchesPriority &&
-        matchesStatus &&
-        matchesSearch
-      );
-    });
+          return (
+            matchesRequirement &&
+            matchesScenario &&
+            matchesModule &&
+            matchesPriority &&
+            matchesStatus &&
+            matchesSearch
+          );
+        }),
+      [
+        testCases,
+        selectedRequirementIds,
+        selectedScenarioIds,
+        moduleFilter,
+        priorityFilter,
+        statusFilter,
+        search,
+      ],
+    );
+
+  const assignedCount =
+    selectedIds.length;
+
+  const totalCount =
+    testCases.length;
+
+  const unassignedCount =
+    Math.max(
+      totalCount - assignedCount,
+      0,
+    );
+
+  const aiSuggestedCount =
+    aiRecommendedIds.length;
 
   if (loading) {
     return (
       <Stack
         sx={{
+          minHeight: 300,
           alignItems: "center",
-          py: 6,
+          justifyContent: "center",
         }}
       >
-        <CircularProgress />
+        <CircularProgress size={28} />
       </Stack>
     );
   }
 
-  if (error) {
+  if (error && !suite) {
     return (
-      <>
+      <Box>
         <Button
-          startIcon={<ArrowBackIcon />}
+          startIcon={
+            <ArrowBackIcon />
+          }
           onClick={() =>
             navigate("/test-suites")
           }
-          sx={{ mb: 2 }}
+          sx={{
+            mb: 1.5,
+            fontSize: "0.76rem",
+            textTransform: "none",
+          }}
         >
           Back to Test Suites
         </Button>
@@ -339,19 +475,25 @@ export default function AssignTestCasesPage() {
         <Alert severity="error">
           {error}
         </Alert>
-      </>
+      </Box>
     );
   }
 
   if (!suite) {
     return (
-      <>
+      <Box>
         <Button
-          startIcon={<ArrowBackIcon />}
+          startIcon={
+            <ArrowBackIcon />
+          }
           onClick={() =>
             navigate("/test-suites")
           }
-          sx={{ mb: 2 }}
+          sx={{
+            mb: 1.5,
+            fontSize: "0.76rem",
+            textTransform: "none",
+          }}
         >
           Back to Test Suites
         </Button>
@@ -359,336 +501,798 @@ export default function AssignTestCasesPage() {
         <Alert severity="error">
           Test Suite not found.
         </Alert>
-      </>
+      </Box>
     );
   }
 
   return (
-    <>
+    <Box
+      sx={{
+        width: "100%",
+        pb: 2,
+      }}
+    >
       <Button
-        startIcon={<ArrowBackIcon />}
+        startIcon={
+          <ArrowBackIcon />
+        }
         onClick={() =>
           navigate("/test-suites")
         }
         disabled={saving}
-        sx={{ mb: 2 }}
+        sx={{
+          mb: 1,
+          ml: -0.5,
+          height: 32,
+          px: 0.75,
+          borderRadius: "7px",
+          fontSize: "0.72rem",
+          fontWeight: 650,
+          textTransform: "none",
+          color: "#475467",
+        }}
       >
         Back to Test Suites
       </Button>
 
       <AssignmentHeader
         suite={suite}
-        assignedCount={selectedIds.length}
+        assignedCount={assignedCount}
         saving={saving}
         onSave={handleSave}
       />
 
-      <Stack
-        direction={{
-          xs: "column",
-          md: "row",
-        }}
-        spacing={2}
+      <Box
         sx={{
-          mb: 3,
-          flexWrap: "wrap",
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, 1fr)",
+            lg: "repeat(4, 1fr)",
+          },
+          gap: 1.25,
+          mb: 1.75,
         }}
       >
-        <FormControl
-          size="small"
-          sx={{ minWidth: 240 }}
+        <Box
+          sx={{
+            border:
+              "1px solid #e4e7ec",
+            borderRadius: "10px",
+            backgroundColor: "#fff",
+            px: 1.5,
+            py: 1.25,
+          }}
         >
-          <InputLabel>
-            Requirements
-          </InputLabel>
-
-          <Select
-            multiple
-            value={selectedRequirementIds}
-            onChange={(event) => {
-              handleRequirementChange(
-                event.target.value as number[],
-              );
-            }}
-            input={
-              <OutlinedInput label="Requirements" />
+          <PlanningMetric
+            icon={
+              <ChecklistOutlinedIcon
+                sx={{
+                  fontSize: 17,
+                }}
+              />
             }
-            renderValue={(selected) => {
-              const values =
-                selected as number[];
+            value={totalCount}
+            label="Total Test Cases"
+          />
+        </Box>
 
-              if (values.length === 0) {
-                return "All Requirements";
-              }
+        <Box
+          sx={{
+            border:
+              "1px solid #e4e7ec",
+            borderRadius: "10px",
+            backgroundColor: "#fff",
+            px: 1.5,
+            py: 1.25,
+          }}
+        >
+          <PlanningMetric
+            icon={
+              <AssignmentTurnedInOutlinedIcon
+                sx={{
+                  fontSize: 17,
+                }}
+              />
+            }
+            value={assignedCount}
+            label="Assigned"
+          />
+        </Box>
 
-              if (values.length === 1) {
-                const requirement =
-                  requirements.find(
-                    (item) =>
-                      item.id === values[0],
-                  );
+        <Box
+          sx={{
+            border:
+              "1px solid #e4e7ec",
+            borderRadius: "10px",
+            backgroundColor: "#fff",
+            px: 1.5,
+            py: 1.25,
+          }}
+        >
+          <PlanningMetric
+            icon={
+              <RemoveDoneOutlinedIcon
+                sx={{
+                  fontSize: 17,
+                }}
+              />
+            }
+            value={unassignedCount}
+            label="Unassigned"
+          />
+        </Box>
 
-                return requirement
-                  ? `${requirement.requirement_code} - ${requirement.module}`
-                  : "1 Requirement Selected";
-              }
+        <Box
+          sx={{
+            border:
+              "1px solid #e4e7ec",
+            borderRadius: "10px",
+            backgroundColor: "#fff",
+            px: 1.5,
+            py: 1.25,
+          }}
+        >
+          <PlanningMetric
+            icon={
+              <AutoAwesomeOutlinedIcon
+                sx={{
+                  fontSize: 17,
+                }}
+              />
+            }
+            value={aiSuggestedCount}
+            label="AI Suggested"
+          />
+        </Box>
+      </Box>
 
-              return `${values.length} Requirements Selected`;
+      <Box sx={{ mb: 1.25 }}>
+        <Typography
+          sx={{
+            fontSize: "0.9rem",
+            fontWeight: 750,
+            color: "#101828",
+          }}
+        >
+          Test Case Selection
+        </Typography>
+
+        <Typography
+          sx={{
+            mt: 0.2,
+            fontSize: "0.68rem",
+            color: "#667085",
+          }}
+        >
+          Select the test cases that
+          should belong to this suite.
+        </Typography>
+      </Box>
+
+      {error && (
+        <Alert
+          severity="error"
+          onClose={() => setError("")}
+          sx={{
+            mb: 1.5,
+            py: 0,
+            fontSize: "0.75rem",
+            borderRadius: "9px",
+          }}
+        >
+          {error}
+        </Alert>
+      )}
+
+      <Box
+        sx={{
+          border:
+            "1px solid #e4e7ec",
+          borderRadius: "10px",
+          backgroundColor: "#fff",
+          p: 1.25,
+          mb: 1.5,
+        }}
+      >
+        <Stack
+          direction={{
+            xs: "column",
+            lg: "row",
+          }}
+          spacing={1}
+          sx={{
+            alignItems: {
+              xs: "stretch",
+              lg: "center",
+            },
+          }}
+        >
+          <TextField
+            size="small"
+            label="Search"
+            value={search}
+            onChange={(event) =>
+              setSearch(
+                event.target.value,
+              )
+            }
+            placeholder="Code or title"
+            sx={{
+              width: {
+                xs: "100%",
+                lg: 220,
+              },
+              "& .MuiOutlinedInput-root":
+                {
+                  height: 38,
+                  borderRadius: "8px",
+                  fontSize: "0.74rem",
+                },
+              "& .MuiInputLabel-root": {
+                fontSize: "0.72rem",
+              },
+            }}
+          />
+
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: {
+                xs: "100%",
+                lg: 190,
+              },
             }}
           >
-            {requirements.map(
-              (requirement) => (
-                <MenuItem
-                  key={requirement.id}
-                  value={requirement.id}
-                >
-                  <Checkbox
-                    checked={selectedRequirementIds.includes(
-                      requirement.id,
-                    )}
-                  />
+            <InputLabel
+              sx={{
+                fontSize: "0.72rem",
+              }}
+            >
+              Requirements
+            </InputLabel>
 
-                  <ListItemText
-                    primary={`${requirement.requirement_code} - ${requirement.module}`}
-                  />
-                </MenuItem>
-              ),
-            )}
-          </Select>
-        </FormControl>
+            <Select
+              multiple
+              value={selectedRequirementIds.map(
+                String,
+              )}
+              onChange={(event) => {
+                const values =
+                  typeof event.target
+                    .value === "string"
+                    ? event.target.value
+                        .split(",")
+                        .filter(Boolean)
+                        .map(Number)
+                    : event.target.value.map(
+                        Number,
+                      );
 
-        <FormControl
-          size="small"
-          sx={{ minWidth: 280 }}
-        >
-          <InputLabel>
-            Scenarios
-          </InputLabel>
-
-          <Select
-            multiple
-            value={selectedScenarioIds}
-            onChange={(event) => {
-              handleScenarioChange(
-                event.target.value as number[],
-              );
-            }}
-            input={
-              <OutlinedInput label="Scenarios" />
-            }
-            renderValue={(selected) => {
-              const values =
-                selected as number[];
-
-              if (values.length === 0) {
-                return "All Scenarios";
+                handleRequirementChange(
+                  values,
+                );
+              }}
+              input={
+                <OutlinedInput
+                  label="Requirements"
+                />
               }
+              renderValue={(
+                selected,
+              ) => {
+                const values =
+                  selected as string[];
 
-              if (values.length === 1) {
-                const scenario =
-                  availableScenarios.find(
-                    (item) =>
-                      item.id === values[0],
-                  );
+                const ids =
+                  values.map(Number);
 
-                return scenario
-                  ? `${scenario.scenario_code} - ${scenario.title}`
-                  : "1 Scenario Selected";
-              }
+                if (
+                  ids.length === 0
+                ) {
+                  return "All Requirements";
+                }
 
-              return `${values.length} Scenarios Selected`;
+                if (
+                  ids.length === 1
+                ) {
+                  const requirement =
+                    requirements.find(
+                      (item) =>
+                        item.id === ids[0],
+                    );
+
+                  return requirement
+                    ? requirement.requirement_code
+                    : "1 selected";
+                }
+
+                return `${ids.length} selected`;
+              }}
+              sx={{
+                height: 38,
+                borderRadius: "8px",
+                fontSize: "0.74rem",
+              }}
+            >
+              {requirements.map(
+                (requirement) => (
+                  <MenuItem
+                    key={
+                      requirement.id
+                    }
+                    value={
+                      String(
+                        requirement.id,
+                      )
+                    }
+                    sx={{
+                      fontSize:
+                        "0.74rem",
+                    }}
+                  >
+                    <Checkbox
+                      size="small"
+                      checked={selectedRequirementIds.includes(
+                        requirement.id,
+                      )}
+                    />
+
+                    <ListItemText
+                      primary={`${requirement.requirement_code} - ${requirement.module}`}
+                      slotProps={{
+                        primary: {
+                          sx: {
+                            fontSize:
+                              "0.74rem",
+                          },
+                        },
+                      }}
+                    />
+                  </MenuItem>
+                ),
+              )}
+            </Select>
+          </FormControl>
+
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: {
+                xs: "100%",
+                lg: 200,
+              },
             }}
           >
-            {availableScenarios.map(
-              (scenario) => (
-                <MenuItem
-                  key={scenario.id}
-                  value={scenario.id}
-                >
-                  <Checkbox
-                    checked={selectedScenarioIds.includes(
+            <InputLabel
+              sx={{
+                fontSize: "0.72rem",
+              }}
+            >
+              Scenarios
+            </InputLabel>
+
+            <Select
+              multiple
+              value={selectedScenarioIds.map(
+                String,
+              )}
+              onChange={(event) => {
+                const values =
+                  typeof event.target
+                    .value === "string"
+                    ? event.target.value
+                        .split(",")
+                        .filter(Boolean)
+                        .map(Number)
+                    : event.target.value.map(
+                        Number,
+                      );
+
+                handleScenarioChange(
+                  values,
+                );
+              }}
+              input={
+                <OutlinedInput
+                  label="Scenarios"
+                />
+              }
+              renderValue={(
+                selected,
+              ) => {
+                const values =
+                  selected as string[];
+
+                const ids =
+                  values.map(Number);
+
+                if (
+                  ids.length === 0
+                ) {
+                  return "All Scenarios";
+                }
+
+                if (
+                  ids.length === 1
+                ) {
+                  const scenario =
+                    availableScenarios.find(
+                      (item) =>
+                        item.id === ids[0],
+                    );
+
+                  return scenario
+                    ? scenario.scenario_code
+                    : "1 selected";
+                }
+
+                return `${ids.length} selected`;
+              }}
+              sx={{
+                height: 38,
+                borderRadius: "8px",
+                fontSize: "0.74rem",
+              }}
+            >
+              {availableScenarios.map(
+                (scenario) => (
+                  <MenuItem
+                    key={scenario.id}
+                    value={String(
                       scenario.id,
                     )}
-                  />
+                    sx={{
+                      fontSize:
+                        "0.74rem",
+                    }}
+                  >
+                    <Checkbox
+                      size="small"
+                      checked={selectedScenarioIds.includes(
+                        scenario.id,
+                      )}
+                    />
 
-                  <ListItemText
-                    primary={`${scenario.scenario_code} - ${scenario.title}`}
-                  />
-                </MenuItem>
-              ),
-            )}
-          </Select>
-        </FormControl>
+                    <ListItemText
+                      primary={`${scenario.scenario_code} - ${scenario.title}`}
+                      slotProps={{
+                        primary: {
+                          sx: {
+                            fontSize:
+                              "0.74rem",
+                          },
+                        },
+                      }}
+                    />
+                  </MenuItem>
+                ),
+              )}
+            </Select>
+          </FormControl>
 
-        <FormControl
-          size="small"
-          sx={{ minWidth: 180 }}
-        >
-          <InputLabel>
-            Module
-          </InputLabel>
-
-          <Select
-            value={moduleFilter}
-            label="Module"
-            onChange={(event) =>
-              setModuleFilter(
-                event.target.value,
-              )
-            }
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: {
+                xs: "100%",
+                lg: 135,
+              },
+            }}
           >
-            <MenuItem value="all">
-              All Modules
-            </MenuItem>
+            <InputLabel
+              sx={{
+                fontSize: "0.72rem",
+              }}
+            >
+              Module
+            </InputLabel>
 
-            {availableModules.map(
-              (module) => (
-                <MenuItem
-                  key={module}
-                  value={module}
-                >
-                  {module}
-                </MenuItem>
-              ),
-            )}
-          </Select>
-        </FormControl>
+            <Select
+              value={moduleFilter}
+              label="Module"
+              onChange={(event) =>
+                setModuleFilter(
+                  event.target.value,
+                )
+              }
+              sx={{
+                height: 38,
+                borderRadius: "8px",
+                fontSize: "0.74rem",
+              }}
+            >
+              <MenuItem
+                value="all"
+                sx={{
+                  fontSize:
+                    "0.74rem",
+                }}
+              >
+                All Modules
+              </MenuItem>
 
-        <FormControl
-          size="small"
-          sx={{ minWidth: 150 }}
-        >
-          <InputLabel>
-            Priority
-          </InputLabel>
+              {availableModules.map(
+                (module) => (
+                  <MenuItem
+                    key={module}
+                    value={module}
+                    sx={{
+                      fontSize:
+                        "0.74rem",
+                    }}
+                  >
+                    {module}
+                  </MenuItem>
+                ),
+              )}
+            </Select>
+          </FormControl>
 
-          <Select
-            value={priorityFilter}
-            label="Priority"
-            onChange={(event) =>
-              setPriorityFilter(
-                event.target.value,
-              )
-            }
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: {
+                xs: "100%",
+                lg: 125,
+              },
+            }}
           >
-            <MenuItem value="all">
-              All Priorities
-            </MenuItem>
+            <InputLabel
+              sx={{
+                fontSize: "0.72rem",
+              }}
+            >
+              Priority
+            </InputLabel>
 
-            <MenuItem value="High">
-              High
-            </MenuItem>
+            <Select
+              value={priorityFilter}
+              label="Priority"
+              onChange={(event) =>
+                setPriorityFilter(
+                  event.target.value,
+                )
+              }
+              sx={{
+                height: 38,
+                borderRadius: "8px",
+                fontSize: "0.74rem",
+              }}
+            >
+              <MenuItem
+                value="all"
+                sx={{
+                  fontSize:
+                    "0.74rem",
+                }}
+              >
+                All Priorities
+              </MenuItem>
 
-            <MenuItem value="Medium">
-              Medium
-            </MenuItem>
+              <MenuItem
+                value="High"
+                sx={{
+                  fontSize:
+                    "0.74rem",
+                }}
+              >
+                High
+              </MenuItem>
 
-            <MenuItem value="Low">
-              Low
-            </MenuItem>
-          </Select>
-        </FormControl>
+              <MenuItem
+                value="Medium"
+                sx={{
+                  fontSize:
+                    "0.74rem",
+                }}
+              >
+                Medium
+              </MenuItem>
 
-        <FormControl
-          size="small"
-          sx={{ minWidth: 150 }}
-        >
-          <InputLabel>
-            Status
-          </InputLabel>
+              <MenuItem
+                value="Low"
+                sx={{
+                  fontSize:
+                    "0.74rem",
+                }}
+              >
+                Low
+              </MenuItem>
+            </Select>
+          </FormControl>
 
-          <Select
-            value={statusFilter}
-            label="Status"
-            onChange={(event) =>
-              setStatusFilter(
-                event.target.value,
-              )
-            }
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: {
+                xs: "100%",
+                lg: 125,
+              },
+            }}
           >
-            <MenuItem value="all">
-              All Statuses
-            </MenuItem>
+            <InputLabel
+              sx={{
+                fontSize: "0.72rem",
+              }}
+            >
+              Status
+            </InputLabel>
 
-            <MenuItem value="Draft">
-              Draft
-            </MenuItem>
+            <Select
+              value={statusFilter}
+              label="Status"
+              onChange={(event) =>
+                setStatusFilter(
+                  event.target.value,
+                )
+              }
+              sx={{
+                height: 38,
+                borderRadius: "8px",
+                fontSize: "0.74rem",
+              }}
+            >
+              <MenuItem
+                value="all"
+                sx={{
+                  fontSize:
+                    "0.74rem",
+                }}
+              >
+                All Statuses
+              </MenuItem>
 
-            <MenuItem value="Approved">
-              Approved
-            </MenuItem>
+              <MenuItem
+                value="Active"
+                sx={{
+                  fontSize: "0.74rem",
+                }}
+              >
+                Active
+              </MenuItem>
+              
+              <MenuItem
+                value="Archived"
+                sx={{
+                  fontSize: "0.74rem",
+                }}
+              >
+                Archived
+              </MenuItem>
+            </Select>
+          </FormControl>
 
-            <MenuItem value="Ready">
-              Ready
-            </MenuItem>
-          </Select>
-        </FormControl>
+          <Button
+            variant="outlined"
+            onClick={
+              handleAIRecommend
+            }
+            disabled={
+              aiLoading ||
+              filteredTestCases.length ===
+                0
+            }
+            startIcon={
+              <AutoAwesomeOutlinedIcon
+                sx={{
+                  fontSize: 16,
+                }}
+              />
+            }
+            sx={{
+              height: 38,
+              minWidth: {
+                xs: "100%",
+                lg: 145,
+              },
+              borderRadius: "8px",
+              fontSize: "0.72rem",
+              fontWeight: 650,
+              textTransform:
+                "none",
+              borderColor:
+                "#d0d5dd",
+              color: "#6941c6",
+              whiteSpace:
+                "nowrap",
+              "&:hover": {
+                borderColor:
+                  "#b692f6",
+                backgroundColor:
+                  "#faf8ff",
+              },
+            }}
+          >
+            {aiLoading
+              ? "Recommending..."
+              : "AI Recommend"}
+          </Button>
+        </Stack>
+      </Box>
 
-        <TextField
-          size="small"
-          label="Search"
-          value={search}
-          onChange={(event) =>
-            setSearch(event.target.value)
-          }
-          placeholder="Code or title"
-          sx={{ minWidth: 220 }}
-        />
-      </Stack>
-
-      <Button
-        variant="contained"
-        onClick={handleAIRecommend}
-        disabled={
-          aiLoading ||
-          filteredTestCases.length === 0
-        }
+      <Box
+        sx={{
+          mb: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent:
+            "space-between",
+          gap: 1,
+        }}
       >
-        {aiLoading
-          ? "AI Recommending..."
-          : "✨ AI Recommend"}
-      </Button>
+        <Typography
+          sx={{
+            fontSize: "0.68rem",
+            color: "#667085",
+          }}
+        >
+          Showing{" "}
+          <strong>
+            {filteredTestCases.length}
+          </strong>{" "}
+          of {totalCount} test cases
+        </Typography>
 
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 6 }}>
+        {assignedCount > 0 && (
+          <Typography
+            sx={{
+              fontSize: "0.68rem",
+              fontWeight: 650,
+              color: "#1570ef",
+            }}
+          >
+            {assignedCount} assigned
+          </Typography>
+        )}
+      </Box>
+
+      <Grid
+        container
+        spacing={1.5}
+        sx={{
+          alignItems: "flex-start",
+        }}
+      >
+        <Grid
+          size={{
+            xs: 12,
+            lg: 7.5,
+          }}
+        >
           <AvailableTestCasesTable
-            testCases={filteredTestCases}
+            testCases={
+              filteredTestCases
+            }
             aiRecommendedIds={
               aiRecommendedIds
             }
-            selectedIds={selectedIds}
-            onToggle={handleToggle}
+            selectedIds={
+              selectedIds
+            }
+            onToggle={
+              handleToggle
+            }
           />
         </Grid>
 
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid
+          size={{
+            xs: 12,
+            lg: 4.5,
+          }}
+        >
           <AssignedTestCasesTable
             testCases={testCases}
-            selectedIds={selectedIds}
+            selectedIds={
+              selectedIds
+            }
             aiRecommendedIds={
               aiRecommendedIds
             }
           />
         </Grid>
       </Grid>
-
-      <Stack
-        direction="row"
-        sx={{
-          justifyContent: "flex-end",
-          mt: 3,
-        }}
-      >
-        <Button
-          variant="outlined"
-          onClick={() =>
-            navigate("/test-suites")
-          }
-          disabled={saving}
-        >
-          Cancel
-        </Button>
-      </Stack>
-    </>
+    </Box>
   );
 }

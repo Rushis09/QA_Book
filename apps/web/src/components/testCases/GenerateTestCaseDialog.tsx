@@ -6,6 +6,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   MenuItem,
   TextField,
   Typography,
@@ -29,6 +30,26 @@ interface GenerateTestCaseDialogProps {
   onGenerated: () => void;
 }
 
+const fieldSx = {
+  "& .MuiOutlinedInput-root": {
+    borderRadius: "9px",
+    backgroundColor: "#fff",
+    fontSize: "0.82rem",
+    minHeight: 42,
+  },
+  "& .MuiInputLabel-root": {
+    fontSize: "0.78rem",
+  },
+};
+
+const readOnlyFieldSx = {
+  ...fieldSx,
+  "& .MuiOutlinedInput-root": {
+    ...fieldSx["& .MuiOutlinedInput-root"],
+    backgroundColor: "#f8fafc",
+  },
+};
+
 export default function GenerateTestCaseDialog({
   open,
   projects,
@@ -42,8 +63,6 @@ export default function GenerateTestCaseDialog({
   const [loading, setLoading] = useState(false);
 
   const { showNotification } = useNotification();
-
-  
 
   const selectedScenario = scenarios.find(
     (scenario) =>
@@ -63,15 +82,12 @@ export default function GenerateTestCaseDialog({
       selectedRequirement?.project_id,
   );
 
-
   async function handleGenerate() {
     try {
       setLoading(true);
 
       if (!selectedScenario) {
-        throw new Error(
-          "Scenario not found.",
-        );
+        throw new Error("Scenario not found.");
       }
 
       const generated =
@@ -91,12 +107,10 @@ export default function GenerateTestCaseDialog({
           automation_status: "Not Automated",
           title: tc.title,
           description: null,
-          preconditions:
-            tc.preconditions,
+          preconditions: tc.preconditions,
           test_data: tc.test_data,
           steps: tc.steps,
-          expected_result:
-            tc.expected_result,
+          expected_result: tc.expected_result,
         });
       }
 
@@ -124,115 +138,201 @@ export default function GenerateTestCaseDialog({
       open={open}
       onClose={onClose}
       fullWidth
-      maxWidth="md"
+      maxWidth="sm"
     >
-      <DialogTitle>
+      <DialogTitle
+        sx={{
+          px: 2.5,
+          py: 1.75,
+          fontSize: "1rem",
+          fontWeight: 750,
+          color: "#101828",
+        }}
+      >
         ✨ Generate Test Cases with AI
       </DialogTitle>
 
-      <DialogContent>
+      <Divider />
+
+      <DialogContent
+        sx={{
+          px: 2.5,
+          py: 2,
+          backgroundColor: "#f8fafc",
+        }}
+      >
         <Box
           sx={{
-            mt: 2,
             display: "flex",
             flexDirection: "column",
-            gap: 3,
+            gap: 1.5,
           }}
         >
-        <TextField
-          label="Project"
-          value={
-            selectedProject
-              ? `${selectedProject.project_code} - ${selectedProject.name}`
-              : ""
-          }
-          fullWidth
-          slotProps={{
-            input: {
-              readOnly: true,
-            },
-          }}
-        />
-
-        <TextField
-          label="Requirement"
-          value={
-            selectedRequirement
-              ? `${selectedRequirement.requirement_code} - ${selectedRequirement.module}`
-              : ""
-          }
-          fullWidth
-          slotProps={{
-            input: {
-              readOnly: true,
-            },
-          }}
-        />
-
-        <TextField
-          label="Scenario"
-          value={
-            selectedScenario
-              ? `${selectedScenario.scenario_code} - ${selectedScenario.title}`
-              : ""
-          }
-          fullWidth
-          slotProps={{
-            input: {
-              readOnly: true,
-            },
-          }}
-        />
-
-          <Box>
+          <Box
+            sx={{
+              px: 1.5,
+              py: 1.25,
+              border: "1px solid #dbe7ff",
+              borderRadius: "10px",
+              backgroundColor: "#f5f8ff",
+            }}
+          >
             <Typography
-              variant="subtitle2"
-              sx={{ mb: 1 }}
+              sx={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#175cd3",
+              }}
             >
-              Number of Test Cases
+              AI Test Case Generation
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: 0.35,
+                fontSize: "0.68rem",
+                lineHeight: 1.45,
+                color: "#667085",
+              }}
+            >
+              Generate structured test cases from the
+              selected test scenario.
+            </Typography>
+          </Box>
+
+          <TextField
+            label="Project"
+            value={
+              selectedProject
+                ? `${selectedProject.project_code} - ${selectedProject.name}`
+                : ""
+            }
+            fullWidth
+            sx={readOnlyFieldSx}
+            slotProps={{
+              input: {
+                readOnly: true,
+              },
+            }}
+          />
+
+          <TextField
+            label="Requirement"
+            value={
+              selectedRequirement
+                ? `${selectedRequirement.requirement_code} - ${selectedRequirement.module}`
+                : ""
+            }
+            fullWidth
+            sx={readOnlyFieldSx}
+            slotProps={{
+              input: {
+                readOnly: true,
+              },
+            }}
+          />
+
+          <TextField
+            label="Scenario"
+            value={
+              selectedScenario
+                ? `${selectedScenario.scenario_code} - ${selectedScenario.title}`
+                : ""
+            }
+            fullWidth
+            sx={readOnlyFieldSx}
+            slotProps={{
+              input: {
+                readOnly: true,
+              },
+            }}
+          />
+
+          <Box
+            sx={{
+              mt: 0.5,
+              p: 1.5,
+              border: "1px solid #e4e7ec",
+              borderRadius: "10px",
+              backgroundColor: "#fff",
+            }}
+          >
+            <Typography
+              sx={{
+                mb: 1,
+                fontSize: "0.76rem",
+                fontWeight: 700,
+                color: "#344054",
+              }}
+            >
+              Generation Settings
             </Typography>
 
             <TextField
               select
+              label="Number of Test Cases"
               value={count}
-              onChange={(e) =>
-                setCount(
-                  Number(e.target.value),
-                )
+              onChange={(event) =>
+                setCount(Number(event.target.value))
               }
-              sx={{ width: 220 }}
+              fullWidth
+              sx={fieldSx}
             >
-              {[3, 5, 10, 15].map(
-                (value) => (
-                  <MenuItem
-                    key={value}
-                    value={value}
-                  >
-                    {value}
-                  </MenuItem>
-                ),
-              )}
+              {[3, 5, 10, 15].map((value) => (
+                <MenuItem
+                  key={value}
+                  value={value}
+                >
+                  {value} Test Cases
+                </MenuItem>
+              ))}
             </TextField>
           </Box>
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose}>
+      <Divider />
+
+      <DialogActions
+        sx={{
+          px: 2.5,
+          py: 1.5,
+          gap: 0.75,
+        }}
+      >
+        <Button
+          onClick={onClose}
+          disabled={loading}
+          sx={{
+            minHeight: 34,
+            px: 1.5,
+            borderRadius: "8px",
+            fontSize: "0.76rem",
+            fontWeight: 650,
+            color: "#475467",
+            textTransform: "none",
+          }}
+        >
           Cancel
         </Button>
 
         <Button
           variant="contained"
           onClick={handleGenerate}
-          disabled={
-            loading ||
-            !selectedScenario
-          }
+          disabled={loading || !selectedScenario}
+          sx={{
+            minHeight: 34,
+            px: 1.75,
+            borderRadius: "8px",
+            fontSize: "0.76rem",
+            fontWeight: 700,
+            textTransform: "none",
+            boxShadow: "none",
+          }}
         >
           {loading
             ? "Generating..."
-            : "✨ Generate"}
+            : "✨ Generate Test Cases"}
         </Button>
       </DialogActions>
     </Dialog>

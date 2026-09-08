@@ -1,4 +1,7 @@
-import { useState } from "react";
+import {
+  useState,
+  type ReactNode,
+} from "react";
 
 import {
   Alert,
@@ -26,7 +29,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import PersonAddOutlinedIcon from "@mui/icons-material/PersonAddOutlined";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 
-
+import QABookLogo from "../brand/QABookLogo";
 import api from "../../services/api";
 import { login } from "../../services/authService";
 import { useAuth } from "../../contexts/AuthContext";
@@ -70,15 +73,15 @@ export default function LoginPage() {
 
   const switchView = (nextView: AuthView) => {
     clearMessages();
-    
+
     setUsername("");
     setEmail("");
     setPassword("");
     setConfirmPassword("");
-    
+
     setShowPassword(false);
     setShowConfirmPassword(false);
-    
+
     setView(nextView);
   };
 
@@ -89,33 +92,53 @@ export default function LoginPage() {
       );
       return;
     }
-
+  
     try {
       setLoading(true);
       clearMessages();
-
-      const response =
-        await login({
-          username: username.trim(),
-          password,
-        });
-
-      /*
-       * Authentication currently uses localStorage.
-       * The remember-me behavior will be connected
-       * when session persistence is implemented.
-       */
+    
+      const response = await login({
+        username: username.trim(),
+        password,
+      });
+    
       void rememberMe;
-
+    
       await authLogin(
         response.access_token,
       );
-    } catch (loginError) {
-      console.error(loginError);
-
-      setError(
-        "Invalid username or password.",
+    } catch (loginError: any) {
+      console.error(
+        "QABook login error:",
+        loginError,
       );
+    
+      const status =
+        loginError?.response?.status;
+    
+      const detail =
+        loginError?.response?.data?.detail;
+    
+      if (status === 401) {
+        setError(
+          detail ||
+            "Invalid username or password.",
+        );
+      } else if (status === 403) {
+        setError(
+          detail ||
+            "Your account is inactive.",
+        );
+      } else if (!loginError?.response) {
+        setError(
+          "Unable to connect to QABook. Please check that the backend is running.",
+        );
+      } else {
+        setError(
+          detail ||
+            "Unable to sign in. Please try again.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -131,13 +154,12 @@ export default function LoginPage() {
       setLoading(true);
       clearMessages();
 
-      const response =
-        await api.post(
-          "/auth/forgot-password",
-          {
-            email: email.trim(),
-          },
-        );
+      const response = await api.post(
+        "/auth/forgot-password",
+        {
+          email: email.trim(),
+        },
+      );
 
       setSuccessMessage(
         response.data?.message ||
@@ -185,15 +207,14 @@ export default function LoginPage() {
       setLoading(true);
       clearMessages();
 
-      const response =
-        await api.post(
-          "/auth/register",
-          {
-            username: username.trim(),
-            email: email.trim(),
-            password,
-          },
-        );
+      const response = await api.post(
+        "/auth/register",
+        {
+          username: username.trim(),
+          email: email.trim(),
+          password,
+        },
+      );
 
       setSuccessMessage(
         response.data?.message ||
@@ -224,9 +245,7 @@ export default function LoginPage() {
           detail ||
             "Username or email already exists.",
         );
-      } else if (
-        status === 422
-      ) {
+      } else if (status === 422) {
         setError(
           "Please check the information you entered.",
         );
@@ -272,9 +291,7 @@ export default function LoginPage() {
         backgroundColor: "#f7f9fc",
       }}
     >
-      {/* -------------------------------------------------
-          LEFT PRODUCT PANEL
-      ------------------------------------------------- */}
+      {/* LEFT PRODUCT PANEL */}
 
       <Box
         sx={{
@@ -333,15 +350,11 @@ export default function LoginPage() {
             zIndex: 1,
           }}
         >
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 800,
-              letterSpacing: "-1px",
-            }}
-          >
-            QABook
-          </Typography>
+          <QABookLogo
+            size="md"
+            dark
+            showTagline
+          />
         </Box>
 
         <Box
@@ -380,7 +393,9 @@ export default function LoginPage() {
               {index < 3 && (
                 <Typography
                   variant="caption"
-                  sx={{ opacity: 0.6 }}
+                  sx={{
+                    opacity: 0.6,
+                  }}
                 >
                   •
                 </Typography>
@@ -529,9 +544,7 @@ export default function LoginPage() {
         </Box>
       </Box>
 
-      {/* -------------------------------------------------
-          RIGHT AUTH PANEL
-      ------------------------------------------------- */}
+      {/* RIGHT AUTH PANEL */}
 
       <Box
         sx={{
@@ -622,41 +635,15 @@ export default function LoginPage() {
 
             <Box
               sx={{
-                textAlign: "center",
+                display: "flex",
+                justifyContent: "center",
                 mb: 4,
               }}
             >
-              <Typography
-                sx={{
-                  fontSize: {
-                    xs: "2rem",
-                    sm: "2.35rem",
-                  },
-                  fontWeight: 800,
-                  letterSpacing: "-1.5px",
-                  color: "#17233c",
-                }}
-              >
-                <Box
-                  component="span"
-                  sx={{
-                    color: "#1769e0",
-                  }}
-                >
-                  QA
-                </Box>
-                Book
-              </Typography>
-
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  mt: 0.5,
-                }}
-              >
-                QA Management Workspace
-              </Typography>
+              <QABookLogo
+                size="lg"
+                showTagline
+              />
             </Box>
 
             {/* Heading */}
@@ -709,9 +696,7 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            {/* -------------------------------------------------
-                LOGIN
-            ------------------------------------------------- */}
+            {/* LOGIN */}
 
             {view === "login" && (
               <>
@@ -998,9 +983,7 @@ export default function LoginPage() {
               </>
             )}
 
-            {/* -------------------------------------------------
-                FORGOT PASSWORD
-            ------------------------------------------------- */}
+            {/* FORGOT PASSWORD */}
 
             {view === "forgot-password" && (
               <>
@@ -1083,9 +1066,7 @@ export default function LoginPage() {
               </>
             )}
 
-            {/* -------------------------------------------------
-                REGISTER
-            ------------------------------------------------- */}
+            {/* REGISTER */}
 
             {view === "register" && (
               <>
@@ -1339,9 +1320,7 @@ export default function LoginPage() {
             color: "text.secondary",
           }}
         >
-          <Typography
-            variant="caption"
-          >
+          <Typography variant="caption">
             © 2026 QABook. All rights
             reserved.
           </Typography>
@@ -1383,7 +1362,7 @@ export default function LoginPage() {
 }
 
 interface FeatureItemProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   description: string;
   iconBackground: string;

@@ -194,12 +194,14 @@ class TestExecutionService:
                 test_case_id=test_case.id,
                 status="Not Executed",
             )
-
+        
             self.repository.create(
                 execution,
                 commit=False,
             )
-
+        
+        self.db.commit()
+        
         return self.repository.get_by_run_id(
             run_id
         )

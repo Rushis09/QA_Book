@@ -10,6 +10,29 @@ export interface WorkspaceUser {
   username: string;
 }
 
+export interface ProjectDeleteImpact {
+  project_id: number;
+  project_code: string;
+  project_name: string;
+  automation_enabled: boolean;
+  counts: {
+    requirements: number;
+    test_scenarios: number;
+    test_cases: number;
+    test_suites: number;
+    test_runs: number;
+    test_executions: number;
+    bugs: number;
+    documents: number;
+  };
+  automation: {
+    mapped_test_cases: number;
+    github_connected: boolean;
+    repository_url: string | null;
+    repository_will_be_deleted: boolean;
+  };
+}
+
 export const projectService = {
   async getProjects(
     ownerId?: number,
@@ -72,6 +95,16 @@ export const projectService = {
     return response.data;
   },
 
+  async getDeleteImpact(
+    id: number,
+  ): Promise<ProjectDeleteImpact> {
+    const response =
+      await api.get<ProjectDeleteImpact>(
+        `/projects/${id}/delete-impact`,
+      );
+
+    return response.data;
+  },
   async deleteProject(
     id: number,
   ): Promise<void> {

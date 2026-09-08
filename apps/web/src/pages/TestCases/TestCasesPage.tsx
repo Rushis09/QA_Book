@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Alert,
   Box,
@@ -10,9 +10,15 @@ import {
   MenuItem,
   OutlinedInput,
   Select,
+  TextField,
   Typography,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import ConfirmDialog from "../../components/common/ConfirmDialog";
 import PageHeader from "../../components/common/PageHeader";
@@ -33,18 +39,82 @@ import type { TestCase } from "../../types/testCase";
 import type { TestCaseFormData } from "../../types/testCaseForm";
 import type { TestScenario } from "../../types/testScenario";
 
+interface MetricCardProps {
+  icon: ReactNode;
+  value: number;
+  label: string;
+}
+
+function MetricCard({
+  icon,
+  value,
+  label,
+}: MetricCardProps) {
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        minWidth: 0,
+        height: 72,
+        px: 1.6,
+        py: 1.25,
+        border: "1px solid #e4e7ec",
+        borderRadius: "10px",
+        backgroundColor: "#fff",
+        display: "flex",
+        alignItems: "center",
+        gap: 1.25,
+      }}
+    >
+      <Box
+        sx={{
+          width: 36,
+          height: 36,
+          borderRadius: "8px",
+          backgroundColor: "#edf5ff",
+          color: "#1677ff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </Box>
+
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          sx={{
+            fontSize: "1rem",
+            fontWeight: 750,
+            lineHeight: 1.15,
+            color: "#101828",
+          }}
+        >
+          {value}
+        </Typography>
+
+        <Typography
+          sx={{
+            mt: 0.35,
+            fontSize: "0.7rem",
+            lineHeight: 1.2,
+            color: "#667085",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {label}
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
 export default function TestCasesPage() {
-  const [testCases, setTestCases] =
-    useState<TestCase[]>([]);
-
-  const [scenarios, setScenarios] =
-    useState<TestScenario[]>([]);
-
-  const [projects, setProjects] =
-    useState<Project[]>([]);
-
-  const [requirements, setRequirements] =
-    useState<Requirement[]>([]);
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [scenarios, setScenarios] = useState<TestScenario[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [requirements, setRequirements] = useState<Requirement[]>([]);
 
   const [selectedRequirementIds, setSelectedRequirementIds] =
     useState<number[]>([]);
@@ -58,23 +128,19 @@ export default function TestCasesPage() {
   const [selectedAutomationStatus, setSelectedAutomationStatus] =
     useState("");
 
-  const [loading, setLoading] =
-    useState(true);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("Code");
 
-  const [error, setError] =
-    useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [openDialog, setOpenDialog] =
-    useState(false);
-
-  const [openGenerateDialog, setOpenGenerateDialog] =
-    useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [openGenerateDialog, setOpenGenerateDialog] = useState(false);
 
   const [selectedTestCase, setSelectedTestCase] =
     useState<TestCase | null>(null);
 
-  const [confirmOpen, setConfirmOpen] =
-    useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [testCaseToDelete, setTestCaseToDelete] =
     useState<TestCase | null>(null);
@@ -85,8 +151,7 @@ export default function TestCasesPage() {
   const [selectedTestCaseIds, setSelectedTestCaseIds] =
     useState<number[]>([]);
 
-  const { showNotification } =
-    useNotification();
+  const { showNotification } = useNotification();
 
   const {
     selectedProject,
@@ -112,29 +177,21 @@ export default function TestCasesPage() {
     try {
       setLoading(true);
 
-      const projectId =
-        selectedProject?.id;
+      const projectId = selectedProject?.id;
 
       const [
         testCaseData,
         scenarioData,
         requirementData,
       ] = await Promise.all([
-        testCaseService.getTestCases(
-          projectId,
-        ),
-        testScenarioService.getTestScenarios(
-          projectId,
-        ),
-        requirementService.getRequirements(
-          projectId,
-        ),
+        testCaseService.getTestCases(projectId),
+        testScenarioService.getTestScenarios(projectId),
+        requirementService.getRequirements(projectId),
       ]);
 
       setTestCases(testCaseData);
       setScenarios(scenarioData);
       setRequirements(requirementData);
-
       setProjects(workspaceProjects);
 
       setSelectedRequirementIds([]);
@@ -146,10 +203,7 @@ export default function TestCasesPage() {
       setError("");
     } catch (error) {
       console.error(error);
-
-      setError(
-        "Failed to load test cases.",
-      );
+      setError("Failed to load test cases.");
     } finally {
       setLoading(false);
     }
@@ -163,10 +217,40 @@ export default function TestCasesPage() {
     workspaceProjects,
   ]);
 
-  const filteredTestCases = testCases.filter(
-    (testCase) => {
+  const filteredScenarios = useMemo(() => {
+    if (selectedRequirementIds.length === 0) {
+      return scenarios;
+    }
+
+    return scenarios.filter((scenario) =>
+      selectedRequirementIds.includes(
+        scenario.requirement_id,
+      ),
+    );
+  }, [selectedRequirementIds, scenarios]);
+
+  useEffect(() => {
+    setSelectedScenarioIds((previous) => {
+      const next = previous.filter((id) =>
+        filteredScenarios.some(
+          (scenario) => scenario.id === id,
+        ),
+      );
+
+      if (next.length === previous.length) {
+        return previous;
+      }
+
+      return next;
+    });
+  }, [filteredScenarios]);
+
+  const filteredTestCases = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    const filtered = testCases.filter((testCase) => {
       const scenario = scenarios.find(
-        (s) => s.id === testCase.scenario_id,
+        (item) => item.id === testCase.scenario_id,
       );
 
       if (!scenario) {
@@ -195,61 +279,98 @@ export default function TestCasesPage() {
         testCase.automation_status ===
           selectedAutomationStatus;
 
+      const matchesSearch =
+        normalizedSearch === "" ||
+        [
+          testCase.test_case_code,
+          testCase.title,
+          testCase.description,
+          scenario.scenario_code,
+          scenario.title,
+        ]
+          .filter(Boolean)
+          .some((value) =>
+            String(value)
+              .toLowerCase()
+              .includes(normalizedSearch),
+          );
+
       return (
         matchesRequirement &&
         matchesScenario &&
         matchesAutomationEligibility &&
-        matchesAutomationStatus
+        matchesAutomationStatus &&
+        matchesSearch
       );
-    },
-  );
+    });
 
-  const filteredScenarios =
-    selectedRequirementIds.length === 0
-      ? scenarios
-      : scenarios.filter((scenario) =>
-          selectedRequirementIds.includes(
-            scenario.requirement_id,
-          ),
-        );
-
-  useEffect(() => {
-    setSelectedScenarioIds((previous) => {
-      const next = previous.filter((id) =>
-        filteredScenarios.some(
-          (scenario) => scenario.id === id,
-        ),
-      );
-
-      if (next.length === previous.length) {
-        return previous;
+    return [...filtered].sort((a, b) => {
+      if (sortBy === "Title") {
+        return a.title.localeCompare(b.title);
       }
 
-      return next;
-    });
-  }, [selectedRequirementIds, scenarios]);
+      if (sortBy === "Automation Status") {
+        return (
+          (a.automation_status || "").localeCompare(
+            b.automation_status || "",
+          )
+        );
+      }
 
-  function handleEdit(
-    testCase: TestCase,
-  ) {
+      if (sortBy === "Eligibility") {
+        return (
+          (a.automation_eligibility || "").localeCompare(
+            b.automation_eligibility || "",
+          )
+        );
+      }
+
+      return a.test_case_code.localeCompare(
+        b.test_case_code,
+      );
+    });
+  }, [
+    testCases,
+    scenarios,
+    selectedRequirementIds,
+    selectedScenarioIds,
+    selectedAutomationEligibility,
+    selectedAutomationStatus,
+    search,
+    sortBy,
+  ]);
+
+  const totalTestCases = testCases.length;
+
+  const automatedCount = testCases.filter(
+    (testCase) =>
+      testCase.automation_status === "Automated",
+  ).length;
+
+  const eligibleCount = testCases.filter(
+    (testCase) =>
+      testCase.automation_eligibility === "Eligible",
+  ).length;
+
+  const notSuitableCount = testCases.filter(
+    (testCase) =>
+      testCase.automation_eligibility === "Not Suitable",
+  ).length;
+
+  function handleEdit(testCase: TestCase) {
     setSelectedTestCase(testCase);
     setOpenDialog(true);
   }
 
-  function handleDelete(
-    testCase: TestCase,
-  ) {
+  function handleDelete(testCase: TestCase) {
     setTestCaseToDelete(testCase);
     setConfirmOpen(true);
   }
 
   function handleBulkDelete() {
-    const selectedCases =
-      testCases.filter((testCase) =>
-        selectedTestCaseIds.includes(
-          testCase.id,
-        ),
-      );
+    const selectedCases = testCases.filter((testCase) =>
+      selectedTestCaseIds.includes(testCase.id),
+    );
 
     if (selectedCases.length === 0) {
       return;
@@ -260,9 +381,7 @@ export default function TestCasesPage() {
     setConfirmOpen(true);
   }
 
-  async function handleSave(
-    data: TestCaseFormData,
-  ) {
+  async function handleSave(data: TestCaseFormData) {
     if (selectedTestCase) {
       await testCaseService.updateTestCase(
         selectedTestCase.id,
@@ -274,9 +393,7 @@ export default function TestCasesPage() {
         "success",
       );
     } else {
-      await testCaseService.createTestCase(
-        data,
-      );
+      await testCaseService.createTestCase(data);
 
       showNotification(
         "Test case created successfully.",
@@ -288,18 +405,6 @@ export default function TestCasesPage() {
 
     setSelectedTestCase(null);
     setOpenDialog(false);
-  }
-
-  if (loading) {
-    return <CircularProgress />;
-  }
-
-  if (error) {
-    return (
-      <Alert severity="error">
-        {error}
-      </Alert>
-    );
   }
 
   const handleRequirementChange = (
@@ -332,10 +437,34 @@ export default function TestCasesPage() {
     );
   };
 
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          minHeight: 240,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <CircularProgress size={28} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
   return (
     <>
       <PageHeader
         title="Test Cases"
+      
         actionLabel="New Test Case"
         onAction={() => {
           if (selectedScenarioIds.length !== 1) {
@@ -346,6 +475,7 @@ export default function TestCasesPage() {
             return;
           }
 
+          setSelectedTestCase(null);
           setOpenDialog(true);
         }}
         secondaryActionLabel="✨ Generate with AI"
@@ -419,39 +549,107 @@ export default function TestCasesPage() {
       >
         <Box
           sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "repeat(2, minmax(0, 1fr))",
-            },
-            gridTemplateAreas: {
-              xs: `
-                "requirements"
-                "scenarios"
-                "automationStatus"
-                "automationEligibility"
-              `,
-              sm: `
-                "requirements automationStatus"
-                "scenarios automationEligibility"
-              `,
-            },
-            gap: 2,
-            mb: 2,
+            display: "flex",
+            gap: 1.25,
+            mb: 1.5,
+            width: "100%",
           }}
         >
-          <Typography
-            variant="body2"
-            color="text.secondary"
-          >
-            Total Test Cases: {filteredTestCases.length}
-          </Typography>
+          <MetricCard
+            icon={
+              <AssignmentOutlinedIcon
+                sx={{ fontSize: 20 }}
+              />
+            }
+            value={totalTestCases}
+            label="Total Test Cases"
+          />
+
+          <MetricCard
+            icon={
+              <AutoAwesomeOutlinedIcon
+                sx={{ fontSize: 20 }}
+              />
+            }
+            value={automatedCount}
+            label="Automated"
+          />
+
+          <MetricCard
+            icon={
+              <CheckCircleOutlineOutlinedIcon
+                sx={{ fontSize: 20 }}
+              />
+            }
+            value={eligibleCount}
+            label="Automation Eligible"
+          />
+
+          <MetricCard
+            icon={
+              <TuneOutlinedIcon
+                sx={{ fontSize: 20 }}
+              />
+            }
+            value={notSuitableCount}
+            label="Not Suitable"
+          />
+        </Box>
+
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            mb: 1.25,
+            width: "100%",
+            flexWrap: "wrap",
+          }}
+        >
+          <TextField
+            size="small"
+            placeholder="Search test cases..."
+            value={search}
+            onChange={(event) =>
+              setSearch(event.target.value)
+            }
+            sx={{
+              width: 262,
+              "& .MuiOutlinedInput-root": {
+                height: 36,
+                borderRadius: "8px",
+                backgroundColor: "#fff",
+                fontSize: "0.76rem",
+              },
+              "& input": {
+                py: 0.75,
+              },
+            }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <SearchOutlinedIcon
+                    sx={{
+                      fontSize: 18,
+                      color: "#98a2b3",
+                      mr: 0.75,
+                    }}
+                  />
+                ),
+              },
+            }}
+          />
 
           <FormControl
             size="small"
             sx={{
-              maxWidth: 420,
-              gridArea: "requirements",
+              width: 200,
+              "& .MuiOutlinedInput-root": {
+                height: 36,
+                borderRadius: "8px",
+                backgroundColor: "#fff",
+                fontSize: "0.76rem",
+              },
             }}
           >
             <InputLabel shrink>
@@ -472,15 +670,16 @@ export default function TestCasesPage() {
                 }
 
                 const selectedRequirements =
-                  requirements.filter((r) =>
-                    selected.includes(r.id),
+                  requirements.filter((requirement) =>
+                    selected.includes(requirement.id),
                   );
 
                 if (selectedRequirements.length === 1) {
-                  return `${selectedRequirements[0].requirement_code} - ${selectedRequirements[0].module}`;
+                  return selectedRequirements[0]
+                    .requirement_code;
                 }
 
-                return `${selectedRequirements.length} Requirements Selected`;
+                return `${selectedRequirements.length} Requirements`;
               }}
             >
               <MenuItem value={-1}>
@@ -488,35 +687,40 @@ export default function TestCasesPage() {
                   checked={
                     selectedRequirementIds.length === 0
                   }
+                  size="small"
                 />
                 <ListItemText primary="All Requirements" />
               </MenuItem>
 
-              {requirements.map(
-                (requirement) => (
-                  <MenuItem
-                    key={requirement.id}
-                    value={requirement.id}
-                  >
-                    <Checkbox
-                      checked={selectedRequirementIds.includes(
-                        requirement.id,
-                      )}
-                    />
-                    <ListItemText
-                      primary={`${requirement.requirement_code} - ${requirement.module}`}
-                    />
-                  </MenuItem>
-                ),
-              )}
+              {requirements.map((requirement) => (
+                <MenuItem
+                  key={requirement.id}
+                  value={requirement.id}
+                >
+                  <Checkbox
+                    checked={selectedRequirementIds.includes(
+                      requirement.id,
+                    )}
+                    size="small"
+                  />
+                  <ListItemText
+                    primary={`${requirement.requirement_code} - ${requirement.module}`}
+                  />
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
 
           <FormControl
             size="small"
             sx={{
-              maxWidth: 420,
-              gridArea: "scenarios",
+              width: 200,
+              "& .MuiOutlinedInput-root": {
+                height: 36,
+                borderRadius: "8px",
+                backgroundColor: "#fff",
+                fontSize: "0.76rem",
+              },
             }}
           >
             <InputLabel shrink>
@@ -542,10 +746,11 @@ export default function TestCasesPage() {
                   );
 
                 if (selectedScenarios.length === 1) {
-                  return `${selectedScenarios[0].scenario_code} - ${selectedScenarios[0].title}`;
+                  return selectedScenarios[0]
+                    .scenario_code;
                 }
 
-                return `${selectedScenarios.length} Scenarios Selected`;
+                return `${selectedScenarios.length} Scenarios`;
               }}
             >
               <MenuItem value={-1}>
@@ -553,6 +758,7 @@ export default function TestCasesPage() {
                   checked={
                     selectedScenarioIds.length === 0
                   }
+                  size="small"
                 />
                 <ListItemText primary="All Scenarios" />
               </MenuItem>
@@ -566,6 +772,7 @@ export default function TestCasesPage() {
                     checked={selectedScenarioIds.includes(
                       scenario.id,
                     )}
+                    size="small"
                   />
                   <ListItemText
                     primary={`${scenario.scenario_code} - ${scenario.title}`}
@@ -578,8 +785,13 @@ export default function TestCasesPage() {
           <FormControl
             size="small"
             sx={{
-              maxWidth: 420,
-              gridArea: "automationStatus",
+              width: 170,
+              "& .MuiOutlinedInput-root": {
+                height: 36,
+                borderRadius: "8px",
+                backgroundColor: "#fff",
+                fontSize: "0.76rem",
+              },
             }}
           >
             <InputLabel id="automation-status-label">
@@ -599,13 +811,11 @@ export default function TestCasesPage() {
               }
             >
               <MenuItem value="">
-                All
+                All Status
               </MenuItem>
-
               <MenuItem value="Not Automated">
                 Not Automated
               </MenuItem>
-
               <MenuItem value="Automated">
                 Automated
               </MenuItem>
@@ -615,8 +825,13 @@ export default function TestCasesPage() {
           <FormControl
             size="small"
             sx={{
-              maxWidth: 420,
-              gridArea: "automationEligibility",
+              width: 175,
+              "& .MuiOutlinedInput-root": {
+                height: 36,
+                borderRadius: "8px",
+                backgroundColor: "#fff",
+                fontSize: "0.76rem",
+              },
             }}
           >
             <InputLabel id="automation-eligibility-label">
@@ -636,18 +851,69 @@ export default function TestCasesPage() {
               }
             >
               <MenuItem value="">
-                All
+                All Eligibility
               </MenuItem>
-
               <MenuItem value="Eligible">
                 Eligible
               </MenuItem>
-
               <MenuItem value="Not Suitable">
                 Not Suitable
               </MenuItem>
             </Select>
           </FormControl>
+
+          <FormControl
+            size="small"
+            sx={{
+              width: 155,
+              "& .MuiOutlinedInput-root": {
+                height: 36,
+                borderRadius: "8px",
+                backgroundColor: "#fff",
+                fontSize: "0.76rem",
+              },
+            }}
+          >
+            <InputLabel id="sort-label">
+              Sort by
+            </InputLabel>
+
+            <Select
+              labelId="sort-label"
+              value={sortBy}
+              onChange={(event) =>
+                setSortBy(event.target.value)
+              }
+              input={
+                <OutlinedInput label="Sort by" />
+              }
+            >
+              <MenuItem value="Code">
+                Sort by: Code
+              </MenuItem>
+              <MenuItem value="Title">
+                Sort by: Title
+              </MenuItem>
+              <MenuItem value="Automation Status">
+                Sort by: Automation Status
+              </MenuItem>
+              <MenuItem value="Eligibility">
+                Sort by: Eligibility
+              </MenuItem>
+            </Select>
+          </FormControl>
+
+          <Typography
+            sx={{
+              ml: "auto",
+              fontSize: "0.7rem",
+              color: "#667085",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {filteredTestCases.length} of{" "}
+            {testCases.length} test cases
+          </Typography>
         </Box>
 
         <TestCaseTable
@@ -685,8 +951,7 @@ export default function TestCasesPage() {
           selectedScenarioIds[0] ?? 0
         }
         testCase={
-          selectedTestCase ??
-          undefined
+          selectedTestCase ?? undefined
         }
         onClose={() => {
           setSelectedTestCase(null);
@@ -715,11 +980,10 @@ export default function TestCasesPage() {
           try {
             if (bulkDeleteTestCases.length > 0) {
               await Promise.all(
-                bulkDeleteTestCases.map(
-                  (testCase) =>
-                    testCaseService.deleteTestCase(
-                      testCase.id,
-                    ),
+                bulkDeleteTestCases.map((testCase) =>
+                  testCaseService.deleteTestCase(
+                    testCase.id,
+                  ),
                 ),
               );
 

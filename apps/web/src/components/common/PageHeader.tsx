@@ -1,12 +1,10 @@
 import {
   Box,
   Button,
-  Stack,
   Typography,
 } from "@mui/material";
 
 import type { ButtonProps } from "@mui/material";
-
 import type { ReactNode } from "react";
 
 interface PageHeaderAction {
@@ -32,7 +30,6 @@ interface PageHeaderProps {
   selectionActions?: PageHeaderAction[];
 }
 
-
 export default function PageHeader({
   title,
   actionLabel,
@@ -50,65 +47,106 @@ export default function PageHeader({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 2,
+          mb: 1.5,
+          minHeight: 38,
         }}
       >
-        <Typography variant="h4">
+        <Typography
+          sx={{
+            fontSize: "1.45rem",
+            lineHeight: 1.2,
+            fontWeight: 750,
+            letterSpacing: "-0.035em",
+            color: "#111827",
+          }}
+        >
           {title}
         </Typography>
 
-        <Stack
-          direction="row"
-          spacing={2}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
         >
           {selectionCount && selectionCount > 0 ? (
-              <>
-                <Typography
-                  variant="h6"
+            <>
+              <Typography
+                sx={{
+                  mr: 0.5,
+                  fontSize: "0.78rem",
+                  fontWeight: 650,
+                  color: "#475467",
+                }}
+              >
+                {selectionCount} Selected
+              </Typography>
+
+              {selectionActions?.map((action) => (
+                <Button
+                  key={action.label}
+                  variant={action.variant ?? "contained"}
+                  color={action.color ?? "primary"}
+                  onClick={action.onClick}
+                  size="small"
                   sx={{
-                    alignSelf: "center",
-                    mr: 1,
+                    minHeight: 34,
+                    px: 1.5,
+                    borderRadius: "8px",
+                    fontSize: "0.76rem",
+                    fontWeight: 650,
+                    textTransform: "none",
+                    boxShadow: "none",
                   }}
                 >
-                  {selectionCount} Selected
-                </Typography>
-                
-                {selectionActions?.map((action) => (
-                  <Button
-                    key={action.label}
-                    variant={
-                      action.variant ?? "contained"
-                    }
-                    color={
-                      action.color ?? "primary"
-                    }
-                    onClick={action.onClick}
-                  >
-                    {action.label}
-                  </Button>
-                ))}
-              </>
-            ) : (
+                  {action.label}
+                </Button>
+              ))}
+            </>
+          ) : (
             <>
               {secondaryActionLabel &&
                 onSecondaryAction && (
                   <Button
                     variant="outlined"
                     onClick={onSecondaryAction}
+                    size="small"
+                    sx={{
+                      minHeight: 34,
+                      px: 1.5,
+                      borderRadius: "8px",
+                      fontSize: "0.76rem",
+                      fontWeight: 650,
+                      textTransform: "none",
+                      borderColor: "#d0d5dd",
+                      color: "#344054",
+                    }}
                   >
                     {secondaryActionLabel}
                   </Button>
                 )}
-        
+
               <Button
                 variant="contained"
                 onClick={onAction}
+                size="small"
+                sx={{
+                  minHeight: 34,
+                  px: 1.6,
+                  borderRadius: "8px",
+                  fontSize: "0.76rem",
+                  fontWeight: 650,
+                  textTransform: "none",
+                  boxShadow:
+                    "0 3px 8px rgba(22,119,255,0.16)",
+                }}
               >
                 {actionLabel}
               </Button>
             </>
           )}
-        </Stack>
+        </Box>
       </Box>
 
       {children}

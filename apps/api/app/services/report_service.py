@@ -10,6 +10,10 @@ class ReportService:
     ):
         self.repository = ReportRepository(db)
 
+    # ============================================================
+    # Project access
+    # ============================================================
+
     def get_report_project_ids(
         self,
         admin: Admin,
@@ -40,7 +44,11 @@ class ReportService:
             for project in projects
         ]
 
-    def get_summary(
+    # ============================================================
+    # Reports
+    # ============================================================
+
+    def get_overview(
         self,
         admin: Admin,
         project_id: int | None = None,
@@ -48,22 +56,82 @@ class ReportService:
         project_ids = self.get_report_project_ids(
             admin=admin,
             project_id=project_id,
+        )
+
+        inventory = (
+            self.repository.get_inventory(
+                project_ids=project_ids,
+            )
+        )
+
+        execution_health = (
+            self.repository._execution_health(
+                project_ids=project_ids,
+            )
+        )
+
+        coverage = (
+            self.repository.get_coverage_analytics(
+                project_ids=project_ids,
+            )
+        )
+
+        defects = (
+            self.repository.get_defect_analytics(
+                project_ids=project_ids,
+            )
         )
 
         return {
-            "execution_summary": (
-                self.repository.get_execution_summary(
+            "project": (
+                self.repository.get_project_context(
                     project_ids=project_ids,
                 )
             ),
-            "bug_summary": (
-                self.repository.get_bug_summary(
-                    project_ids=project_ids,
-                )
-            ),
+            "inventory": inventory,
+            "execution_health": execution_health,
+            "coverage_health": {
+                "requirement_coverage": (
+                    coverage["summary"][
+                        "requirement_coverage"
+                    ]
+                ),
+                "scenario_coverage": (
+                    coverage["summary"][
+                        "scenario_coverage"
+                    ]
+                ),
+                "execution_coverage": (
+                    coverage["summary"][
+                        "execution_coverage"
+                    ]
+                ),
+            },
+            "defect_health": {
+                "total": defects["summary"]["total"],
+                "open": defects["summary"]["open"],
+                "in_progress": defects["summary"][
+                    "in_progress"
+                ],
+                "fixed": defects["summary"]["fixed"],
+                "ready_for_qa": defects["summary"][
+                    "ready_for_qa"
+                ],
+                "retesting": defects["summary"][
+                    "retesting"
+                ],
+                "closed": defects["summary"]["closed"],
+                "reopened": defects["summary"]["reopened"],
+                "critical_open": defects["summary"][
+                    "critical_open"
+                ],
+                "high_open": defects["summary"][
+                    "high_open"
+                ],
+            },
         }
 
-    def get_requirement_coverage(
+    def get_execution_analytics(
         self,
         admin: Admin,
         project_id: int | None = None,
@@ -74,12 +142,12 @@ class ReportService:
         )
 
         return (
-            self.repository.get_requirement_coverage(
+            self.repository.get_execution_analytics(
                 project_ids=project_ids,
             )
         )
 
-    def get_traceability(
+    def get_coverage_analytics(
         self,
         admin: Admin,
         project_id: int | None = None,
@@ -90,10 +158,62 @@ class ReportService:
         )
 
         return (
-            self.repository.get_traceability(
+            self.repository.get_coverage_analytics(
                 project_ids=project_ids,
             )
         )
+
+    def get_defect_analytics(
+        self,
+        admin: Admin,
+        project_id: int | None = None,
+    ):
+        project_ids = self.get_report_project_ids(
+            admin=admin,
+            project_id=project_id,
+        )
+
+        return (
+            self.repository.get_defect_analytics(
+                project_ids=project_ids,
+            )
+        )
+
+    def get_quality_risk(
+        self,
+        admin: Admin,
+        project_id: int | None = None,
+    ):
+        project_ids = self.get_report_project_ids(
+            admin=admin,
+            project_id=project_id,
+        )
+
+        return (
+            self.repository.get_quality_risk(
+                project_ids=project_ids,
+            )
+        )
+
+    def get_traceability_analytics(
+        self,
+        admin: Admin,
+        project_id: int | None = None,
+    ):
+        project_ids = self.get_report_project_ids(
+            admin=admin,
+            project_id=project_id,
+        )
+
+        return (
+            self.repository.get_traceability_analytics(
+                project_ids=project_ids,
+            )
+        )
+
+    # ============================================================
+    # Authorization
+    # ============================================================
 
     def _validate_project_access(
         self,

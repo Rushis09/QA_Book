@@ -1,59 +1,100 @@
 import api from "./api";
 
 import type {
-  ReportSummary,
-  RequirementCoverageResponse,
-  TraceabilityResponse,
+  ReportOverview,
+  ExecutionAnalytics,
+  CoverageAnalytics,
+  DefectAnalytics,
+  RiskAnalytics,
+  TraceabilityAnalytics,
 } from "../types/report";
 
 const BASE_URL = "/reports";
 
+const projectParams = (projectId?: number) =>
+  projectId !== undefined
+    ? { project_id: projectId }
+    : undefined;
+
 export const reportService = {
-  async getSummary(
+  async getOverview(
     projectId?: number,
-  ): Promise<ReportSummary> {
+  ): Promise<ReportOverview> {
     const response =
-      await api.get<ReportSummary>(
-        `${BASE_URL}/summary`,
+      await api.get<ReportOverview>(
+        `${BASE_URL}/overview`,
         {
-          params:
-            projectId !== undefined
-              ? { project_id: projectId }
-              : undefined,
+          params: projectParams(projectId),
         },
       );
 
     return response.data;
   },
 
-  async getRequirementCoverage(
+  async getExecutionAnalytics(
     projectId?: number,
-  ): Promise<RequirementCoverageResponse> {
+  ): Promise<ExecutionAnalytics> {
     const response =
-      await api.get<RequirementCoverageResponse>(
+      await api.get<ExecutionAnalytics>(
+        `${BASE_URL}/execution`,
+        {
+          params: projectParams(projectId),
+        },
+      );
+
+    return response.data;
+  },
+
+  async getCoverageAnalytics(
+    projectId?: number,
+  ): Promise<CoverageAnalytics> {
+    const response =
+      await api.get<CoverageAnalytics>(
         `${BASE_URL}/coverage`,
         {
-          params:
-            projectId !== undefined
-              ? { project_id: projectId }
-              : undefined,
+          params: projectParams(projectId),
         },
       );
 
     return response.data;
   },
 
-  async getTraceability(
+  async getDefectAnalytics(
     projectId?: number,
-  ): Promise<TraceabilityResponse> {
+  ): Promise<DefectAnalytics> {
     const response =
-      await api.get<TraceabilityResponse>(
+      await api.get<DefectAnalytics>(
+        `${BASE_URL}/defects`,
+        {
+          params: projectParams(projectId),
+        },
+      );
+
+    return response.data;
+  },
+
+  async getQualityRisk(
+    projectId?: number,
+  ): Promise<RiskAnalytics> {
+    const response =
+      await api.get<RiskAnalytics>(
+        `${BASE_URL}/risk`,
+        {
+          params: projectParams(projectId),
+        },
+      );
+
+    return response.data;
+  },
+
+  async getTraceabilityAnalytics(
+    projectId?: number,
+  ): Promise<TraceabilityAnalytics> {
+    const response =
+      await api.get<TraceabilityAnalytics>(
         `${BASE_URL}/traceability`,
         {
-          params:
-            projectId !== undefined
-              ? { project_id: projectId }
-              : undefined,
+          params: projectParams(projectId),
         },
       );
 

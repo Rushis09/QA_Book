@@ -1,7 +1,8 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import AppLayout from "./layouts/AppLayout";
 import LoginPage from "./components/auth/LoginPage";
+import LandingPage from "./pages/Landing/LandingPage";
 import ResetPasswordPage from "./components/auth/ResetPasswordPage";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -19,108 +20,135 @@ import BugsPage from "./pages/Bugs/BugsPage";
 import ReportsPage from "./pages/Reports/ReportsPage";
 import AutomationPage from "./automation/pages/AutomationPage";
 import TestExecutionsListPage from "./pages/TestExecutions/TestExecutionsListPage";
-
+import ReportFocusBridge from "./components/common/ReportFocusBridge";
 
 function NotFoundPage() {
   return <h1>404 - Page Not Found</h1>;
 }
 
-
 export default function App() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <Routes>
-      {/* Public authentication routes */}
+    <>
+      <ReportFocusBridge />
 
-      <Route
-        path="/reset-password"
-        element={<ResetPasswordPage />}
-      />
-
-      {!isAuthenticated ? (
+      <Routes>
+        {/* Public route */}
         <Route
-          path="*"
-          element={<LoginPage />}
+          path="/reset-password"
+          element={<ResetPasswordPage />}
         />
-      ) : (
-        <Route element={<AppLayout />}>
-          <Route
-            path="/"
-            element={<DashboardPage />}
-          />
 
-          <Route
-            path="/projects"
-            element={<ProjectsPage />}
-          />
+        {!isAuthenticated ? (
+          <>
+            {/* Landing page */}
+            <Route
+              path="/"
+              element={<LandingPage />}
+            />
 
-          <Route
-            path="/requirements"
-            element={<RequirementsPage />}
-          />
+            {/* Login page */}
+            <Route
+              path="/login"
+              element={<LoginPage />}
+            />
 
-          <Route
-            path="/test-scenarios"
-            element={<TestScenariosPage />}
-          />
+            {/* Any unknown/protected route while logged out */}
+            <Route
+              path="*"
+              element={<Navigate to="/login" replace />}
+            />
+          </>
+        ) : (
+          <>
+            {/* Logged-in users should not see login */}
+            <Route
+              path="/login"
+              element={<Navigate to="/" replace />}
+            />
 
-          <Route
-            path="/test-cases"
-            element={<TestCasesPage />}
-          />
+            {/* Application */}
+            <Route element={<AppLayout />}>
+              <Route
+                path="/"
+                element={<DashboardPage />}
+              />
 
-          <Route
-            path="/automation"
-            element={<AutomationPage />}
-          />
+              <Route
+                path="/projects"
+                element={<ProjectsPage />}
+              />
 
-          <Route
-            path="/test-suites"
-            element={<TestSuitesPage />}
-          />
+              <Route
+                path="/requirements"
+                element={<RequirementsPage />}
+              />
 
-          <Route
-            path="/test-runs"
-            element={<TestRunsPage />}
-          />
+              <Route
+                path="/test-scenarios"
+                element={<TestScenariosPage />}
+              />
 
-          <Route
-            path="/test-runs/:id"
-            element={<TestRunDetailsPage />}
-          />
+              <Route
+                path="/test-cases"
+                element={<TestCasesPage />}
+              />
 
-          <Route
-            path="/test-runs/:runId/execute"
-            element={<ExecutionPage />}
-          />
+              <Route
+                path="/automation"
+                element={<AutomationPage />}
+              />
 
-          <Route
-            path="/test-executions"
-            element={<TestExecutionsListPage />}
-          />
+              <Route
+                path="/test-suites"
+                element={<TestSuitesPage />}
+              />
 
-          <Route
-            path="/bugs"
-            element={<BugsPage />}
-          />
+              <Route
+                path="/test-runs"
+                element={<TestRunsPage />}
+              />
 
-          <Route
-            path="/reports"
-            element={<ReportsPage />}
-          />
+              <Route
+                path="/test-runs/:id"
+                element={<TestRunDetailsPage />}
+              />
 
-          <Route
-            path="/test-suites/:id/assign"
-            element={<AssignTestCasesPage />}
-          />
-        </Route>
-      )}
+              <Route
+                path="/test-runs/:runId/execute"
+                element={<ExecutionPage />}
+              />
 
-      <Route
-        path="*"
-        element={<NotFoundPage />}
-      />
-    </Routes>
+              <Route
+                path="/test-executions"
+                element={<TestExecutionsListPage />}
+              />
+
+              <Route
+                path="/bugs"
+                element={<BugsPage />}
+              />
+
+              <Route
+                path="/reports"
+                element={<ReportsPage />}
+              />
+
+              <Route
+                path="/test-suites/:id/assign"
+                element={<AssignTestCasesPage />}
+              />
+            </Route>
+
+            {/* Unknown authenticated route */}
+            <Route
+              path="*"
+              element={<NotFoundPage />}
+            />
+          </>
+        )}
+      </Routes>
+    </>
   );
 }

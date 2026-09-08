@@ -4,7 +4,6 @@ import {
   Divider,
   MenuItem,
   Paper,
-  Stack,
   TextField,
   Typography,
 } from "@mui/material";
@@ -13,6 +12,7 @@ import {
   BUG_PRIORITIES,
   BUG_RESOLUTIONS,
   BUG_SEVERITIES,
+  BUG_STATUSES,
 } from "../../constants/bugConstants";
 
 import type { TestExecution } from "../../types/testExecution";
@@ -31,16 +31,214 @@ interface BugFormProps {
   ) => void;
 }
 
-const BUG_STATUS_TRANSITIONS: Record<string, string[]> = {
-  Open: ["Open", "Triaged"],
-  Triaged: ["Triaged", "In Progress", "Closed"],
-  "In Progress": ["In Progress", "Fixed"],
-  Fixed: ["Fixed", "Ready for QA"],
-  "Ready for QA": ["Ready for QA", "Retesting"],
-  Retesting: ["Retesting", "Closed", "Reopened"],
-  Reopened: ["Reopened", "In Progress"],
-  Closed: ["Closed", "Reopened"],
+const fieldSx = {
+  "& .MuiOutlinedInput-root": {
+    minHeight: 40,
+    borderRadius: "8px",
+    backgroundColor: "#fff",
+    fontSize: "0.74rem",
+  },
+
+  "& .MuiInputLabel-root": {
+    fontSize: "0.72rem",
+  },
+
+  "& .MuiFormHelperText-root": {
+    fontSize: "0.65rem",
+    marginLeft: 0,
+    marginTop: "4px",
+  },
+
+  "& .MuiSelect-select": {
+    fontSize: "0.74rem",
+  },
 };
+
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <Box sx={{ mb: 0.85 }}>
+      <Typography
+        sx={{
+          fontSize: "0.61rem",
+          fontWeight: 800,
+          color: "#667085",
+          textTransform: "uppercase",
+          letterSpacing: "0.055em",
+        }}
+      >
+        {eyebrow}
+      </Typography>
+
+      <Typography
+        sx={{
+          mt: 0.15,
+          fontSize: "0.86rem",
+          fontWeight: 800,
+          color: "#101828",
+        }}
+      >
+        {title}
+      </Typography>
+
+      {description && (
+        <Typography
+          sx={{
+            mt: 0.2,
+            fontSize: "0.66rem",
+            color: "#667085",
+          }}
+        >
+          {description}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+function DetailCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <Box
+      sx={{
+        minWidth: 0,
+        px: 1.1,
+        py: 0.9,
+        borderRadius: "8px",
+        backgroundColor: "#f8fafc",
+        border: "1px solid #eaecf0",
+      }}
+    >
+      <Typography
+        sx={{
+          fontSize: "0.58rem",
+          fontWeight: 800,
+          color: "#667085",
+          textTransform: "uppercase",
+          letterSpacing: "0.045em",
+          mb: 0.35,
+        }}
+      >
+        {label}
+      </Typography>
+
+      <Typography
+        sx={{
+          fontSize: "0.69rem",
+          lineHeight: 1.45,
+          color: "#344054",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
+        {value || "Not specified"}
+      </Typography>
+    </Box>
+  );
+}
+
+function ContextBlock({
+  label,
+  value,
+  fullWidth = false,
+  steps = false,
+}: {
+  label: string;
+  value: string;
+  fullWidth?: boolean;
+  steps?: boolean;
+}) {
+  return (
+    <Box
+      sx={{
+        minWidth: 0,
+        gridColumn: fullWidth
+          ? "1 / -1"
+          : undefined,
+        px: 1.15,
+        py: 0.95,
+        borderRadius: "8px",
+        backgroundColor: "#f8fafc",
+        border: "1px solid #eaecf0",
+      }}
+    >
+      <Typography
+        sx={{
+          fontSize: "0.59rem",
+          fontWeight: 800,
+          color: "#667085",
+          textTransform: "uppercase",
+          letterSpacing: "0.045em",
+          mb: 0.45,
+        }}
+      >
+        {label}
+      </Typography>
+
+      <Typography
+        component="div"
+        sx={{
+          fontSize: "0.69rem",
+          lineHeight: 1.55,
+          color: "#344054",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          ...(steps && {
+            "&::first-line": {
+              fontWeight: 500,
+            },
+          }),
+        }}
+      >
+        {value || "Not specified"}
+      </Typography>
+    </Box>
+  );
+}
+
+function statusChipSx(status: string) {
+  switch (status) {
+    case "Failed":
+      return {
+        color: "#b42318",
+        backgroundColor: "#fef3f2",
+        borderColor: "#fecdca",
+      };
+
+    case "Passed":
+      return {
+        color: "#067647",
+        backgroundColor: "#ecfdf3",
+        borderColor: "#abefc6",
+      };
+
+    case "Blocked":
+      return {
+        color: "#b54708",
+        backgroundColor: "#fffaeb",
+        borderColor: "#fedf89",
+      };
+
+    default:
+      return {
+        color: "#475467",
+        backgroundColor: "#f2f4f7",
+        borderColor: "#e4e7ec",
+      };
+  }
+}
 
 export default function BugForm({
   value,
@@ -54,27 +252,28 @@ export default function BugForm({
       (execution) =>
         execution.id === value.execution_id,
     ) ?? null;
-    
-  const availableStatuses =
-    BUG_STATUS_TRANSITIONS[value.status] ??
-    [value.status];
+
+  const executionStatusStyles =
+    selectedExecution
+      ? statusChipSx(selectedExecution.status)
+      : statusChipSx("");
 
   return (
-    <Stack spacing={3} sx={{ pt: 1 }}>
+    <Box
+      sx={{
+        pt: 0.25,
+        pb: 0.5,
+      }}
+    >
       {/* =====================================================
-          EXECUTION / TRACEABILITY
+          EXECUTION CONTEXT
       ====================================================== */}
-      <Box>
-        <Typography
-          variant="overline"
-          color="text.secondary"
-          sx={{
-            fontWeight: 700,
-            letterSpacing: 1,
-          }}
-        >
-          Execution Context
-        </Typography>
+      <Box sx={{ mb: 2 }}>
+        <SectionHeader
+          eyebrow="Traceability"
+          title="Execution Context"
+          description="Link this defect to the execution that exposed the issue."
+        />
 
         {!selectedExecution ? (
           <TextField
@@ -98,14 +297,14 @@ export default function BugForm({
                 ? "Test Execution is required."
                 : ""
             }
-            sx={{ mt: 1 }}
+            sx={fieldSx}
           >
             {executions.map((execution) => (
               <MenuItem
                 key={execution.id}
                 value={execution.id}
               >
-                {`${execution.test_run.run_code} | ${execution.test_case.test_case_code} | ${execution.test_case.title}`}
+                {`${execution.test_run.run_code} · ${execution.test_case.test_case_code} · ${execution.test_case.title}`}
               </MenuItem>
             ))}
           </TextField>
@@ -113,243 +312,220 @@ export default function BugForm({
           <Paper
             variant="outlined"
             sx={{
-              mt: 1,
-              p: 2,
-              borderRadius: 2,
-              backgroundColor:
-                "background.default",
+              p: 1.15,
+              borderRadius: "9px",
+              borderColor: "#d0d5dd",
+              backgroundColor: "#fcfdff",
+              boxShadow:
+                "0 1px 2px rgba(16,24,40,0.03)",
             }}
           >
-            <Stack spacing={1.5}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 1.5,
+              }}
+            >
               <Box
                 sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: 2,
+                  minWidth: 0,
+                  flex: 1,
                 }}
               >
-                <Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.7,
+                    flexWrap: "wrap",
+                  }}
+                >
                   <Typography
-                    variant="subtitle1"
                     sx={{
-                      fontWeight: 700,
+                      fontSize: "0.78rem",
+                      fontWeight: 800,
+                      color: "#101828",
                     }}
                   >
                     {
-                      selectedExecution.test_case
+                      selectedExecution
+                        .test_case
                         .test_case_code
                     }
-                    {" — "}
-                    {
-                      selectedExecution.test_case
-                        .title
-                    }
                   </Typography>
 
                   <Typography
-                    variant="body2"
-                    color="text.secondary"
+                    sx={{
+                      fontSize: "0.72rem",
+                      color: "#98a2b3",
+                    }}
+                  >
+                    /
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      fontSize: "0.72rem",
+                      fontWeight: 650,
+                      color: "#344054",
+                    }}
                   >
                     {
-                      selectedExecution.test_run
-                        .run_code
-                    }
-                    {" — "}
-                    {
-                      selectedExecution.test_run
-                        .name
+                      selectedExecution
+                        .test_case.title
                     }
                   </Typography>
                 </Box>
 
-                <Chip
-                  label={
-                    selectedExecution.status
+                <Typography
+                  sx={{
+                    mt: 0.35,
+                    fontSize: "0.66rem",
+                    color: "#667085",
+                  }}
+                >
+                  {
+                    selectedExecution
+                      .test_run.run_code
                   }
-                  color={
-                    selectedExecution.status ===
-                    "Failed"
-                      ? "error"
-                      : "default"
+                  {" · "}
+                  {
+                    selectedExecution
+                      .test_run.name
                   }
-                  size="small"
-                />
+                </Typography>
               </Box>
 
-              <Divider />
-
-              <Stack
-                direction={{
-                  xs: "column",
-                  sm: "row",
+              <Chip
+                label={selectedExecution.status}
+                size="small"
+                sx={{
+                  height: 23,
+                  borderRadius: "6px",
+                  fontSize: "0.62rem",
+                  fontWeight: 750,
+                  color:
+                    executionStatusStyles.color,
+                  backgroundColor:
+                    executionStatusStyles.backgroundColor,
+                  border: `1px solid ${executionStatusStyles.borderColor}`,
                 }}
-                spacing={{
-                  xs: 1,
-                  sm: 4,
-                }}
-              >
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                  >
-                    Execution
-                  </Typography>
+              />
+            </Box>
 
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 600,
-                    }}
-                  >
-                    #{selectedExecution.id}
-                  </Typography>
-                </Box>
+            <Divider sx={{ my: 1 }} />
 
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                  >
-                    Test Case Priority
-                  </Typography>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(3, minmax(0, 1fr))",
+                gap: 0.7,
+              }}
+            >
+              <DetailCard
+                label="Execution"
+                value={`#${selectedExecution.id}`}
+              />
 
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 600,
-                    }}
-                  >
-                    {
-                      selectedExecution.test_case
-                        .priority
-                    }
-                  </Typography>
-                </Box>
+              <DetailCard
+                label="Test Case Priority"
+                value={
+                  selectedExecution.test_case
+                    .priority
+                }
+              />
 
-                
-              </Stack>
-            </Stack>
+              <DetailCard
+                label="Execution Result"
+                value={
+                  selectedExecution.status
+                }
+              />
+            </Box>
           </Paper>
         )}
       </Box>
 
       {/* =====================================================
-          TEST CASE REFERENCE
+          TEST CASE CONTEXT
       ====================================================== */}
       {selectedExecution && (
-        <Box>
-          <Typography
-            variant="overline"
-            color="text.secondary"
+        <Box sx={{ mb: 2 }}>
+          <SectionHeader
+            eyebrow="Reference"
+            title="Test Case Context"
+            description="Review the source test case before documenting the defect."
+          />
+
+          <Box
             sx={{
-              fontWeight: 700,
-              letterSpacing: 1,
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "minmax(0, 1fr) minmax(0, 1fr)",
+              },
+              gap: 0.8,
             }}
           >
-            Test Case Reference
-          </Typography>
+            <ContextBlock
+              label="Preconditions"
+              value={
+                selectedExecution.test_case
+                  .preconditions || ""
+              }
+            />
 
-          <Paper
-            variant="outlined"
-            sx={{
-              mt: 1,
-              p: 2,
-              borderRadius: 2,
-            }}
-          >
-            <Stack spacing={2}>
-              <Box>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                >
-                  Preconditions
-                </Typography>
+            <ContextBlock
+              label="Expected Result"
+              value={
+                selectedExecution.test_case
+                  .expected_result || ""
+              }
+            />
 
-                <Typography
-                  variant="body2"
-                  sx={{
-                    mt: 0.5,
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {selectedExecution.test_case
-                    .preconditions ||
-                    "No preconditions specified."}
-                </Typography>
-              </Box>
-
-              <Divider />
-
-              <Box>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                >
-                  Test Case Steps
-                </Typography>
-
-                <Typography
-                  variant="body2"
-                  sx={{
-                    mt: 0.5,
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {selectedExecution.test_case
-                    .steps ||
-                    "No test case steps specified."}
-                </Typography>
-              </Box>
-
-              <Divider />
-
-              <Box>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                >
-                  Expected Result
-                </Typography>
-
-                <Typography
-                  variant="body2"
-                  sx={{
-                    mt: 0.5,
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {selectedExecution.test_case
-                    .expected_result ||
-                    "No expected result specified."}
-                </Typography>
-              </Box>
-            </Stack>
-          </Paper>
+            <ContextBlock
+              label="Test Steps"
+              value={
+                selectedExecution.test_case.steps ||
+                ""
+              }
+              fullWidth
+              steps
+            />
+          </Box>
         </Box>
       )}
 
+      <Divider
+        sx={{
+          mb: 2,
+          borderColor: "#eaecf0",
+        }}
+      />
+
       {/* =====================================================
-          BUG DETAILS
+          BUG SUMMARY
       ====================================================== */}
-      <Box>
-        <Typography
-          variant="overline"
-          color="text.secondary"
+      <Box sx={{ mb: 2 }}>
+        <SectionHeader
+          eyebrow="Issue"
+          title="Bug Summary"
+          description="Describe the defect clearly enough for another team member to understand the problem."
+        />
+
+        <Box
           sx={{
-            fontWeight: 700,
-            letterSpacing: 1,
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
           }}
         >
-          Bug Details
-        </Typography>
-
-        <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField
             label="Bug Title"
-            placeholder="Describe the defect clearly"
+            placeholder="Example: Login button remains disabled after valid credentials"
             value={value.title}
             onChange={(event) =>
               onChange({
@@ -365,30 +541,55 @@ export default function BugForm({
                 : "Use a short, specific description of the problem."
             }
             fullWidth
+            sx={fieldSx}
           />
 
           <TextField
             label="Description"
-            placeholder="Describe the problem, impact, or additional context"
+            placeholder="Describe the problem, impact, and any useful context."
             value={value.description ?? ""}
             onChange={(event) =>
               onChange({
                 ...value,
-                description:
-                  event.target.value,
+                description: event.target.value,
               })
             }
             multiline
-            rows={3}
+            minRows={3}
+            maxRows={6}
             fullWidth
+            sx={fieldSx}
+          />
+        </Box>
+      </Box>
+
+      {/* =====================================================
+          DETAILS + OWNERSHIP
+      ====================================================== */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            md: "minmax(0, 1.5fr) minmax(260px, 0.85fr)",
+          },
+          gap: 1.5,
+          mb: 2,
+        }}
+      >
+        <Box>
+          <SectionHeader
+            eyebrow="Classification"
+            title="Defect Details"
           />
 
-          <Stack
-            direction={{
-              xs: "column",
-              sm: "row",
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(2, minmax(0, 1fr))",
+              gap: 1,
             }}
-            spacing={2}
           >
             <TextField
               select
@@ -397,22 +598,20 @@ export default function BugForm({
               onChange={(event) =>
                 onChange({
                   ...value,
-                  severity:
-                    event.target.value,
+                  severity: event.target.value,
                 })
               }
               fullWidth
+              sx={fieldSx}
             >
-              {BUG_SEVERITIES.map(
-                (severity) => (
-                  <MenuItem
-                    key={severity}
-                    value={severity}
-                  >
-                    {severity}
-                  </MenuItem>
-                ),
-              )}
+              {BUG_SEVERITIES.map((severity) => (
+                <MenuItem
+                  key={severity}
+                  value={severity}
+                >
+                  {severity}
+                </MenuItem>
+              ))}
             </TextField>
 
             <TextField
@@ -422,31 +621,30 @@ export default function BugForm({
               onChange={(event) =>
                 onChange({
                   ...value,
-                  priority:
-                    event.target.value,
+                  priority: event.target.value,
                 })
               }
               fullWidth
+              sx={fieldSx}
             >
-              {BUG_PRIORITIES.map(
-                (priority) => (
-                  <MenuItem
-                    key={priority}
-                    value={priority}
-                  >
-                    {priority}
-                  </MenuItem>
-                ),
-              )}
+              {BUG_PRIORITIES.map((priority) => (
+                <MenuItem
+                  key={priority}
+                  value={priority}
+                >
+                  {priority}
+                </MenuItem>
+              ))}
             </TextField>
 
-           <TextField
+            <TextField
               select
               label="Status"
               value={value.status}
               onChange={(event) => {
-                const status = event.target.value;
-              
+                const status =
+                  event.target.value;
+
                 onChange({
                   ...value,
                   status,
@@ -457,19 +655,18 @@ export default function BugForm({
                 });
               }}
               fullWidth
+              sx={fieldSx}
             >
-              {availableStatuses.map(
-                (status) => (
-                  <MenuItem
-                    key={status}
-                    value={status}
-                  >
-                    {status}
-                  </MenuItem>
-                ),
-              )}
+              {BUG_STATUSES.map((status) => (
+                <MenuItem
+                  key={status}
+                  value={status}
+                >
+                  {status}
+                </MenuItem>
+              ))}
             </TextField>
-            
+
             <TextField
               select
               label="Resolution"
@@ -484,34 +681,40 @@ export default function BugForm({
               disabled={value.status !== "Closed"}
               required={value.status === "Closed"}
               fullWidth
+              sx={fieldSx}
             >
               <MenuItem value="">
                 No Resolution
               </MenuItem>
-            
-              {BUG_RESOLUTIONS.map(
-                (resolution) => (
-                  <MenuItem
-                    key={resolution}
-                    value={resolution}
-                  >
-                    {resolution}
-                  </MenuItem>
-                ),
-              )}
-            </TextField>
-          </Stack>
 
-          <Stack
-            direction={{
-              xs: "column",
-              sm: "row",
+              {BUG_RESOLUTIONS.map((resolution) => (
+                <MenuItem
+                  key={resolution}
+                  value={resolution}
+                >
+                  {resolution}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+        </Box>
+
+        <Box>
+          <SectionHeader
+            eyebrow="Ownership"
+            title="People"
+          />
+
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
             }}
-            spacing={2}
           >
             <TextField
               label="Assigned To"
-              placeholder="Assign to a team member"
+              placeholder="Team member"
               value={value.assigned_to ?? ""}
               onChange={(event) =>
                 onChange({
@@ -521,6 +724,7 @@ export default function BugForm({
                 })
               }
               fullWidth
+              sx={fieldSx}
             />
 
             <TextField
@@ -535,87 +739,99 @@ export default function BugForm({
                 })
               }
               fullWidth
+              sx={fieldSx}
             />
-          </Stack>
-        </Stack>
+          </Box>
+        </Box>
+      </Box>
+
+      <Divider
+        sx={{
+          mb: 2,
+          borderColor: "#eaecf0",
+        }}
+      />
+
+      {/* =====================================================
+          REPRODUCTION
+      ====================================================== */}
+      <Box sx={{ mb: 2 }}>
+        <SectionHeader
+          eyebrow="Investigation"
+          title="Reproduction"
+          description="Provide enough information for the issue to be reproduced consistently."
+        />
+
+        <TextField
+          label="Steps to Reproduce"
+          placeholder={
+            "1. Open the application\n2. Navigate to ...\n3. Enter ...\n4. Observe ..."
+          }
+          value={value.steps_to_reproduce ?? ""}
+          onChange={(event) =>
+            onChange({
+              ...value,
+              steps_to_reproduce:
+                event.target.value,
+            })
+          }
+          multiline
+          minRows={4}
+          maxRows={8}
+          fullWidth
+          sx={fieldSx}
+        />
       </Box>
 
       {/* =====================================================
-          REPRODUCTION & RESULTS
+          RESULT
       ====================================================== */}
-      <Box>
-        <Typography
-          variant="overline"
-          color="text.secondary"
+      <Box sx={{ mb: 2 }}>
+        <SectionHeader
+          eyebrow="Evidence"
+          title="Actual Result"
+          description="Capture what happened instead of the expected behavior."
+        />
+
+        <TextField
+          placeholder="Describe the observed result, error, or unexpected behavior."
+          value={value.actual_result ?? ""}
+          onChange={(event) =>
+            onChange({
+              ...value,
+              actual_result:
+                event.target.value,
+            })
+          }
+          multiline
+          minRows={4}
+          maxRows={8}
+          fullWidth
           sx={{
-            fontWeight: 700,
-            letterSpacing: 1,
+            ...fieldSx,
+            "& .MuiOutlinedInput-root": {
+              ...fieldSx[
+                "& .MuiOutlinedInput-root"
+              ],
+              backgroundColor: "#fffafa",
+            },
           }}
-        >
-          Reproduction & Results
-        </Typography>
-
-        <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField
-            label="Steps To Reproduce"
-            placeholder="Describe the steps required to reproduce the defect"
-            value={
-              value.steps_to_reproduce ?? ""
-            }
-            onChange={(event) =>
-              onChange({
-                ...value,
-                steps_to_reproduce:
-                  event.target.value,
-              })
-            }
-            multiline
-            rows={4}
-            fullWidth
-          />
-
-          <TextField
-            label="Actual Result"
-            placeholder="Describe what actually happened"
-            value={value.actual_result ?? ""}
-            onChange={(event) =>
-              onChange({
-                ...value,
-                actual_result:
-                  event.target.value,
-              })
-            }
-            multiline
-            rows={4}
-            fullWidth
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                backgroundColor:
-                  "action.hover",
-              },
-            }}
-          />
-        </Stack>
+        />
       </Box>
 
       {/* =====================================================
           ENVIRONMENT
       ====================================================== */}
       <Box>
-        <Typography
-          variant="overline"
-          color="text.secondary"
-          sx={{
-            fontWeight: 700,
-            letterSpacing: 1,
-          }}
-        >
-          Environment
-        </Typography>
+        <SectionHeader
+          eyebrow="Context"
+          title="Environment"
+          description="Identify where the defect was observed."
+        />
 
         <TextField
           label="Environment"
-          placeholder="e.g. QA, Staging, Production"
+          placeholder="Example: QA / Chrome 140 / Windows 11"
           value={value.environment ?? ""}
           onChange={(event) =>
             onChange({
@@ -625,9 +841,9 @@ export default function BugForm({
             })
           }
           fullWidth
-          sx={{ mt: 1 }}
+          sx={fieldSx}
         />
       </Box>
-    </Stack>
+    </Box>
   );
 }

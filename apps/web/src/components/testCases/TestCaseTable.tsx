@@ -1,6 +1,7 @@
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
+  Box,
   Checkbox,
   Chip,
   IconButton,
@@ -11,6 +12,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
+  Typography,
 } from "@mui/material";
 
 import type { TestCase } from "../../types/testCase";
@@ -23,6 +26,151 @@ interface TestCaseTableProps {
   onDelete: (testCase: TestCase) => void;
 }
 
+function getPriorityStyles(priority: string) {
+  switch (priority) {
+    case "High":
+      return {
+        backgroundColor: "#fef3f2",
+        color: "#b42318",
+        borderColor: "#fecdca",
+      };
+    case "Medium":
+      return {
+        backgroundColor: "#fffaeb",
+        color: "#b54708",
+        borderColor: "#fedf89",
+      };
+    case "Low":
+      return {
+        backgroundColor: "#ecfdf3",
+        color: "#027a48",
+        borderColor: "#abefc6",
+      };
+    default:
+      return {
+        backgroundColor: "#f2f4f7",
+        color: "#475467",
+        borderColor: "#d0d5dd",
+      };
+  }
+}
+
+function getStatusStyles(status: string) {
+  switch (status) {
+    case "Approved":
+      return {
+        backgroundColor: "#eef4ff",
+        color: "#3538cd",
+        borderColor: "#c7d7fe",
+      };
+    case "Ready":
+      return {
+        backgroundColor: "#ecfdf3",
+        color: "#027a48",
+        borderColor: "#abefc6",
+      };
+    case "Draft":
+      return {
+        backgroundColor: "#f2f4f7",
+        color: "#475467",
+        borderColor: "#d0d5dd",
+      };
+    default:
+      return {
+        backgroundColor: "#f2f4f7",
+        color: "#475467",
+        borderColor: "#d0d5dd",
+      };
+  }
+}
+
+function getEligibilityStyles(eligibility: string) {
+  if (eligibility === "Eligible") {
+    return {
+      backgroundColor: "#ecfdf3",
+      color: "#027a48",
+      borderColor: "#abefc6",
+    };
+  }
+
+  return {
+    backgroundColor: "#fef3f2",
+    color: "#b42318",
+    borderColor: "#fecdca",
+  };
+}
+
+function getAutomationStyles(status: string) {
+  if (status === "Automated") {
+    return {
+      backgroundColor: "#ecfdf3",
+      color: "#027a48",
+      borderColor: "#abefc6",
+    };
+  }
+
+  return {
+    backgroundColor: "#eef4ff",
+    color: "#175cd3",
+    borderColor: "#b2ddff",
+  };
+}
+
+function StatusChip({
+  label,
+  styles,
+}: {
+  label: string;
+  styles: {
+    backgroundColor: string;
+    color: string;
+    borderColor: string;
+  };
+}) {
+  return (
+    <Chip
+      label={label}
+      size="small"
+      sx={{
+        height: 22,
+        borderRadius: "6px",
+        backgroundColor: styles.backgroundColor,
+        color: styles.color,
+        border: `1px solid ${styles.borderColor}`,
+        fontSize: "0.63rem",
+        fontWeight: 700,
+        "& .MuiChip-label": {
+          px: 0.7,
+        },
+      }}
+    />
+  );
+}
+
+const headCellSx = {
+  py: 0.85,
+  px: 0.85,
+  fontSize: "0.62rem",
+  fontWeight: 750,
+  color: "#667085",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.025em",
+  whiteSpace: "nowrap" as const,
+};
+
+const bodyCellSx = {
+  py: 0.75,
+  px: 0.85,
+};
+
+const singleLineTextSx = {
+  fontSize: "0.68rem",
+  color: "#344054",
+  whiteSpace: "nowrap" as const,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
 export default function TestCaseTable({
   testCases,
   selectedIds,
@@ -30,62 +178,6 @@ export default function TestCaseTable({
   onEdit,
   onDelete,
 }: TestCaseTableProps) {
-  function getPriorityColor(
-    priority: string,
-  ):
-    | "error"
-    | "warning"
-    | "success"
-    | "default" {
-    switch (priority) {
-      case "High":
-        return "error";
-      case "Medium":
-        return "warning";
-      case "Low":
-        return "success";
-      default:
-        return "default";
-    }
-  }
-
-  function getStatusColor(
-    status: string,
-  ): "default" | "primary" | "success" {
-    switch (status) {
-      case "Approved":
-        return "primary";
-      case "Ready":
-        return "success";
-      default:
-        return "default";
-    }
-  }
-
-  function getAutomationEligibilityColor(
-    eligibility: string,
-  ): "success" | "default" {
-    switch (eligibility) {
-      case "Eligible":
-        return "success";
-      default:
-        return "default";
-    }
-  }
-
-  function getAutomationStatusColor(
-    status: string,
-  ): "success" | "primary" | "default" {
-    switch (status) {
-      case "Automated":
-        return "success";
-      case "Not Automated":
-        return "primary";
-      default:
-        return "default";
-    }
-  }
-
   const visibleIds = testCases.map(
     (testCase) => testCase.id,
   );
@@ -122,9 +214,7 @@ export default function TestCaseTable({
     onSelectionChange(nextIds);
   }
 
-  function handleSelectTestCase(
-    testCaseId: number,
-  ) {
+  function handleSelectTestCase(testCaseId: number) {
     if (selectedIds.includes(testCaseId)) {
       onSelectionChange(
         selectedIds.filter(
@@ -141,59 +231,96 @@ export default function TestCaseTable({
   }
 
   return (
-    <TableContainer component={Paper}>
-      <Table>
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{
+        border: "1px solid #e4e7ec",
+        borderRadius: "10px",
+        overflowX: "auto",
+        overflowY: "hidden",
+        backgroundColor: "#fff",
+      }}
+    >
+      <Table
+        size="small"
+        sx={{
+          width: "100%",
+          tableLayout: "fixed",
+          "& .MuiTableCell-root": {
+            borderBottom: "1px solid #eef0f3",
+          },
+        }}
+      >
         <TableHead>
-          <TableRow>
-            <TableCell padding="checkbox">
+          <TableRow
+            sx={{
+              backgroundColor: "#f9fafb",
+            }}
+          >
+            <TableCell
+              padding="checkbox"
+              sx={{
+                width: 38,
+                py: 0.75,
+                px: 0.5,
+              }}
+            >
               <Checkbox
+                size="small"
                 checked={allSelected}
                 indeterminate={someSelected}
                 onChange={handleSelectAll}
               />
             </TableCell>
 
-            <TableCell>
-              Test Case Code
+            <TableCell sx={{ ...headCellSx, width: "7%" }}>
+              Test Case
             </TableCell>
 
-            <TableCell>
+            <TableCell sx={{ ...headCellSx, width: "11%" }}>
               Scenario
             </TableCell>
 
-            <TableCell>
+            <TableCell sx={{ ...headCellSx, width: "10%" }}>
               Requirement
             </TableCell>
 
-            <TableCell>
+            <TableCell sx={{ ...headCellSx, width: "6%" }}>
               Module
             </TableCell>
 
-            <TableCell>
+            <TableCell sx={{ ...headCellSx, width: "6%" }}>
               Priority
             </TableCell>
 
-            <TableCell>
+            <TableCell sx={{ ...headCellSx, width: "6%" }}>
               Status
             </TableCell>
 
-            <TableCell>
-              Automation Eligibility
+            <TableCell sx={{ ...headCellSx, width: "8%" }}>
+              Eligibility
             </TableCell>
 
-            <TableCell>
-              Automation Status
+            <TableCell sx={{ ...headCellSx, width: "8%" }}>
+              Automation
             </TableCell>
 
-            <TableCell>
+            <TableCell sx={{ ...headCellSx, width: "11%" }}>
               Title
             </TableCell>
 
-            <TableCell>
+            <TableCell sx={{ ...headCellSx, width: "14%" }}>
               Expected Result
             </TableCell>
 
-            <TableCell align="right">
+            <TableCell
+              align="right"
+              sx={{
+                ...headCellSx,
+                width: "7%",
+              }}
+            >
               Actions
             </TableCell>
           </TableRow>
@@ -205,24 +332,64 @@ export default function TestCaseTable({
               <TableCell
                 colSpan={12}
                 align="center"
+                sx={{
+                  py: 5,
+                  borderBottom: "none",
+                }}
               >
-                No test cases found.
+                <Typography
+                  sx={{
+                    fontSize: "0.8rem",
+                    fontWeight: 650,
+                    color: "#344054",
+                  }}
+                >
+                  No test cases found
+                </Typography>
+
+                <Typography
+                  sx={{
+                    mt: 0.45,
+                    fontSize: "0.68rem",
+                    color: "#98a2b3",
+                  }}
+                >
+                  Try changing your filters or create a
+                  new test case.
+                </Typography>
               </TableCell>
             </TableRow>
           ) : (
             testCases.map((testCase) => {
               const isSelected =
-                selectedIds.includes(
-                  testCase.id,
-                );
+                selectedIds.includes(testCase.id);
 
               return (
                 <TableRow
                   key={testCase.id}
                   selected={isSelected}
+                  hover
+                  sx={{
+                    "&:last-child .MuiTableCell-root": {
+                      borderBottom: "none",
+                    },
+                    "&.Mui-selected": {
+                      backgroundColor: "#f5f8ff",
+                    },
+                    "&.Mui-selected:hover": {
+                      backgroundColor: "#f5f8ff",
+                    },
+                  }}
                 >
-                  <TableCell padding="checkbox">
+                  <TableCell
+                    padding="checkbox"
+                    sx={{
+                      py: 0.65,
+                      px: 0.5,
+                    }}
+                  >
                     <Checkbox
+                      size="small"
                       checked={isSelected}
                       onChange={() =>
                         handleSelectTestCase(
@@ -232,93 +399,206 @@ export default function TestCaseTable({
                     />
                   </TableCell>
 
-                  <TableCell>
-                    {testCase.test_case_code}
+                  <TableCell sx={bodyCellSx}>
+                    <Typography
+                      sx={{
+                        fontSize: "0.68rem",
+                        fontWeight: 750,
+                        color: "#175cd3",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {testCase.test_case_code}
+                    </Typography>
                   </TableCell>
 
-                  <TableCell>
-                    {`${testCase.scenario.scenario_code} - ${testCase.scenario.title}`}
+                  <TableCell sx={bodyCellSx}>
+                    <Typography
+                      sx={{
+                        ...singleLineTextSx,
+                        fontWeight: 650,
+                      }}
+                      title={`${testCase.scenario.scenario_code} - ${testCase.scenario.title}`}
+                    >
+                      {testCase.scenario.scenario_code}
+                    </Typography>
+
+                    <Typography
+                      sx={{
+                        mt: 0.15,
+                        fontSize: "0.61rem",
+                        color: "#667085",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                      title={testCase.scenario.title}
+                    >
+                      {testCase.scenario.title}
+                    </Typography>
                   </TableCell>
 
-                  <TableCell>
-                    {`${testCase.scenario.requirement.requirement_code} - ${testCase.scenario.requirement.module}`}
+                  <TableCell sx={bodyCellSx}>
+                    <Typography
+                      sx={{
+                        ...singleLineTextSx,
+                        fontWeight: 650,
+                      }}
+                      title={`${testCase.scenario.requirement.requirement_code} - ${testCase.scenario.requirement.module}`}
+                    >
+                      {testCase.scenario.requirement.requirement_code}
+                    </Typography>
+
+                    <Typography
+                      sx={{
+                        mt: 0.15,
+                        fontSize: "0.61rem",
+                        color: "#667085",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                      title={
+                        testCase.scenario.requirement.module
+                      }
+                    >
+                      {testCase.scenario.requirement.module}
+                    </Typography>
                   </TableCell>
 
-                  <TableCell>
-                    {testCase.module}
+                  <TableCell sx={bodyCellSx}>
+                    <Typography sx={singleLineTextSx}>
+                      {testCase.module}
+                    </Typography>
                   </TableCell>
 
-                  <TableCell>
-                    <Chip
+                  <TableCell sx={bodyCellSx}>
+                    <StatusChip
                       label={testCase.priority}
-                      color={getPriorityColor(
+                      styles={getPriorityStyles(
                         testCase.priority,
                       )}
-                      size="small"
                     />
                   </TableCell>
 
-                  <TableCell>
-                    <Chip
+                  <TableCell sx={bodyCellSx}>
+                    <StatusChip
                       label={testCase.status}
-                      color={getStatusColor(
+                      styles={getStatusStyles(
                         testCase.status,
                       )}
-                      size="small"
                     />
                   </TableCell>
 
-                  <TableCell>
-                    <Chip
+                  <TableCell sx={bodyCellSx}>
+                    <StatusChip
                       label={
                         testCase.automation_eligibility
                       }
-                      color={getAutomationEligibilityColor(
+                      styles={getEligibilityStyles(
                         testCase.automation_eligibility,
                       )}
-                      size="small"
                     />
                   </TableCell>
 
-                  <TableCell>
-                    <Chip
+                  <TableCell sx={bodyCellSx}>
+                    <StatusChip
                       label={
                         testCase.automation_status
                       }
-                      color={getAutomationStatusColor(
+                      styles={getAutomationStyles(
                         testCase.automation_status,
                       )}
-                      size="small"
                     />
                   </TableCell>
 
-                  <TableCell>
-                    {testCase.title}
+                  <TableCell sx={bodyCellSx}>
+                    <Typography
+                      sx={singleLineTextSx}
+                      title={testCase.title}
+                    >
+                      {testCase.title}
+                    </Typography>
                   </TableCell>
 
-                  <TableCell>
-                    {testCase.expected_result ??
-                      "-"}
+                  <TableCell sx={bodyCellSx}>
+                    <Typography
+                      sx={{
+                        fontSize: "0.65rem",
+                        color: "#667085",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                      title={
+                        testCase.expected_result ??
+                        "-"
+                      }
+                    >
+                      {testCase.expected_result ?? "-"}
+                    </Typography>
                   </TableCell>
 
-                  <TableCell align="right">
-                    <IconButton
-                      color="primary"
-                      onClick={() =>
-                        onEdit(testCase)
-                      }
+                  <TableCell
+                    align="right"
+                    sx={{
+                      ...bodyCellSx,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        gap: 0.15,
+                      }}
                     >
-                      <EditIcon />
-                    </IconButton>
+                      <Tooltip title="Edit">
+                        <IconButton
+                          size="small"
+                          onClick={() =>
+                            onEdit(testCase)
+                          }
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: "7px",
+                            color: "#475467",
+                            "&:hover": {
+                              backgroundColor: "#f2f4f7",
+                              color: "#175cd3",
+                            },
+                          }}
+                        >
+                          <EditIcon
+                            sx={{ fontSize: 16 }}
+                          />
+                        </IconButton>
+                      </Tooltip>
 
-                    <IconButton
-                      color="error"
-                      onClick={() =>
-                        onDelete(testCase)
-                      }
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                      <Tooltip title="Delete">
+                        <IconButton
+                          size="small"
+                          onClick={() =>
+                            onDelete(testCase)
+                          }
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: "7px",
+                            color: "#98a2b3",
+                            "&:hover": {
+                              backgroundColor: "#fef3f2",
+                              color: "#d92d20",
+                            },
+                          }}
+                        >
+                          <DeleteIcon
+                            sx={{ fontSize: 16 }}
+                          />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
                   </TableCell>
                 </TableRow>
               );

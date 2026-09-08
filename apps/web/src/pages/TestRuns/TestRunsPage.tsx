@@ -1,9 +1,25 @@
-import { useEffect, useState } from "react";
 import {
   Alert,
+  Box,
+  Card,
+  CardContent,
+  Chip,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
   Typography,
 } from "@mui/material";
+
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import { useNavigate } from "react-router-dom";
 
 import ConfirmDialog from "../../components/common/ConfirmDialog";
 import PageHeader from "../../components/common/PageHeader";
@@ -22,8 +38,6 @@ import type {
 } from "../../types/testRun";
 import type { TestRunFormData } from "../../types/testRunForm";
 import type { TestSuite } from "../../types/testSuite";
-
-import { useNavigate } from "react-router-dom";
 
 export default function TestRunsPage() {
   const [testRuns, setTestRuns] =
@@ -49,6 +63,21 @@ export default function TestRunsPage() {
 
   const [testRunToDelete, setTestRunToDelete] =
     useState<TestRun | null>(null);
+
+  const [search, setSearch] =
+    useState("");
+
+  const [suiteFilter, setSuiteFilter] =
+    useState("");
+
+  const [executionTypeFilter, setExecutionTypeFilter] =
+    useState("");
+
+  const [statusFilter, setStatusFilter] =
+    useState("");
+
+  const [sortBy, setSortBy] =
+    useState("updated");
 
   const { showNotification } =
     useNotification();
@@ -124,9 +153,26 @@ export default function TestRunsPage() {
     setConfirmOpen(true);
   }
 
+  /*
+   * Manual execution is available only for
+   * Manual Test Runs whose Test Suite contains
+   * at least one Test Case.
+   *
+   * Automated Test Runs are executed through
+   * the QABook automation/GitHub workflow and
+   * must not open the manual execution workspace.
+   */
   function canExecuteTestRun(
     testRun: TestRun,
   ) {
+    if (
+      testRun.execution_type
+        .trim()
+        .toLowerCase() !== "manual"
+    ) {
+      return false;
+    }
+
     const suite = testSuites.find(
       (suite) =>
         suite.id === testRun.suite_id,
@@ -141,7 +187,25 @@ export default function TestRunsPage() {
   function handleExecute(
     testRun: TestRun,
   ) {
-    if (!canExecuteTestRun(testRun)) {
+    if (
+      testRun.execution_type
+        .trim()
+        .toLowerCase() !== "manual"
+    ) {
+      showNotification(
+        "Automated Test Runs are executed through QABook automation.",
+        "info",
+      );
+
+      return;
+    }
+
+    const suite = testSuites.find(
+      (suite) =>
+        suite.id === testRun.suite_id,
+    );
+
+    if (!suite || suite.test_cases.length === 0) {
       showNotification(
         "Cannot execute Test Run because the Test Suite has no test cases.",
         "warning",
@@ -250,15 +314,147 @@ export default function TestRunsPage() {
     setOpenDialog(false);
   }
 
+  const executionTypes = useMemo(() => {
+    return Array.from(
+      new Set(
+        testRuns
+          .map(
+            (testRun) =>
+              testRun.execution_type,
+          )
+          .filter(Boolean),
+      ),
+    ).sort();
+  }, [testRuns]);
+
+  const statuses = useMemo(() => {
+    return Array.from(
+      new Set(
+        testRuns
+          .map(
+            (testRun) =>
+              testRun.status,
+          )
+          .filter(Boolean),
+      ),
+    ).sort();
+  }, [testRuns]);
+
+  const filteredTestRuns = useMemo(() => {
+    const normalizedSearch =
+      search.trim().toLowerCase();
+
+    const filtered =
+      testRuns.filter((testRun) => {
+        const matchesSearch =
+          !normalizedSearch ||
+          testRun.run_code
+            .toLowerCase()
+            .includes(normalizedSearch) ||
+          testRun.name
+            .toLowerCase()
+            .includes(normalizedSearch);
+
+        const matchesSuite =
+          !suiteFilter ||
+          String(testRun.suite_id) ===
+            suiteFilter;
+
+        const matchesExecutionType =
+          !executionTypeFilter ||
+          testRun.execution_type ===
+            executionTypeFilter;
+
+        const matchesStatus =
+          !statusFilter ||
+          testRun.status ===
+            statusFilter;
+
+        return (
+          matchesSearch &&
+          matchesSuite &&
+          matchesExecutionType &&
+          matchesStatus
+        );
+      });
+
+    return [...filtered].sort(
+      (a, b) => {
+        if (sortBy === "run_code") {
+          return a.run_code.localeCompare(
+            b.run_code,
+          );
+        }
+
+        if (sortBy === "name") {
+          return a.name.localeCompare(
+            b.name,
+          );
+        }
+
+        return (
+          new Date(
+            b.updated_at,
+          ).getTime() -
+          new Date(
+            a.updated_at,
+          ).getTime()
+        );
+      },
+    );
+  }, [
+    testRuns,
+    search,
+    suiteFilter,
+    executionTypeFilter,
+    statusFilter,
+    sortBy,
+  ]);
+
+  const automatedCount = useMemo(
+    () =>
+      testRuns.filter(
+        (testRun) =>
+          testRun.execution_type
+            .toLowerCase() ===
+          "automated",
+      ).length,
+    [testRuns],
+  );
+
+  const manualCount =
+    testRuns.length - automatedCount;
+
+  const executableCount = useMemo(
+    () =>
+      testRuns.filter(
+        canExecuteTestRun,
+      ).length,
+    [testRuns, testSuites],
+  );
+
   if (loading) {
-    return <CircularProgress />;
+    return (
+      <Box
+        sx={{
+          minHeight: 300,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <CircularProgress size={28} />
+      </Box>
+    );
   }
 
   if (error) {
     return (
-      <Alert severity="error">
-        {error}
-      </Alert>
+      <Box sx={{ p: 1 }}>
+        <Alert severity="error">
+          {error}
+        </Alert>
+      </Box>
     );
   }
 
@@ -267,36 +463,642 @@ export default function TestRunsPage() {
       <PageHeader
         title="Test Runs"
         actionLabel="New Test Run"
-        onAction={() =>
-          setOpenDialog(true)
-        }
+        onAction={() => {
+          setSelectedTestRun(null);
+          setOpenDialog(true);
+        }}
+      />
+
+      {/* KPI CARDS */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, 1fr)",
+            lg: "repeat(4, 1fr)",
+          },
+          gap: 1.5,
+          mb: 2,
+        }}
       >
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          gutterBottom
+        <Card
+          elevation={0}
+          sx={{
+            border:
+              "1px solid #e4e7ec",
+            borderRadius: "10px",
+            backgroundColor: "#fff",
+          }}
         >
-          Total Test Runs:{" "}
-          {testRuns.length}
-        </Typography>
+          <CardContent
+            sx={{
+              p: "14px !important",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent:
+                    "center",
+                  backgroundColor:
+                    "#eff6ff",
+                  color: "#2563eb",
+                  fontSize: "0.85rem",
+                  fontWeight: 800,
+                }}
+              >
+                {testRuns.length}
+              </Box>
 
-        <TestRunTable
-          testRuns={testRuns}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onExecute={handleExecute}
-          onViewDetails={
-            handleViewDetails
-          }
-          onCopyToken={
-            handleCopyToken
-          }
-          canExecute={
-            canExecuteTestRun
-          }
-        />
-      </PageHeader>
+              <Box>
+                <Typography
+                  sx={{
+                    fontSize: "0.68rem",
+                    color: "#667085",
+                    fontWeight: 600,
+                  }}
+                >
+                  Total Runs
+                </Typography>
 
+                <Typography
+                  sx={{
+                    fontSize: "0.95rem",
+                    fontWeight: 750,
+                    color: "#101828",
+                  }}
+                >
+                  All test runs
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            border:
+              "1px solid #e4e7ec",
+            borderRadius: "10px",
+            backgroundColor: "#fff",
+          }}
+        >
+          <CardContent
+            sx={{
+              p: "14px !important",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent:
+                    "center",
+                  backgroundColor:
+                    "#f4f3ff",
+                  color: "#5925dc",
+                  fontSize: "0.8rem",
+                  fontWeight: 800,
+                }}
+              >
+                AI
+              </Box>
+
+              <Box>
+                <Typography
+                  sx={{
+                    fontSize: "0.68rem",
+                    color: "#667085",
+                    fontWeight: 600,
+                  }}
+                >
+                  Automated
+                </Typography>
+
+                <Typography
+                  sx={{
+                    fontSize: "0.95rem",
+                    fontWeight: 750,
+                    color: "#101828",
+                  }}
+                >
+                  {automatedCount}
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            border:
+              "1px solid #e4e7ec",
+            borderRadius: "10px",
+            backgroundColor: "#fff",
+          }}
+        >
+          <CardContent
+            sx={{
+              p: "14px !important",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent:
+                    "center",
+                  backgroundColor:
+                    "#f2f4f7",
+                  color: "#475467",
+                  fontSize: "1rem",
+                  fontWeight: 800,
+                }}
+              >
+                M
+              </Box>
+
+              <Box>
+                <Typography
+                  sx={{
+                    fontSize: "0.68rem",
+                    color: "#667085",
+                    fontWeight: 600,
+                  }}
+                >
+                  Manual
+                </Typography>
+
+                <Typography
+                  sx={{
+                    fontSize: "0.95rem",
+                    fontWeight: 750,
+                    color: "#101828",
+                  }}
+                >
+                  {manualCount}
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            border:
+              "1px solid #e4e7ec",
+            borderRadius: "10px",
+            backgroundColor: "#fff",
+          }}
+        >
+          <CardContent
+            sx={{
+              p: "14px !important",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent:
+                    "center",
+                  backgroundColor:
+                    "#ecfdf3",
+                  color: "#039855",
+                  fontSize: "1rem",
+                  fontWeight: 800,
+                }}
+              >
+                ✓
+              </Box>
+
+              <Box>
+                <Typography
+                  sx={{
+                    fontSize: "0.68rem",
+                    color: "#667085",
+                    fontWeight: 600,
+                  }}
+                >
+                  Executable
+                </Typography>
+
+                <Typography
+                  sx={{
+                    fontSize: "0.95rem",
+                    fontWeight: 750,
+                    color: "#101828",
+                  }}
+                >
+                  {executableCount}
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+
+      {/* FILTER BAR */}
+      <Box
+        sx={{
+          border:
+            "1px solid #e4e7ec",
+          borderRadius: "10px",
+          backgroundColor: "#fff",
+          p: 1.25,
+          mb: 1.25,
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 1,
+            alignItems: "center",
+          }}
+        >
+          <TextField
+            value={search}
+            onChange={(event) =>
+              setSearch(
+                event.target.value,
+              )
+            }
+            placeholder="Search runs..."
+            size="small"
+            sx={{
+              flex: "1 1 220px",
+              minWidth: 180,
+              "& .MuiOutlinedInput-root":
+                {
+                  borderRadius: "8px",
+                  height: 36,
+                  fontSize:
+                    "0.76rem",
+                },
+            }}
+          />
+
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: 155,
+              flex: "0 1 155px",
+            }}
+          >
+            <InputLabel
+              sx={{
+                fontSize: "0.75rem",
+              }}
+            >
+              Suite
+            </InputLabel>
+
+            <Select
+              value={suiteFilter}
+              label="Suite"
+              onChange={(event) =>
+                setSuiteFilter(
+                  event.target.value,
+                )
+              }
+              sx={{
+                height: 36,
+                borderRadius: "8px",
+                fontSize: "0.76rem",
+              }}
+            >
+              <MenuItem
+                value=""
+                sx={{
+                  fontSize: "0.76rem",
+                }}
+              >
+                All Suites
+              </MenuItem>
+
+              {testSuites.map(
+                (suite) => (
+                  <MenuItem
+                    key={suite.id}
+                    value={String(
+                      suite.id,
+                    )}
+                    sx={{
+                      fontSize:
+                        "0.76rem",
+                    }}
+                  >
+                    {suite.suite_code} —{" "}
+                    {suite.name}
+                  </MenuItem>
+                ),
+              )}
+            </Select>
+          </FormControl>
+
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: 150,
+              flex: "0 1 150px",
+            }}
+          >
+            <InputLabel
+              sx={{
+                fontSize: "0.75rem",
+              }}
+            >
+              Execution Type
+            </InputLabel>
+
+            <Select
+              value={
+                executionTypeFilter
+              }
+              label="Execution Type"
+              onChange={(event) =>
+                setExecutionTypeFilter(
+                  event.target.value,
+                )
+              }
+              sx={{
+                height: 36,
+                borderRadius: "8px",
+                fontSize: "0.76rem",
+              }}
+            >
+              <MenuItem
+                value=""
+                sx={{
+                  fontSize:
+                    "0.76rem",
+                }}
+              >
+                All Types
+              </MenuItem>
+
+              {executionTypes.map(
+                (type) => (
+                  <MenuItem
+                    key={type}
+                    value={type}
+                    sx={{
+                      fontSize:
+                        "0.76rem",
+                    }}
+                  >
+                    {type}
+                  </MenuItem>
+                ),
+              )}
+            </Select>
+          </FormControl>
+
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: 135,
+              flex: "0 1 135px",
+            }}
+          >
+            <InputLabel
+              sx={{
+                fontSize: "0.75rem",
+              }}
+            >
+              Status
+            </InputLabel>
+
+            <Select
+              value={statusFilter}
+              label="Status"
+              onChange={(event) =>
+                setStatusFilter(
+                  event.target.value,
+                )
+              }
+              sx={{
+                height: 36,
+                borderRadius: "8px",
+                fontSize: "0.76rem",
+              }}
+            >
+              <MenuItem
+                value=""
+                sx={{
+                  fontSize:
+                    "0.76rem",
+                }}
+              >
+                All Statuses
+              </MenuItem>
+
+              {statuses.map(
+                (status) => (
+                  <MenuItem
+                    key={status}
+                    value={status}
+                    sx={{
+                      fontSize:
+                        "0.76rem",
+                    }}
+                  >
+                    {status}
+                  </MenuItem>
+                ),
+              )}
+            </Select>
+          </FormControl>
+
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: 135,
+              flex: "0 1 135px",
+            }}
+          >
+            <InputLabel
+              sx={{
+                fontSize: "0.75rem",
+              }}
+            >
+              Sort
+            </InputLabel>
+
+            <Select
+              value={sortBy}
+              label="Sort"
+              onChange={(event) =>
+                setSortBy(
+                  event.target.value,
+                )
+              }
+              sx={{
+                height: 36,
+                borderRadius: "8px",
+                fontSize: "0.76rem",
+              }}
+            >
+              <MenuItem
+                value="updated"
+                sx={{
+                  fontSize:
+                    "0.76rem",
+                }}
+              >
+                Updated
+              </MenuItem>
+
+              <MenuItem
+                value="run_code"
+                sx={{
+                  fontSize:
+                    "0.76rem",
+                }}
+              >
+                Run Code
+              </MenuItem>
+
+              <MenuItem
+                value="name"
+                sx={{
+                  fontSize:
+                    "0.76rem",
+                }}
+              >
+                Name
+              </MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+      </Box>
+
+      {/* RESULT SUMMARY */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent:
+            "space-between",
+          mb: 1,
+          px: 0.25,
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.75,
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: "0.78rem",
+              fontWeight: 700,
+              color: "#344054",
+            }}
+          >
+            Test Runs
+          </Typography>
+
+          <Chip
+            label={`${filteredTestRuns.length} ${
+              filteredTestRuns.length ===
+              1
+                ? "run"
+                : "runs"
+            }`}
+            size="small"
+            sx={{
+              height: 22,
+              fontSize: "0.66rem",
+              fontWeight: 700,
+              backgroundColor:
+                "#f2f4f7",
+              color: "#475467",
+            }}
+          />
+        </Box>
+
+        {(search ||
+          suiteFilter ||
+          executionTypeFilter ||
+          statusFilter) && (
+          <Typography
+            sx={{
+              fontSize: "0.68rem",
+              color: "#667085",
+            }}
+          >
+            Filters applied
+          </Typography>
+        )}
+      </Box>
+
+      {/* TABLE */}
+      <TestRunTable
+        testRuns={filteredTestRuns}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onExecute={handleExecute}
+        onViewDetails={
+          handleViewDetails
+        }
+        onCopyToken={
+          handleCopyToken
+        }
+        canExecute={
+          canExecuteTestRun
+        }
+      />
+
+      {/* CREATE / EDIT DIALOG */}
       <TestRunDialog
         title={
           selectedTestRun
@@ -316,6 +1118,7 @@ export default function TestRunsPage() {
         onSave={handleSave}
       />
 
+      {/* DELETE CONFIRMATION */}
       <ConfirmDialog
         open={confirmOpen}
         title="Delete Test Run"
@@ -363,5 +1166,6 @@ export default function TestRunsPage() {
         }}
       />
     </>
-  );
+ 
+);
 }

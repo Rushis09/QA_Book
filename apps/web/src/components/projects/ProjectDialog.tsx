@@ -5,6 +5,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  Typography,
 } from "@mui/material";
 
 import ProjectForm from "./ProjectForm";
@@ -52,8 +54,6 @@ export default function ProjectDialog({
   const { showNotification } = useNotification();
 
   useEffect(() => {
-    console.log("Editing project:", project);
-
     if (project) {
       setName(project.name);
       setDescription(project.description ?? "");
@@ -84,21 +84,11 @@ export default function ProjectDialog({
     try {
       setSaving(true);
 
-      console.log({
-        name,
-        description,
-        status,
-        version,
-        start_date: startDate,
-        end_date: endDate,
-        brdFile,
-      });
-
       await onSave({
-        name,
-        description,
+        name: name.trim(),
+        description: description.trim(),
         status,
-        version: version || null,
+        version: version.trim() || null,
         start_date: startDate || null,
         end_date: endDate || null,
         brdFile,
@@ -130,16 +120,69 @@ export default function ProjectDialog({
     onClose();
   }
 
+  const isEditMode = Boolean(project);
+
   return (
     <Dialog
       open={open}
       onClose={handleCancel}
-      maxWidth="sm"
+      maxWidth="md"
       fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: "14px",
+            overflow: "hidden",
+            boxShadow:
+              "0 24px 70px rgba(15, 23, 42, 0.18)",
+          },
+        },
+      }}
     >
-      <DialogTitle>{title}</DialogTitle>
+      {/* Header */}
+      <DialogTitle
+        sx={{
+          px: 3,
+          pt: 2.5,
+          pb: 2,
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: "1.25rem",
+            lineHeight: 1.25,
+            fontWeight: 750,
+            letterSpacing: "-0.025em",
+            color: "#172033",
+          }}
+        >
+          {title}
+        </Typography>
 
-      <DialogContent>
+        <Typography
+          sx={{
+            mt: 0.55,
+            fontSize: "0.82rem",
+            lineHeight: 1.5,
+            color: "#667085",
+          }}
+        >
+          {isEditMode
+            ? "Update the project details and QA configuration."
+            : "Create a project to organize requirements, testing, documents, and automation."}
+        </Typography>
+      </DialogTitle>
+
+      <Divider />
+
+      {/* Form */}
+      <DialogContent
+        sx={{
+          px: 3,
+          py: 2.5,
+          backgroundColor: "#ffffff",
+        }}
+      >
         <ProjectForm
           name={name}
           description={description}
@@ -168,8 +211,32 @@ export default function ProjectDialog({
         />
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={handleCancel}>
+      <Divider />
+
+      {/* Footer */}
+      <DialogActions
+        sx={{
+          px: 3,
+          py: 1.75,
+          gap: 1,
+          justifyContent: "flex-end",
+          backgroundColor: "#fbfcfe",
+        }}
+      >
+        <Button
+          onClick={handleCancel}
+          disabled={saving}
+          sx={{
+            minWidth: 82,
+            height: 36,
+            px: 1.75,
+            borderRadius: "8px",
+            textTransform: "none",
+            fontSize: "0.8rem",
+            fontWeight: 650,
+            color: "#475467",
+          }}
+        >
           Cancel
         </Button>
 
@@ -180,10 +247,23 @@ export default function ProjectDialog({
             saving ||
             !name.trim()
           }
+          sx={{
+            minWidth: 110,
+            height: 36,
+            px: 2,
+            borderRadius: "8px",
+            textTransform: "none",
+            fontSize: "0.8rem",
+            fontWeight: 700,
+            boxShadow:
+              "0 3px 8px rgba(25, 103, 210, 0.18)",
+          }}
         >
           {saving
             ? "Saving..."
-            : "Save"}
+            : isEditMode
+              ? "Save Changes"
+              : "Create Project"}
         </Button>
       </DialogActions>
     </Dialog>

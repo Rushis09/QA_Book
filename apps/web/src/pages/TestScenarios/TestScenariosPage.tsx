@@ -1,18 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Box,
   Checkbox,
   CircularProgress,
-  FormControl,
-  InputLabel,
-  ListItemText,
+  InputAdornment,
   MenuItem,
-  OutlinedInput,
   Select,
+  TextField,
   Typography,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
+
+import SearchIcon from "@mui/icons-material/Search";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
+import PendingActionsOutlinedIcon from "@mui/icons-material/PendingActionsOutlined";
 
 import ConfirmDialog from "../../components/common/ConfirmDialog";
 import PageHeader from "../../components/common/PageHeader";
@@ -30,6 +32,10 @@ import { testScenarioService } from "../../services/testScenarioService";
 import type { Requirement } from "../../types/requirement";
 import type { TestScenario } from "../../types/testScenario";
 import type { TestScenarioFormData } from "../../types/testScenarioForm";
+
+type StatusFilter = "All" | string;
+type PriorityFilter = "All" | string;
+type SortOption = "code" | "title" | "priority" | "status";
 
 export default function TestScenariosPage() {
   const [testScenarios, setTestScenarios] =
@@ -72,6 +78,18 @@ export default function TestScenariosPage() {
     setBulkDeleteScenarios,
   ] = useState<TestScenario[]>([]);
 
+  const [search, setSearch] =
+    useState("");
+
+  const [statusFilter, setStatusFilter] =
+    useState<StatusFilter>("All");
+
+  const [priorityFilter, setPriorityFilter] =
+    useState<PriorityFilter>("All");
+
+  const [sortOption, setSortOption] =
+    useState<SortOption>("code");
+
   const { showNotification } =
     useNotification();
 
@@ -85,6 +103,7 @@ export default function TestScenariosPage() {
     if (!selectedProject && !isAllProjects) {
       setTestScenarios([]);
       setRequirements([]);
+      setSelectedTestScenarioIds([]);
       setLoading(false);
       return;
     }
@@ -108,7 +127,7 @@ export default function TestScenariosPage() {
 
       setTestScenarios(testScenarioData);
       setRequirements(requirementData);
-
+      setSelectedTestScenarioIds([]);
       setError("");
     } catch (error) {
       console.error(error);
@@ -124,19 +143,179 @@ export default function TestScenariosPage() {
     loadData();
   }, [selectedProject, isAllProjects]);
 
-  const filteredTestScenarios =
-    selectedRequirementIds.length === 0
-      ? testScenarios
-      : testScenarios.filter((scenario) =>
-          selectedRequirementIds.includes(
-            scenario.requirement_id,
+  const availableStatuses =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            testScenarios.map(
+              (scenario) =>
+                scenario.status,
+            ),
           ),
+        ),
+      [testScenarios],
+    );
+
+  const availablePriorities =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            testScenarios.map(
+              (scenario) =>
+                scenario.priority,
+            ),
+          ),
+        ),
+      [testScenarios],
+    );
+
+  const filteredTestScenarios =
+    useMemo(() => {
+      const normalizedSearch =
+        search.trim().toLowerCase();
+
+      const result =
+        testScenarios.filter(
+          (scenario) => {
+            const requirementCode =
+              scenario.requirement
+                ?.requirement_code ?? "";
+
+            const requirementModule =
+              scenario.requirement
+                ?.module ?? "";
+
+            const matchesSearch =
+              !normalizedSearch ||
+              scenario.scenario_code
+                .toLowerCase()
+                .includes(
+                  normalizedSearch,
+                ) ||
+              scenario.title
+                .toLowerCase()
+                .includes(
+                  normalizedSearch,
+                ) ||
+              scenario.module
+                .toLowerCase()
+                .includes(
+                  normalizedSearch,
+                ) ||
+              requirementCode
+                .toLowerCase()
+                .includes(
+                  normalizedSearch,
+                ) ||
+              requirementModule
+                .toLowerCase()
+                .includes(
+                  normalizedSearch,
+                ) ||
+              (
+                scenario.description ??
+                ""
+              )
+                .toLowerCase()
+                .includes(
+                  normalizedSearch,
+                );
+
+            const matchesRequirement =
+              selectedRequirementIds.length ===
+                0 ||
+              selectedRequirementIds.includes(
+                scenario.requirement_id,
+              );
+
+            const matchesStatus =
+              statusFilter === "All" ||
+              scenario.status ===
+                statusFilter;
+
+            const matchesPriority =
+              priorityFilter === "All" ||
+              scenario.priority ===
+                priorityFilter;
+
+            return (
+              matchesSearch &&
+              matchesRequirement &&
+              matchesStatus &&
+              matchesPriority
+            );
+          },
         );
+
+      return [...result].sort(
+        (a, b) => {
+          if (
+            sortOption === "title"
+          ) {
+            return a.title.localeCompare(
+              b.title,
+            );
+          }
+
+          if (
+            sortOption === "priority"
+          ) {
+            return a.priority.localeCompare(
+              b.priority,
+            );
+          }
+
+          if (
+            sortOption === "status"
+          ) {
+            return a.status.localeCompare(
+              b.status,
+            );
+          }
+
+          return a.scenario_code.localeCompare(
+            b.scenario_code,
+          );
+        },
+      );
+    }, [
+      testScenarios,
+      search,
+      selectedRequirementIds,
+      statusFilter,
+      priorityFilter,
+      sortOption,
+    ]);
+
+  const totalScenarios =
+    testScenarios.length;
+
+  const draftScenarios =
+    testScenarios.filter(
+      (scenario) =>
+        scenario.status === "Draft",
+    ).length;
+
+  const readyScenarios =
+    testScenarios.filter(
+      (scenario) =>
+        scenario.status === "Ready",
+    ).length;
+
+  const approvedScenarios =
+    testScenarios.filter(
+      (scenario) =>
+        scenario.status === "Approved",
+    ).length;
 
   function handleEdit(
     testScenario: TestScenario,
   ) {
-    setSelectedTestScenario(testScenario);
+    setSelectedTestScenario(
+      testScenario,
+    );
     setOpenDialog(true);
   }
 
@@ -144,7 +323,9 @@ export default function TestScenariosPage() {
     testScenario: TestScenario,
   ) {
     setBulkDeleteScenarios([]);
-    setTestScenarioToDelete(testScenario);
+    setTestScenarioToDelete(
+      testScenario,
+    );
     setConfirmOpen(true);
   }
 
@@ -154,10 +335,11 @@ export default function TestScenariosPage() {
 
   function handleBulkDelete() {
     const selectedScenarios =
-      testScenarios.filter((scenario) =>
-        selectedTestScenarioIds.includes(
-          scenario.id,
-        ),
+      testScenarios.filter(
+        (scenario) =>
+          selectedTestScenarioIds.includes(
+            scenario.id,
+          ),
       );
 
     if (selectedScenarios.length === 0) {
@@ -203,22 +385,11 @@ export default function TestScenariosPage() {
     setOpenDialog(false);
   }
 
-  if (loading) {
-    return <CircularProgress />;
-  }
-
-  if (error) {
-    return (
-      <Alert severity="error">
-        {error}
-      </Alert>
-    );
-  }
-
   const handleRequirementChange = (
     event: SelectChangeEvent<number[]>,
   ) => {
-    const value = event.target.value as number[];
+    const value =
+      event.target.value as number[];
 
     if (value.includes(-1)) {
       setSelectedRequirementIds([]);
@@ -230,13 +401,46 @@ export default function TestScenariosPage() {
     );
   };
 
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          minHeight: 300,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <CircularProgress size={28} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Typography
+          sx={{
+            color: "#b42318",
+            fontSize: "0.8rem",
+          }}
+        >
+          {error}
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <>
       <PageHeader
         title="Test Scenarios"
         actionLabel="New Test Scenario"
         onAction={() => {
-          if (selectedRequirementIds.length !== 1) {
+          if (
+            selectedRequirementIds.length !==
+            1
+          ) {
             showNotification(
               "Please select exactly one requirement to create a test scenario.",
               "warning",
@@ -244,11 +448,15 @@ export default function TestScenariosPage() {
             return;
           }
 
+          setSelectedTestScenario(null);
           setOpenDialog(true);
         }}
-        secondaryActionLabel="âœ¨ Generate with AI"
+        secondaryActionLabel="✨ Generate with AI"
         onSecondaryAction={() => {
-          if (selectedRequirementIds.length !== 1) {
+          if (
+            selectedRequirementIds.length !==
+            1
+          ) {
             showNotification(
               "Please select exactly one requirement to generate scenarios.",
               "warning",
@@ -262,20 +470,23 @@ export default function TestScenariosPage() {
           selectedTestScenarioIds.length
         }
         selectionActions={
-          selectedTestScenarioIds.length === 1
+          selectedTestScenarioIds.length ===
+          1
             ? [
                 {
                   label: "Edit",
                   onClick: () => {
                     const scenario =
                       testScenarios.find(
-                        (s) =>
-                          s.id ===
+                        (item) =>
+                          item.id ===
                           selectedTestScenarioIds[0],
                       );
 
                     if (scenario) {
-                      handleEdit(scenario);
+                      handleEdit(
+                        scenario,
+                      );
                     }
                   },
                 },
@@ -285,119 +496,353 @@ export default function TestScenariosPage() {
                   onClick: () => {
                     const scenario =
                       testScenarios.find(
-                        (s) =>
-                          s.id ===
+                        (item) =>
+                          item.id ===
                           selectedTestScenarioIds[0],
                       );
 
                     if (scenario) {
-                      handleDelete(scenario);
+                      handleDelete(
+                        scenario,
+                      );
                     }
                   },
                 },
                 {
                   label: "Clear Selection",
                   variant: "outlined",
-                  onClick: clearSelection,
+                  onClick:
+                    clearSelection,
                 },
               ]
-            : selectedTestScenarioIds.length > 1
+            : selectedTestScenarioIds.length >
+                1
               ? [
                   {
                     label: "Delete Selected",
                     color: "error",
-                    onClick: handleBulkDelete,
+                    onClick:
+                      handleBulkDelete,
                   },
                   {
                     label: "Clear Selection",
                     variant: "outlined",
-                    onClick: clearSelection,
+                    onClick:
+                      clearSelection,
                   },
                 ]
               : undefined
         }
       >
+        <Typography
+          sx={{
+            mt: -0.8,
+            mb: 1.5,
+            fontSize: "0.76rem",
+            color: "#667085",
+          }}
+        >
+          Define, manage and organize test
+          scenarios against project
+          requirements.
+        </Typography>
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(4, minmax(0, 1fr))",
+            gap: 1.25,
+            mb: 1.5,
+
+            "@media (max-width: 1000px)":
+              {
+                gridTemplateColumns:
+                  "repeat(2, minmax(0, 1fr))",
+              },
+
+            "@media (max-width: 600px)":
+              {
+                gridTemplateColumns: "1fr",
+              },
+          }}
+        >
+          <MetricCard
+            icon={
+              <AssignmentOutlinedIcon />
+            }
+            value={totalScenarios}
+            label="Total Scenarios"
+          />
+
+          <MetricCard
+            icon={
+              <PendingActionsOutlinedIcon />
+            }
+            value={draftScenarios}
+            label="Draft"
+          />
+
+          <MetricCard
+            icon={
+              <CheckOutlinedIcon />
+            }
+            value={readyScenarios}
+            label="Ready"
+          />
+
+          <MetricCard
+            icon={
+              <CheckOutlinedIcon />
+            }
+            value={approvedScenarios}
+            label="Approved"
+          />
+        </Box>
+
         <Box
           sx={{
             display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            mb: 2,
+            alignItems: "center",
+            gap: 1,
+            mb: 1.25,
+            flexWrap: "wrap",
           }}
         >
-          <Typography
-            variant="body2"
-            color="text.secondary"
-          >
-            Total Test Scenarios:{" "}
-            {filteredTestScenarios.length}
-          </Typography>
-
-          <FormControl
+          <TextField
+            value={search}
+            onChange={(event) =>
+              setSearch(
+                event.target.value,
+              )
+            }
+            placeholder="Search scenarios..."
             size="small"
-            sx={{ maxWidth: 420 }}
-          >
-            <InputLabel shrink>
-              Requirements
-            </InputLabel>
+            sx={{
+              width: 250,
 
-            <Select
-              multiple
-              displayEmpty
-              value={selectedRequirementIds}
-              onChange={handleRequirementChange}
-              input={
-                <OutlinedInput label="Requirements" />
+              "& .MuiOutlinedInput-root":
+                {
+                  height: 34,
+                  borderRadius: "8px",
+                  backgroundColor:
+                    "#ffffff",
+                  fontSize:
+                    "0.76rem",
+                },
+            }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon
+                      sx={{
+                        fontSize: 17,
+                        color:
+                          "#98a2b3",
+                      }}
+                    />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+
+          <Select
+            multiple
+            displayEmpty
+            value={
+              selectedRequirementIds
+            }
+            onChange={
+              handleRequirementChange
+            }
+            size="small"
+            renderValue={(selected) => {
+              if (selected.length === 0) {
+                return "All Requirements";
               }
-              renderValue={(selected) => {
-                if (selected.length === 0) {
-                  return "All Requirements";
+
+              const selectedRequirements =
+                requirements.filter(
+                  (requirement) =>
+                    selected.includes(
+                      requirement.id,
+                    ),
+                );
+
+              if (
+                selectedRequirements.length ===
+                1
+              ) {
+                return `${selectedRequirements[0].requirement_code} - ${selectedRequirements[0].module}`;
+              }
+
+              return `${selectedRequirements.length} Requirements`;
+            }}
+            sx={{
+              minWidth: 190,
+              maxWidth: 240,
+              height: 34,
+              borderRadius: "8px",
+              backgroundColor:
+                "#ffffff",
+              fontSize: "0.76rem",
+            }}
+          >
+            <MenuItem value={-1}>
+              <Checkbox
+                size="small"
+                checked={
+                  selectedRequirementIds.length ===
+                  0
                 }
+              />
+              <Typography
+                sx={{
+                  fontSize: "0.76rem",
+                }}
+              >
+                All Requirements
+              </Typography>
+            </MenuItem>
 
-                const selectedRequirements =
-                  requirements.filter((r) =>
-                    selected.includes(r.id),
-                  );
-
-                if (
-                  selectedRequirements.length === 1
-                ) {
-                  return `${selectedRequirements[0].requirement_code} - ${selectedRequirements[0].module}`;
-                }
-
-                return `${selectedRequirements.length} Requirements Selected`;
-              }}
-            >
-              <MenuItem value={-1}>
-                <Checkbox
-                  checked={
-                    selectedRequirementIds.length === 0
-                  }
-                />
-
-                <ListItemText
-                  primary="All Requirements"
-                />
-              </MenuItem>
-
-              {requirements.map((requirement) => (
+            {requirements.map(
+              (requirement) => (
                 <MenuItem
                   key={requirement.id}
                   value={requirement.id}
                 >
                   <Checkbox
+                    size="small"
                     checked={selectedRequirementIds.includes(
                       requirement.id,
                     )}
                   />
-
-                  <ListItemText
-                    primary={`${requirement.requirement_code} - ${requirement.module}`}
-                  />
+                  <Typography
+                    sx={{
+                      fontSize: "0.76rem",
+                    }}
+                  >
+                    {requirement.requirement_code}{" "}
+                    - {requirement.module}
+                  </Typography>
                 </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              ),
+            )}
+          </Select>
+
+          <Select
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(
+                event.target.value,
+              )
+            }
+            size="small"
+            sx={{
+              minWidth: 125,
+              height: 34,
+              borderRadius: "8px",
+              backgroundColor:
+                "#ffffff",
+              fontSize: "0.76rem",
+            }}
+          >
+            <MenuItem value="All">
+              All Status
+            </MenuItem>
+
+            {availableStatuses.map(
+              (status) => (
+                <MenuItem
+                  key={status}
+                  value={status}
+                >
+                  {status}
+                </MenuItem>
+              ),
+            )}
+          </Select>
+
+          <Select
+            value={priorityFilter}
+            onChange={(event) =>
+              setPriorityFilter(
+                event.target.value,
+              )
+            }
+            size="small"
+            sx={{
+              minWidth: 125,
+              height: 34,
+              borderRadius: "8px",
+              backgroundColor:
+                "#ffffff",
+              fontSize: "0.76rem",
+            }}
+          >
+            <MenuItem value="All">
+              All Priority
+            </MenuItem>
+
+            {availablePriorities.map(
+              (priority) => (
+                <MenuItem
+                  key={priority}
+                  value={priority}
+                >
+                  {priority}
+                </MenuItem>
+              ),
+            )}
+          </Select>
+
+          <Select
+            value={sortOption}
+            onChange={(event) =>
+              setSortOption(
+                event.target.value as SortOption,
+              )
+            }
+            size="small"
+            sx={{
+              minWidth: 145,
+              height: 34,
+              borderRadius: "8px",
+              backgroundColor:
+                "#ffffff",
+              fontSize: "0.76rem",
+            }}
+          >
+            <MenuItem value="code">
+              Sort by: Code
+            </MenuItem>
+
+            <MenuItem value="title">
+              Sort by: Title
+            </MenuItem>
+
+            <MenuItem value="priority">
+              Sort by: Priority
+            </MenuItem>
+
+            <MenuItem value="status">
+              Sort by: Status
+            </MenuItem>
+          </Select>
+
+          <Typography
+            sx={{
+              ml: "auto",
+              fontSize: "0.72rem",
+              color: "#667085",
+            }}
+          >
+            {filteredTestScenarios.length}{" "}
+            of {testScenarios.length}{" "}
+            scenarios
+          </Typography>
         </Box>
 
         <DataGridLayout>
@@ -436,7 +881,9 @@ export default function TestScenariosPage() {
           setSelectedTestScenario(null);
           setOpenDialog(false);
         }}
-        onSave={handleSaveTestScenario}
+        onSave={
+          handleSaveTestScenario
+        }
       />
 
       <GenerateScenarioDialog
@@ -475,7 +922,10 @@ export default function TestScenariosPage() {
         }}
         onConfirm={async () => {
           try {
-            if (bulkDeleteScenarios.length > 0) {
+            if (
+              bulkDeleteScenarios.length >
+              0
+            ) {
               await Promise.all(
                 bulkDeleteScenarios.map(
                   (scenario) =>
@@ -492,7 +942,9 @@ export default function TestScenariosPage() {
 
               clearSelection();
               setBulkDeleteScenarios([]);
-            } else if (testScenarioToDelete) {
+            } else if (
+              testScenarioToDelete
+            ) {
               await testScenarioService.deleteTestScenario(
                 testScenarioToDelete.id,
               );
@@ -510,7 +962,8 @@ export default function TestScenariosPage() {
             console.error(error);
 
             showNotification(
-              bulkDeleteScenarios.length > 0
+              bulkDeleteScenarios.length >
+                0
                 ? "Failed to delete test scenarios."
                 : "Failed to delete test scenario.",
               "error",
@@ -523,5 +976,75 @@ export default function TestScenariosPage() {
         }}
       />
     </>
+  );
+}
+
+function MetricCard({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  value: string | number;
+  label: string;
+}) {
+  return (
+    <Box
+      sx={{
+        minHeight: 68,
+        px: 1.5,
+        py: 1.25,
+        display: "flex",
+        alignItems: "center",
+        gap: 1.1,
+        border:
+          "1px solid #e4e7ec",
+        borderRadius: "9px",
+        backgroundColor: "#ffffff",
+      }}
+    >
+      <Box
+        sx={{
+          width: 34,
+          height: 34,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "8px",
+          backgroundColor: "#eef6ff",
+          color: "#1677ff",
+
+          "& svg": {
+            fontSize: 19,
+          },
+        }}
+      >
+        {icon}
+      </Box>
+
+      <Box>
+        <Typography
+          sx={{
+            fontSize: "1.02rem",
+            lineHeight: 1.1,
+            fontWeight: 750,
+            color: "#101828",
+          }}
+        >
+          {value}
+        </Typography>
+
+        <Typography
+          sx={{
+            mt: 0.25,
+            fontSize: "0.67rem",
+            color: "#667085",
+          }}
+        >
+          {label}
+        </Typography>
+      </Box>
+    </Box>
   );
 }

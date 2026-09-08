@@ -5,9 +5,12 @@ from app.auth.dependencies import get_current_admin
 from app.db.session import get_db
 from app.models.admin import Admin
 from app.schemas.report import (
-    ReportSummary,
-    RequirementCoverageResponse,
-    TraceabilityResponse,
+    ReportOverview,
+    ExecutionAnalytics,
+    CoverageAnalytics,
+    DefectAnalytics,
+    RiskAnalytics,
+    TraceabilityAnalytics,
 )
 from app.services.report_service import ReportService
 
@@ -19,10 +22,10 @@ router = APIRouter(
 
 
 @router.get(
-    "/summary",
-    response_model=ReportSummary,
+    "/overview",
+    response_model=ReportOverview,
 )
-def get_summary(
+def get_overview(
     project_id: int | None = None,
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin),
@@ -30,7 +33,30 @@ def get_summary(
     service = ReportService(db)
 
     try:
-        return service.get_summary(
+        return service.get_overview(
+            admin=admin,
+            project_id=project_id,
+        )
+    except ValueError as ex:
+        raise HTTPException(
+            status_code=403,
+            detail=str(ex),
+        )
+
+
+@router.get(
+    "/execution",
+    response_model=ExecutionAnalytics,
+)
+def get_execution_analytics(
+    project_id: int | None = None,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    service = ReportService(db)
+
+    try:
+        return service.get_execution_analytics(
             admin=admin,
             project_id=project_id,
         )
@@ -43,9 +69,9 @@ def get_summary(
 
 @router.get(
     "/coverage",
-    response_model=RequirementCoverageResponse,
+    response_model=CoverageAnalytics,
 )
-def get_requirement_coverage(
+def get_coverage_analytics(
     project_id: int | None = None,
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin),
@@ -53,12 +79,56 @@ def get_requirement_coverage(
     service = ReportService(db)
 
     try:
-        return {
-            "coverage": service.get_requirement_coverage(
-                admin=admin,
-                project_id=project_id,
-            ),
-        }
+        return service.get_coverage_analytics(
+            admin=admin,
+            project_id=project_id,
+        )
+    except ValueError as ex:
+        raise HTTPException(
+            status_code=403,
+            detail=str(ex),
+        )
+
+
+@router.get(
+    "/defects",
+    response_model=DefectAnalytics,
+)
+def get_defect_analytics(
+    project_id: int | None = None,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    service = ReportService(db)
+
+    try:
+        return service.get_defect_analytics(
+            admin=admin,
+            project_id=project_id,
+        )
+    except ValueError as ex:
+        raise HTTPException(
+            status_code=403,
+            detail=str(ex),
+        )
+
+
+@router.get(
+    "/risk",
+    response_model=RiskAnalytics,
+)
+def get_quality_risk(
+    project_id: int | None = None,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    service = ReportService(db)
+
+    try:
+        return service.get_quality_risk(
+            admin=admin,
+            project_id=project_id,
+        )
     except ValueError as ex:
         raise HTTPException(
             status_code=403,
@@ -68,9 +138,9 @@ def get_requirement_coverage(
 
 @router.get(
     "/traceability",
-    response_model=TraceabilityResponse,
+    response_model=TraceabilityAnalytics,
 )
-def get_traceability(
+def get_traceability_analytics(
     project_id: int | None = None,
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin),
@@ -78,12 +148,10 @@ def get_traceability(
     service = ReportService(db)
 
     try:
-        return {
-            "traceability": service.get_traceability(
-                admin=admin,
-                project_id=project_id,
-            ),
-        }
+        return service.get_traceability_analytics(
+            admin=admin,
+            project_id=project_id,
+        )
     except ValueError as ex:
         raise HTTPException(
             status_code=403,

@@ -11,6 +11,8 @@ export default function AppLayout() {
         display: "flex",
         flexDirection: "column",
         height: "100vh",
+        width: "100%",
+        overflow: "hidden",
       }}
     >
       <Header />
@@ -19,6 +21,7 @@ export default function AppLayout() {
         sx={{
           display: "flex",
           flexGrow: 1,
+          minHeight: 0,
           overflow: "hidden",
         }}
       >
@@ -28,8 +31,41 @@ export default function AppLayout() {
           component="main"
           sx={{
             flexGrow: 1,
-            p: 3,
+            minWidth: 0,
+            minHeight: 0,
             overflow: "auto",
+
+            px: {
+              xs: 1.25,
+              sm: 1.5,
+              md: 1.75,
+              lg: 2,
+            },
+
+            py: {
+              xs: 1.25,
+              sm: 1.5,
+              md: 1.5,
+              lg: 1.75,
+            },
+
+            "&::-webkit-scrollbar": {
+              width: 7,
+              height: 7,
+            },
+
+            "&::-webkit-scrollbar-track": {
+              background: "transparent",
+            },
+
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: "#d6dee9",
+              borderRadius: 10,
+            },
+
+            "&::-webkit-scrollbar-thumb:hover": {
+              backgroundColor: "#bdc8d6",
+            },
           }}
         >
           <Outlet />

@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
+
 import {
+  BugReportOutlined,
+} from "@mui/icons-material";
+
+import {
+  Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  Typography,
 } from "@mui/material";
 
 import BugForm from "./BugForm";
@@ -44,7 +52,9 @@ const createDefaultFormData = (
   reported_by: "",
   environment: "",
 
-  steps_to_reproduce: stepsToReproduce,
+  steps_to_reproduce:
+    stepsToReproduce,
+
   actual_result: actualResult,
 });
 
@@ -73,20 +83,26 @@ export default function BugDialog({
 
   const executionLocked =
     !bug &&
-    initialExecutionId !== undefined;
+    initialExecutionId !==
+      undefined;
 
   useEffect(() => {
     if (bug) {
       setFormData({
-        execution_id: bug.execution_id,
+        execution_id:
+          bug.execution_id,
 
         title: bug.title,
+
         description:
           bug.description ?? "",
 
         severity: bug.severity,
+
         priority: bug.priority,
+
         status: bug.status,
+
         resolution: bug.resolution,
 
         assigned_to:
@@ -99,7 +115,8 @@ export default function BugDialog({
           bug.environment ?? "",
 
         steps_to_reproduce:
-          bug.steps_to_reproduce ?? "",
+          bug.steps_to_reproduce ??
+          "",
 
         actual_result:
           bug.actual_result ?? "",
@@ -114,7 +131,8 @@ export default function BugDialog({
       const selectedExecution =
         executions.find(
           (execution) =>
-            execution.id === executionId,
+            execution.id ===
+            executionId,
         );
 
       setFormData(
@@ -122,7 +140,8 @@ export default function BugDialog({
           executionId,
           selectedExecution?.actual_result ??
             "",
-          selectedExecution?.test_case.steps ??
+          selectedExecution
+            ?.test_case.steps ??
             "",
         ),
       );
@@ -140,7 +159,8 @@ export default function BugDialog({
 
   async function handleSave() {
     const executionError =
-      formData.execution_id === 0;
+      formData.execution_id ===
+      0;
 
     const titleError =
       !formData.title.trim();
@@ -150,7 +170,8 @@ export default function BugDialog({
       titleError
     ) {
       setErrors({
-        execution: executionError,
+        execution:
+          executionError,
         title: titleError,
       });
 
@@ -185,18 +206,150 @@ export default function BugDialog({
     onClose();
   }
 
+  const isEdit = Boolean(bug);
+
   return (
     <Dialog
       open={open}
-      onClose={handleCancel}
+      onClose={
+        saving
+          ? undefined
+          : handleCancel
+      }
       fullWidth
-      maxWidth="md"
+      maxWidth="lg"
+      scroll="paper"
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: "14px",
+            overflow: "hidden",
+            maxHeight:
+              "calc(100vh - 48px)",
+            boxShadow:
+              "0 20px 50px rgba(16, 24, 40, 0.18)",
+          },
+        },
+      }}
     >
-      <DialogTitle>
-        {title}
+      <DialogTitle
+        sx={{
+          px: 2.2,
+          py: 1.35,
+          backgroundColor: "#fff",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent:
+              "space-between",
+            gap: 2,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              minWidth: 0,
+            }}
+          >
+            <Box
+              sx={{
+                width: 34,
+                height: 34,
+                borderRadius: "9px",
+                display: "flex",
+                alignItems:
+                  "center",
+                justifyContent:
+                  "center",
+                backgroundColor:
+                  "#eff8ff",
+                color: "#1570ef",
+                flexShrink: 0,
+              }}
+            >
+              <BugReportOutlined
+                sx={{
+                  fontSize: 19,
+                }}
+              />
+            </Box>
+
+            <Box>
+              <Typography
+                sx={{
+                  fontSize:
+                    "0.95rem",
+                  lineHeight: 1.2,
+                  fontWeight: 800,
+                  color: "#101828",
+                }}
+              >
+                {title}
+              </Typography>
+
+              <Typography
+                sx={{
+                  mt: 0.2,
+                  fontSize:
+                    "0.66rem",
+                  color: "#667085",
+                }}
+              >
+                {isEdit
+                  ? "Update defect details and workflow state."
+                  : "Capture a defect from a failed or unexpected test result."}
+              </Typography>
+            </Box>
+          </Box>
+
+          {bug && (
+            <Typography
+              sx={{
+                flexShrink: 0,
+                fontSize:
+                  "0.68rem",
+                fontWeight: 800,
+                color: "#175cd3",
+                backgroundColor:
+                  "#eff8ff",
+                border:
+                  "1px solid #b2ddff",
+                borderRadius:
+                  "7px",
+                px: 1,
+                py: 0.55,
+              }}
+            >
+              {bug.bug_code}
+            </Typography>
+          )}
+        </Box>
       </DialogTitle>
 
-      <DialogContent>
+      <Divider />
+
+      <DialogContent
+        dividers
+        sx={{
+          px: {
+            xs: 1.5,
+            sm: 2.2,
+          },
+          py: 1.8,
+          backgroundColor:
+            "#f8fafc",
+          "&.MuiDialogContent-dividers":
+            {
+              borderColor:
+                "#eaecf0",
+            },
+        }}
+      >
         <BugForm
           value={formData}
           executions={executions}
@@ -211,6 +364,7 @@ export default function BugDialog({
               execution:
                 value.execution_id ===
                 0,
+
               title:
                 !value.title.trim(),
             });
@@ -218,9 +372,28 @@ export default function BugDialog({
         />
       </DialogContent>
 
-      <DialogActions>
+      <DialogActions
+        sx={{
+          px: 2.2,
+          py: 1.15,
+          backgroundColor: "#fff",
+          borderTop:
+            "1px solid #eaecf0",
+          gap: 0.7,
+        }}
+      >
         <Button
           onClick={handleCancel}
+          disabled={saving}
+          sx={{
+            minHeight: 34,
+            px: 1.5,
+            borderRadius: "8px",
+            fontSize: "0.72rem",
+            fontWeight: 750,
+            color: "#475467",
+            textTransform: "none",
+          }}
         >
           Cancel
         </Button>
@@ -232,10 +405,22 @@ export default function BugDialog({
             saving ||
             !formData.title.trim()
           }
+          sx={{
+            minHeight: 34,
+            px: 1.7,
+            borderRadius: "8px",
+            fontSize: "0.72rem",
+            fontWeight: 750,
+            textTransform: "none",
+            boxShadow:
+              "0 1px 2px rgba(16,24,40,0.12)",
+          }}
         >
           {saving
             ? "Saving..."
-            : "Save"}
+            : isEdit
+              ? "Save Changes"
+              : "Create Bug"}
         </Button>
       </DialogActions>
     </Dialog>

@@ -15,43 +15,6 @@ from app.utils.code_generator import generate_sequential_code
 
 
 class BugService:
-    ALLOWED_TRANSITIONS = {
-        "Open": {
-            "Open",
-            "Triaged",
-        },
-        "Triaged": {
-            "Triaged",
-            "In Progress",
-            "Closed",
-        },
-        "In Progress": {
-            "In Progress",
-            "Fixed",
-        },
-        "Fixed": {
-            "Fixed",
-            "Ready for QA",
-        },
-        "Ready for QA": {
-            "Ready for QA",
-            "Retesting",
-        },
-        "Retesting": {
-            "Retesting",
-            "Closed",
-            "Reopened",
-        },
-        "Reopened": {
-            "Reopened",
-            "In Progress",
-        },
-        "Closed": {
-            "Closed",
-            "Reopened",
-        },
-    }
-
     ALTERNATE_CLOSURE_RESOLUTIONS = {
         "Duplicate",
         "Cannot Reproduce",
@@ -179,9 +142,8 @@ class BugService:
             admin,
         )
 
-        self._validate_status_transition(
-            current_status=bug.status,
-            new_status=data.status,
+        self._validate_status_and_resolution(
+            status=data.status,
             resolution=data.resolution,
         )
 
@@ -294,27 +256,12 @@ class BugService:
                 detail="You do not have access to this project.",
             )
 
-    def _validate_status_transition(
+    def _validate_status_and_resolution(
         self,
-        current_status: str,
-        new_status: str,
+        status: str,
         resolution: str | None,
     ):
-        allowed_statuses = self.ALLOWED_TRANSITIONS.get(
-            current_status,
-            set(),
-        )
-
-        if new_status not in allowed_statuses:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"Invalid Bug status transition: "
-                    f"{current_status} → {new_status}."
-                ),
-            )
-
-        if new_status == "Closed":
+        if status == "Closed":
             if resolution is None:
                 raise HTTPException(
                     status_code=400,
@@ -323,19 +270,6 @@ class BugService:
                         "closing a Bug."
                     ),
                 )
-
-            if current_status == "Triaged":
-                if resolution not in (
-                    self.ALTERNATE_CLOSURE_RESOLUTIONS
-                    | {"Fixed"}
-                ):
-                    raise HTTPException(
-                        status_code=400,
-                        detail=(
-                            "Invalid resolution for a Bug "
-                            "closed from Triaged."
-                        ),
-                    )
 
         elif resolution is not None:
             raise HTTPException(

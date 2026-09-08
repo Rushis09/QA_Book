@@ -7,11 +7,6 @@ import {
 
 import api from "../services/api";
 
-import {
-  resetToDemo,
-  setEnvironment,
-} from "../config/environment";
-
 interface Account {
   id: number;
   username: string;
@@ -93,8 +88,6 @@ export function AuthProvider({
       accessToken,
     );
 
-    setEnvironment("production");
-
     setToken(accessToken);
 
     try {
@@ -122,8 +115,6 @@ export function AuthProvider({
     localStorage.removeItem(
       "access_token",
     );
-
-    resetToDemo();
 
     setToken(null);
     setAccount(null);

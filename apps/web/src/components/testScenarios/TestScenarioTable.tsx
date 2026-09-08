@@ -11,19 +11,16 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
+  Typography,
 } from "@mui/material";
 
 import type { TestScenario } from "../../types/testScenario";
 
 interface TestScenarioTableProps {
   testScenarios: TestScenario[];
-
   selectedIds: number[];
-
-  onSelectionChange: (
-    ids: number[],
-  ) => void;
-
+  onSelectionChange: (ids: number[]) => void;
   onEdit: (testScenario: TestScenario) => void;
   onDelete: (testScenario: TestScenario) => void;
 }
@@ -49,6 +46,8 @@ function getStatusColor(
   switch (status) {
     case "Approved":
       return "primary";
+    case "Ready":
+      return "success";
     case "Implemented":
       return "success";
     default:
@@ -63,18 +62,14 @@ export default function TestScenarioTable({
   onEdit,
   onDelete,
 }: TestScenarioTableProps) {
-
-    const allSelected =
+  const allSelected =
     testScenarios.length > 0 &&
-    selectedIds.length ===
-      testScenarios.length;
+    selectedIds.length === testScenarios.length;
 
-  function toggleSelectAll(
-    checked: boolean,
-  ) {
+  function toggleSelectAll(checked: boolean) {
     onSelectionChange(
       checked
-        ? testScenarios.map((s) => s.id)
+        ? testScenarios.map((scenario) => scenario.id)
         : [],
     );
   }
@@ -83,25 +78,60 @@ export default function TestScenarioTable({
     if (selectedIds.includes(id)) {
       onSelectionChange(
         selectedIds.filter(
-          (selectedId) =>
-            selectedId !== id,
+          (selectedId) => selectedId !== id,
         ),
       );
-    } else {
-      onSelectionChange([
-        ...selectedIds,
-        id,
-      ]);
+      return;
     }
+
+    onSelectionChange([...selectedIds, id]);
   }
 
-    return (
-      <TableContainer component={Paper}>
-        <Table>
+  return (
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{
+        border: "1px solid #e2e8f0",
+        borderRadius: 2,
+        overflow: "hidden",
+        backgroundColor: "#fff",
+      }}
+    >
+      <Table
+        size="small"
+        sx={{
+          "& .MuiTableCell-root": {
+            borderColor: "#edf1f7",
+          },
+          "& .MuiTableHead-root .MuiTableCell-root": {
+            backgroundColor: "#f8fafc",
+            color: "#64748b",
+            fontSize: "0.68rem",
+            fontWeight: 750,
+            letterSpacing: "0.045em",
+            textTransform: "uppercase",
+            whiteSpace: "nowrap",
+            py: 1.15,
+          },
+          "& .MuiTableBody-root .MuiTableRow-root": {
+            transition: "background-color 0.15s ease",
+          },
+          "& .MuiTableBody-root .MuiTableRow-root:hover": {
+            backgroundColor: "#f8fbff",
+          },
+          "& .MuiTableBody-root .MuiTableCell-root": {
+            py: 1.15,
+            fontSize: "0.78rem",
+            color: "#334155",
+          },
+        }}
+      >
         <TableHead>
           <TableRow>
             <TableCell padding="checkbox">
               <Checkbox
+                size="small"
                 checked={allSelected}
                 indeterminate={
                   selectedIds.length > 0 &&
@@ -114,14 +144,19 @@ export default function TestScenarioTable({
                 }
               />
             </TableCell>
-            <TableCell>Scenario Code</TableCell>
+
+            <TableCell>Scenario</TableCell>
             <TableCell>Requirement</TableCell>
             <TableCell>Module</TableCell>
             <TableCell>Title</TableCell>
             <TableCell>Priority</TableCell>
             <TableCell>Status</TableCell>
             <TableCell>Description</TableCell>
-            <TableCell align="right">
+
+            <TableCell
+              align="right"
+              sx={{ width: 100 }}
+            >
               Actions
             </TableCell>
           </TableRow>
@@ -133,6 +168,10 @@ export default function TestScenarioTable({
               <TableCell
                 colSpan={9}
                 align="center"
+                sx={{
+                  py: 5,
+                  color: "#94a3b8",
+                }}
               >
                 No test scenarios found.
               </TableCell>
@@ -146,9 +185,9 @@ export default function TestScenarioTable({
                   testScenario.id,
                 )}
               >
-
                 <TableCell padding="checkbox">
                   <Checkbox
+                    size="small"
                     checked={selectedIds.includes(
                       testScenario.id,
                     )}
@@ -159,20 +198,69 @@ export default function TestScenarioTable({
                     }
                   />
                 </TableCell>
+
                 <TableCell>
-                  {testScenario.scenario_code}
+                  <Typography
+                    sx={{
+                      fontSize: "0.78rem",
+                      fontWeight: 750,
+                      color: "#1e293b",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {testScenario.scenario_code}
+                  </Typography>
                 </TableCell>
 
                 <TableCell>
-                  {testScenario.requirement.requirement_code}
+                  <Typography
+                    sx={{
+                      fontSize: "0.76rem",
+                      fontWeight: 650,
+                      color: "#334155",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {testScenario.requirement
+                      .requirement_code}
+                  </Typography>
                 </TableCell>
 
                 <TableCell>
-                  {testScenario.module}
+                  <Typography
+                    sx={{
+                      fontSize: "0.76rem",
+                      color: "#64748b",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {testScenario.module}
+                  </Typography>
                 </TableCell>
 
-                <TableCell>
-                  {testScenario.title}
+                <TableCell
+                  sx={{
+                    maxWidth: 260,
+                  }}
+                >
+                  <Tooltip
+                    title={testScenario.title}
+                    placement="top"
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: "0.78rem",
+                        fontWeight: 650,
+                        color: "#1e293b",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        maxWidth: 260,
+                      }}
+                    >
+                      {testScenario.title}
+                    </Typography>
+                  </Tooltip>
                 </TableCell>
 
                 <TableCell>
@@ -182,6 +270,11 @@ export default function TestScenarioTable({
                       testScenario.priority,
                     )}
                     size="small"
+                    sx={{
+                      height: 24,
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                    }}
                   />
                 </TableCell>
 
@@ -192,31 +285,68 @@ export default function TestScenarioTable({
                       testScenario.status,
                     )}
                     size="small"
+                    sx={{
+                      height: 24,
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                    }}
                   />
                 </TableCell>
 
-                <TableCell>
-                  {testScenario.description ?? "-"}
+                <TableCell
+                  sx={{
+                    maxWidth: 300,
+                  }}
+                >
+                  <Tooltip
+                    title={
+                      testScenario.description ||
+                      "No description"
+                    }
+                    placement="top"
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: "0.74rem",
+                        color: "#64748b",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        maxWidth: 300,
+                      }}
+                    >
+                      {testScenario.description || "-"}
+                    </Typography>
+                  </Tooltip>
                 </TableCell>
 
                 <TableCell align="right">
-                  <IconButton
-                    color="primary"
-                    onClick={() =>
-                      onEdit(testScenario)
-                    }
-                  >
-                    <EditIcon />
-                  </IconButton>
+                  <Tooltip title="Edit">
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() =>
+                        onEdit(testScenario)
+                      }
+                      sx={{
+                        mr: 0.35,
+                      }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
 
-                  <IconButton
-                    color="error"
-                    onClick={() =>
-                      onDelete(testScenario)
-                    }
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+                  <Tooltip title="Delete">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() =>
+                        onDelete(testScenario)
+                      }
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+
 import {
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
 } from "@mui/material";
 
 import TestSuiteForm from "./TestSuiteForm";
@@ -123,10 +125,38 @@ export default function TestSuiteDialog({
       onClose={handleCancel}
       fullWidth
       maxWidth="sm"
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: "14px",
+            overflow: "hidden",
+            boxShadow:
+              "0 20px 45px rgba(16, 24, 40, 0.18)",
+          },
+        },
+      }}
     >
-      <DialogTitle>{title}</DialogTitle>
+      <DialogTitle
+        sx={{
+          px: 2.5,
+          pt: 2.25,
+          pb: 1.25,
+          fontSize: "1.05rem",
+          fontWeight: 750,
+          color: "#101828",
+          lineHeight: 1.3,
+        }}
+      >
+        {title}
+      </DialogTitle>
 
-      <DialogContent>
+      <DialogContent
+        sx={{
+          px: 2.5,
+          pt: 0.5,
+          pb: 2,
+        }}
+      >
         <TestSuiteForm
           value={formData}
           projects={projects}
@@ -141,8 +171,29 @@ export default function TestSuiteDialog({
         />
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={handleCancel}>
+      <Divider />
+
+      <DialogActions
+        sx={{
+          px: 2.5,
+          py: 1.5,
+          gap: 0.75,
+          backgroundColor: "#fcfcfd",
+        }}
+      >
+        <Button
+          onClick={handleCancel}
+          disabled={saving}
+          sx={{
+            minWidth: 72,
+            height: 34,
+            borderRadius: "8px",
+            fontSize: "0.76rem",
+            fontWeight: 650,
+            color: "#475467",
+            textTransform: "none",
+          }}
+        >
           Cancel
         </Button>
 
@@ -153,6 +204,16 @@ export default function TestSuiteDialog({
             saving ||
             !formData.name.trim()
           }
+          sx={{
+            minWidth: 78,
+            height: 34,
+            borderRadius: "8px",
+            fontSize: "0.76rem",
+            fontWeight: 650,
+            textTransform: "none",
+            boxShadow:
+              "0 1px 2px rgba(16, 24, 40, 0.08)",
+          }}
         >
           {saving ? "Saving..." : "Save"}
         </Button>

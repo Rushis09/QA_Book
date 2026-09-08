@@ -11,7 +11,7 @@ from app.schemas.project import (
     ProjectResponse,
 )
 from app.utils.code_generator import generate_sequential_code
-
+from app.services.project_service import ProjectService
 
 router = APIRouter(
     prefix="/projects",
@@ -149,6 +149,36 @@ def update_project(
     return project
 
 
+@router.get(
+    "/{project_id}/delete-impact",
+)
+def get_delete_impact(
+    project_id: int,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    query = db.query(Project).filter(
+        Project.id == project_id
+    )
+
+    if admin.role != "PLATFORM_ADMIN":
+        query = query.filter(
+            Project.admin_id == admin.id
+        )
+
+    project = query.first()
+
+    if not project:
+        raise HTTPException(
+            status_code=404,
+            detail="Project not found",
+        )
+
+    return ProjectService.get_delete_impact(
+        db=db,
+        project_id=project_id,
+    )
+
 @router.delete(
     "/{project_id}",
 )
@@ -174,9 +204,7 @@ def delete_project(
             detail="Project not found",
         )
 
-    db.delete(project)
-    db.commit()
-
-    return {
-        "message": "Project deleted successfully",
-    }
+    return ProjectService.delete_project(
+        db=db,
+        project_id=project_id,
+    )

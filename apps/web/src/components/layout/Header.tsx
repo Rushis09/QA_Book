@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import { useNavigate } from "react-router-dom";
 import {
   AppBar,
   Avatar,
@@ -23,8 +23,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useNotification } from "../../contexts/NotificationContext";
 
 import LogoutDialog from "../auth/LogoutDialog";
+import QABookLogo from "../brand/QABookLogo";
 
 export default function Header() {
+  const navigate = useNavigate();
   const {
     projects,
     workspaceUsers,
@@ -89,6 +91,8 @@ export default function Header() {
 
     setLogoutOpen(false);
 
+    navigate("/", { replace: true });
+
     showNotification(
       "Logged out successfully.",
       "success",
@@ -99,22 +103,16 @@ export default function Header() {
     value: string,
   ) {
     if (value === "none") {
-      await setSelectedUserFilter(
-        "NONE",
-      );
+      await setSelectedUserFilter("NONE");
       return;
     }
 
     if (value === "all") {
-      await setSelectedUserFilter(
-        "ALL",
-      );
+      await setSelectedUserFilter("ALL");
       return;
     }
 
-    await setSelectedUserFilter(
-      Number(value),
-    );
+    await setSelectedUserFilter(Number(value));
   }
 
   function handleProjectFilterChange(
@@ -140,36 +138,68 @@ export default function Header() {
       <AppBar
         position="static"
         elevation={1}
+        sx={{
+          flexShrink: 0,
+        }}
       >
         <Toolbar
           sx={{
             display: "flex",
             justifyContent: "space-between",
-            minHeight: 64,
+            minHeight: {
+              xs: 52,
+              md: 56,
+            },
+            height: {
+              xs: 52,
+              md: 56,
+            },
+            px: {
+              xs: 1.5,
+              md: 2,
+            },
+            gap: 2,
           }}
         >
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 600,
-              ml: 1,
-            }}
-          >
-            QABook
-          </Typography>
-
+          {/* Brand */}
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: 3,
+              flexShrink: 0,
+              transform: "scale(0.9)",
+              transformOrigin: "left center",
             }}
           >
+            <QABookLogo
+              size="md"
+              dark
+            />
+          </Box>
+
+          {/* Right side */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: {
+                xs: 1,
+                md: 1.75,
+              },
+              minWidth: 0,
+              ml: "auto",
+            }}
+          >
+            {/* Workspace filters */}
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
-                gap: 1.5,
+                gap: {
+                  xs: 0.75,
+                  md: 1,
+                },
+                minWidth: 0,
               }}
             >
               <Typography
@@ -177,6 +207,8 @@ export default function Header() {
                 color="inherit"
                 sx={{
                   opacity: 0.8,
+                  fontSize: "0.72rem",
+                  whiteSpace: "nowrap",
                 }}
               >
                 Workspace
@@ -186,19 +218,28 @@ export default function Header() {
                 <FormControl size="small">
                   <Select
                     value={
-                      selectedUserFilter ===
-                      "NONE"
+                      selectedUserFilter === "NONE"
                         ? "none"
-                        : selectedUserFilter ===
-                            "ALL"
+                        : selectedUserFilter === "ALL"
                           ? "all"
                           : String(
                               selectedUserFilter,
                             )
                     }
                     sx={{
-                      minWidth: 150,
+                      minWidth: {
+                        xs: 105,
+                        md: 125,
+                      },
+                      height: 36,
                       bgcolor: "white",
+                      fontSize: "0.75rem",
+                      borderRadius: "7px",
+
+                      "& .MuiSelect-select": {
+                        py: 0.8,
+                        px: 1.2,
+                      },
                     }}
                     onChange={(event) => {
                       handleUserFilterChange(
@@ -230,7 +271,16 @@ export default function Header() {
                 </FormControl>
               )}
 
-              <FormControl size="small">
+              <FormControl
+                size="small"
+                sx={{
+                  minWidth: {
+                    xs: 190,
+                    sm: 240,
+                    md: 285,
+                  },
+                }}
+              >
                 <Select
                   value={
                     isAllProjects
@@ -239,8 +289,18 @@ export default function Header() {
                   }
                   displayEmpty
                   sx={{
-                    minWidth: 320,
+                    height: 36,
                     bgcolor: "white",
+                    fontSize: "0.75rem",
+                    borderRadius: "7px",
+
+                    "& .MuiSelect-select": {
+                      py: 0.8,
+                      px: 1.2,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    },
                   }}
                   onChange={(event) => {
                     handleProjectFilterChange(
@@ -270,10 +330,12 @@ export default function Header() {
               </FormControl>
             </Box>
 
+            {/* Account */}
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
+                flexShrink: 0,
               }}
             >
               <IconButton
@@ -283,7 +345,7 @@ export default function Header() {
                 size="small"
                 sx={{
                   color: "inherit",
-                  p: 0.5,
+                  p: 0.25,
                 }}
                 aria-label="Account menu"
                 aria-controls={
@@ -300,9 +362,9 @@ export default function Header() {
               >
                 <Avatar
                   sx={{
-                    width: 36,
-                    height: 36,
-                    fontSize: "0.95rem",
+                    width: 32,
+                    height: 32,
+                    fontSize: "0.82rem",
                   }}
                 >
                   {avatarLetter}
@@ -311,16 +373,18 @@ export default function Header() {
 
               <Box
                 sx={{
-                  ml: 1,
-                  mr: 0.5,
-                  minWidth: 90,
+                  ml: 0.75,
+                  mr: 0.25,
+                  minWidth: 76,
                 }}
               >
                 <Typography
                   variant="body2"
                   sx={{
+                    fontSize: "0.72rem",
                     fontWeight: 600,
                     lineHeight: 1.2,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {displayUsername}
@@ -329,8 +393,10 @@ export default function Header() {
                 <Typography
                   variant="caption"
                   sx={{
+                    fontSize: "0.58rem",
                     opacity: 0.75,
                     lineHeight: 1.2,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {displayRole}
@@ -340,13 +406,9 @@ export default function Header() {
 
             <Menu
               id="account-menu"
-              anchorEl={
-                accountMenuAnchor
-              }
+              anchorEl={accountMenuAnchor}
               open={accountMenuOpen}
-              onClose={
-                handleAccountMenuClose
-              }
+              onClose={handleAccountMenuClose}
               anchorOrigin={{
                 vertical: "bottom",
                 horizontal: "right",
@@ -358,14 +420,15 @@ export default function Header() {
             >
               <Box
                 sx={{
-                  px: 2,
-                  py: 1,
-                  minWidth: 220,
+                  px: 1.75,
+                  py: 0.8,
+                  minWidth: 200,
                 }}
               >
                 <Typography
                   variant="body2"
                   sx={{
+                    fontSize: "0.75rem",
                     fontWeight: 600,
                   }}
                 >
@@ -375,6 +438,9 @@ export default function Header() {
                 <Typography
                   variant="caption"
                   color="text.secondary"
+                  sx={{
+                    fontSize: "0.65rem",
+                  }}
                 >
                   {displayRole}
                 </Typography>
@@ -391,10 +457,17 @@ export default function Header() {
                     "info",
                   );
                 }}
+                sx={{
+                  minHeight: 36,
+                  fontSize: "0.75rem",
+                }}
               >
                 <AccountCircleIcon
                   fontSize="small"
-                  sx={{ mr: 1.5 }}
+                  sx={{
+                    mr: 1.25,
+                    fontSize: 18,
+                  }}
                 />
 
                 Profile
@@ -409,10 +482,17 @@ export default function Header() {
                     "info",
                   );
                 }}
+                sx={{
+                  minHeight: 36,
+                  fontSize: "0.75rem",
+                }}
               >
                 <SettingsIcon
                   fontSize="small"
-                  sx={{ mr: 1.5 }}
+                  sx={{
+                    mr: 1.25,
+                    fontSize: 18,
+                  }}
                 />
 
                 Settings
@@ -421,13 +501,18 @@ export default function Header() {
               <Divider />
 
               <MenuItem
-                onClick={
-                  handleLogoutClick
-                }
+                onClick={handleLogoutClick}
+                sx={{
+                  minHeight: 36,
+                  fontSize: "0.75rem",
+                }}
               >
                 <LogoutIcon
                   fontSize="small"
-                  sx={{ mr: 1.5 }}
+                  sx={{
+                    mr: 1.25,
+                    fontSize: 18,
+                  }}
                 />
 
                 Logout
@@ -439,9 +524,7 @@ export default function Header() {
 
       <LogoutDialog
         open={logoutOpen}
-        onClose={() =>
-          setLogoutOpen(false)
-        }
+        onClose={() => setLogoutOpen(false)}
         onLogout={handleLogout}
       />
     </>

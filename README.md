@@ -1,271 +1,541 @@
-# QA Book
+QA Book
 
-![React](https://img.shields.io/badge/React-19-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-Green)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Blue)
-![License](https://img.shields.io/badge/License-MIT-yellow)
 
-> AI-Powered Manual Testing Workspace for Modern QA Teams
 
-QA Book is a modern web-based Quality Assurance Management Platform designed to simplify and centralize the manual software testing lifecycle.
 
-It provides a single workspace for managing projects, requirements, test scenarios, test cases, test suites, test runs, executions, defects, documents, and reports. The platform also includes AI-assisted QA artifact generation and maintains traceability across the testing lifecycle.
 
----
 
-## Why QA Book?
+AI-Powered QA Workspace for Modern Testing Teams
 
-Manual testing teams often manage requirements, test cases, execution results, and defects across spreadsheets and multiple tools.
+QA Book is a modern full-stack Quality Assurance Management Platform
+that brings the software testing lifecycle into a single workspace.
 
-QA Book brings these activities together in one platform to improve:
+It provides project-based management for requirements, test scenarios,
+test cases, test suites, test runs, test executions, bugs, documents,
+reporting, and automation. The platform also includes AI-assisted QA
+artifact generation, BRD-based requirement generation, GitHub Actions
+automation, and end-to-end traceability across the testing lifecycle.
 
-- Test organization
-- Requirement-to-test traceability
-- Execution tracking
-- Defect management
-- QA documentation
-- Reporting
-- Manual testing productivity
+QA Book uses individual user accounts. Users sign up and log in to
+the production application and work with the projects and QA data
+available to their account. There is no Demo/Production environment
+switch and no Demo database.
 
----
+Why QA Book?
 
-## Highlights
+QA teams often manage requirements, test cases, execution results,
+defects, documents, and reports across spreadsheets and multiple tools.
 
-- Full-stack web application
-- REST API
-- FastAPI Swagger documentation
-- PostgreSQL database
-- Cloud deployment
-- AI-assisted QA artifact generation
-- BRD document upload and storage
-- Manual testing workflow
-- Project-based QA workspace
-- Responsive UI
-- GitHub Actions CI
+QA Book brings these activities together into one platform to improve:
 
----
+Test organization
 
-# QA Testing Workflow
+Requirement-to-test traceability
 
-QA Book supports the complete testing flow:
+Test execution tracking
 
-```text
-Requirements
-     ↓
-Test Scenarios
-     ↓
-Test Cases
-     ↓
-Test Suites
-     ↓
-Test Runs
-     ↓
+Defect management
+
+QA documentation
+
+Reporting and analytics
+
+Manual testing productivity
+
+Automation workflow management
+
+Highlights
+
+Full-stack web application
+
+Individual user authentication
+
+Project-based QA workspace
+
+REST API
+
+FastAPI Swagger documentation
+
+PostgreSQL database
+
+Cloud deployment
+
+AI-assisted QA artifact generation
+
+BRD document upload and storage
+
+Manual testing lifecycle management
+
+Test execution and defect tracking
+
+GitHub Actions automation
+
+Automated test execution through Playwright/pytest workflows
+
+Project-level reporting and analytics
+
+Excel and PDF exports
+
+Responsive modern SaaS UI
+
+QA Testing Lifecycle
+
+QA Book supports the complete core testing flow:
+
+Project
+   ↓
+Requirement
+   ↓
+Test Scenario
+   ↓
+Test Case
+   ↓
+Test Suite
+   ↓
+Test Run
+   ↓
 Test Execution
-     ↓
-Bug Tracking
-     ↓
-Reports
-```
+   ↓
+Bug
+   ↓
+Retest
 
-The platform maintains traceability between requirements, scenarios, test cases, executions, and defects.
+Traceability is maintained across requirements, scenarios, test cases,
+suites, runs, executions, bugs, and retests.
 
----
+Automation Lifecycle
 
-# Key Features
+QA Book also supports an automation workflow:
 
-### Project Management
+Automation Project
+       ↓
+Test Case Mapping
+       ↓
+Generated Playwright / pytest Automation
+       ↓
+GitHub Repository
+       ↓
+GitHub Actions
+       ↓
+Automated Test Execution
+       ↓
+QABook REST API
+       ↓
+Test Execution Result
+       ↓
+Bug
+       ↓
+Retest
 
-- Create and manage projects
-- Project status and version tracking
-- Start and end dates
-- Project-based QA workspace
+Automated test runs can update execution results in QA Book, allowing
+manual and automated testing activities to remain connected to the same
+QA lifecycle.
 
-### Requirement Management
+Key Features
 
-- Create and manage requirements
-- Requirement numbering
-- Requirement-to-test traceability
-- AI-assisted requirement generation
-- BRD-based requirement generation
+User Authentication
 
-### Test Scenario Management
+Individual user signup
 
-- Create and manage test scenarios
-- Link scenarios to requirements
-- Filter scenarios by requirement
-- Read-only scenario viewing where required
+User login
 
-### Test Case Management
+Authenticated sessions using access tokens
 
-- Create and manage detailed test cases
-- Link test cases to requirements and scenarios
-- Test case numbering
-- Requirement context
-- Project-based filtering
+Account information and role handling
 
-### Test Suite Management
+Protected application routes
 
-- Create and manage test suites
-- Assign test cases to suites
-- Project-based test suite management
+Logout
 
-### Test Run & Execution
+User-scoped project access
 
-- Create test runs
-- Execute assigned test cases
-- Track execution status
-- Record execution results
+QA Book does not use a Demo user, Demo database, or Demo/Production
+environment selector.
 
-### Bug Management
+Project Management
 
-- Record and manage defects
-- Track bug status and details
-- Maintain defect traceability with testing activities
+Create and manage projects
 
-### BRD Document Management
+Project status and version tracking
 
-- Upload BRD documents to projects
-- Supported formats: DOCX and PDF
-- Store documents in object storage
-- View project documents
-- Download documents
-- Delete documents
-- Use uploaded BRD content for AI-assisted requirement generation
+Start and end dates
 
-### AI-Assisted QA
+Project ownership
 
-- AI-assisted requirement generation
-- AI-generated QA artifacts
-- BRD-based requirement analysis and generation
+Project-based QA workspace
 
-### Reporting & Export
+Project overview and health information
 
-- Dashboard and analytics
-- Excel export
-- PDF export
-- Project-level exports
-- Requirements export
-- Test scenario export
-- Test case export
-- Test suite export
-- Test run export
-- Bug report export
+Project-level requirements, scenarios, test cases, suites, runs,
+bugs, automation, documents, exports, and settings
 
----
+Project deletion with impact handling
 
-# Tech Stack
+Requirement Management
 
-## Frontend
+Create and manage requirements
 
-- React 19
-- TypeScript
-- Vite
-- Material UI
-- Axios
-- React Router
+Requirement numbering
 
-## Backend
+Requirement-to-test traceability
 
-- FastAPI
-- Python
-- SQLAlchemy
-- Alembic
-- Pydantic
-- Boto3
+Requirement status and priority
 
-## Database & Storage
+Search, filtering, and sorting
 
-- PostgreSQL
-- Neon PostgreSQL
-- Neon Object Storage / S3-compatible object storage
+AI-assisted requirement generation
 
-## AI
+BRD-based requirement generation
 
-- Google Gemini API
+Test Scenario Management
 
-## Deployment
+Create and manage test scenarios
 
-- Vercel
-- Render
-- Neon
+Link scenarios to requirements
 
-## Version Control & CI
+Scenario status and priority
 
-- Git
-- GitHub
-- GitHub Actions
+Requirement-based filtering
 
----
+Search and sorting
 
-# Project Architecture
+AI-assisted scenario generation
 
-```text
-                         QA Book
-                            │
-             ┌──────────────┴──────────────┐
-             │                             │
-       React Frontend                FastAPI Backend
-       TypeScript + Vite                    │
-       Material UI                           │
-             │                              │
-             └──────────────┬───────────────┘
-                            │
-                         REST API
-                            │
-             ┌──────────────┴──────────────┐
-             │                             │
-      PostgreSQL Database          Object Storage
-          Neon PostgreSQL          BRD Documents
+Test Case Management
+
+Create and manage detailed test cases
+
+Link test cases to requirements and scenarios
+
+Test case numbering
+
+Preconditions
+
+Test steps
+
+Expected results
+
+Priority and status
+
+Automation eligibility
+
+Automation status
+
+Project-based filtering
+
+AI-assisted test case generation
+
+Test Suite Management
+
+Create and manage test suites
+
+Assign test cases to suites
+
+View suite coverage
+
+Track suite status
+
+Project-based suite management
+
+Test Run Management
+
+Create test runs from test suites
+
+Manual and automated execution types
+
+Build version and environment information
+
+Tester information
+
+Run status
+
+Run configuration
+
+Execution result tracking
+
+Test run details and execution health
+
+Test Execution
+
+Execute assigned test cases
+
+Record Passed, Failed, Blocked, and Not Executed results
+
+Track execution timestamps
+
+Track executed-by information
+
+View execution details
+
+Search and filter executions
+
+Defect creation from failed executions
+
+Manual and automated execution support
+
+Bug Management
+
+Create and manage defects
+
+Bug severity and priority
+
+Bug status workflow
+
+Assigned-to tracking
+
+Preconditions and expected results
+
+Reproduction steps
+
+Test case context
+
+Resolution tracking
+
+Manual retesting
+
+Automated retesting
+
+Bug lifecycle from discovery through closure
+
+Defect traceability to test executions
+
+BRD Document Management
+
+Upload BRD documents to projects
+
+Supported formats: DOCX and PDF
+
+Store documents in object storage
+
+View project documents
+
+Download documents
+
+Delete documents
+
+Use uploaded BRD content for AI-assisted requirement generation
+
+AI-Assisted QA
+
+QA Book uses AI to assist QA teams with artifact creation and analysis.
+
+Current capabilities include:
+
+AI-assisted requirement generation
+
+AI-assisted test scenario generation
+
+AI-assisted test case generation
+
+BRD-based requirement analysis and generation
+
+AI-assisted QA workflow support
+
+Automation
+
+QA Book provides a project-based automation workspace for connecting QA
+test cases with executable automation.
+
+Capabilities include:
+
+Automation project management
+
+Test case mapping
+
+Playwright/pytest automation generation
+
+GitHub repository integration
+
+GitHub Actions integration
+
+Automated test execution
+
+Execution result synchronization
+
+Automated retest workflow
+
+Run-specific retest execution
+
+Bug-to-retest traceability
+
+Reporting & Analytics
+
+QA Book provides project-aware and global QA reporting.
+
+Reporting areas include:
+
+Executive quality overview
+
+Pass rate
+
+Execution progress
+
+Requirement coverage
+
+Open defects
+
+Critical/high defects
+
+Execution analytics
+
+Test coverage analytics
+
+Defect intelligence
+
+Quality risk
+
+Traceability intelligence
+
+Interactive report drill-down
+
+Record-level navigation from report details
+
+Reports are designed to allow users to move from aggregate quality
+metrics to the actual QA records behind those metrics.
+
+Export
+
+QA Book supports export capabilities for QA artifacts and project
+information, including:
+
+Project export
+
+Requirements export
+
+Test scenario export
+
+Test case export
+
+Test suite export
+
+Test run export
+
+Bug report export
+
+Excel export
+
+PDF export
+
+Tech Stack
+
+Frontend
+
+React 19
+
+TypeScript
+
+Vite
+
+Material UI
+
+Axios
+
+React Router
+
+Backend
+
+FastAPI
+
+Python
+
+SQLAlchemy
+
+Alembic
+
+Pydantic
+
+Boto3
+
+Database & Storage
+
+PostgreSQL
+
+Neon PostgreSQL
+
+S3-compatible object storage
+
+AI
+
+Google Gemini API
+
+Deployment
+
+Vercel
+
+Render
+
+Neon
+
+Version Control & CI/CD
+
+Git
+
+GitHub
+
+GitHub Actions
+
+Project Architecture
+
+                           QA Book
+                              │
+             ┌────────────────┴────────────────┐
+             │                                 │
+      React Frontend                    FastAPI Backend
+      TypeScript + Vite                       │
+      Material UI                             │
+             │                                 │
+             └────────────────┬────────────────┘
+                              │
+                           REST API
+                              │
+             ┌────────────────┴────────────────┐
+             │                                 │
+      PostgreSQL Database                Object Storage
+      Neon PostgreSQL                    BRD Documents
              │
              │
-       AI / Gemini API
-```
+        Gemini API
 
----
+Project Structure
 
-# Project Structure
-
-```text
 QA_Book/
 │
 ├── apps/
-│   ├── api/                         # FastAPI Backend
+│   ├── api/                              # FastAPI Backend
 │   │   ├── app/
-│   │   │   ├── ai/                 # AI services and prompts
-│   │   │   ├── api/                # API routes
-│   │   │   ├── models/             # SQLAlchemy models
-│   │   │   ├── repositories/       # Data access layer
-│   │   │   ├── schemas/            # Pydantic schemas
-│   │   │   └── services/           # Business logic
-│   │   └── alembic/                # Database migrations
+│   │   │   ├── ai/                       # AI services and prompts
+│   │   │   ├── api/                      # API routes
+│   │   │   ├── automation/               # Automation services and integrations
+│   │   │   ├── models/                  # SQLAlchemy models
+│   │   │   ├── repositories/             # Data access layer
+│   │   │   ├── schemas/                  # Pydantic schemas
+│   │   │   └── services/                 # Business logic
+│   │   └── alembic/                      # Database migrations
 │   │
-│   └── web/                         # React Frontend
+│   └── web/                              # React Frontend
 │       └── src/
 │           ├── components/
+│           ├── config/
 │           ├── contexts/
 │           ├── pages/
 │           ├── services/
 │           └── types/
 │
 ├── .github/
-│   └── workflows/
-│       └── ci.yml                  # GitHub Actions CI
+│   └── workflows/                        # GitHub Actions workflows
 │
-├── docs/                            # Project documentation
-├── docker/                          # Docker-related files
-├── scripts/                         # Utility scripts
+├── docs/                                 # Project documentation
+├── docker/                               # Docker-related files
+├── scripts/                              # Utility scripts
 ├── .gitignore
 ├── LICENSE
 └── README.md
-```
 
----
+Feature Development Workflow
 
-# Feature Development Workflow
+When developing a new feature in QA Book, the general development flow
+is:
 
-When developing a new feature in QA Book, the general development flow is:
-
-```text
 Understand Requirement
         ↓
 Break Feature into Backend + Frontend Work
@@ -301,44 +571,59 @@ GitHub Actions CI
 Backend + Frontend Checks
         ↓
 CI Pass
-```
 
-### Backend-first approach
+Backend-first approach
 
-For most new features, development starts with the backend so that the required database structure, business logic, and API contract are established first.
+For most new features, development starts with the backend so that the
+required database structure, business logic, and API contract are
+established first.
 
 Typical backend work includes:
 
-1. Database model
-2. Alembic migration
-3. Pydantic schema
-4. Repository
-5. Service/business logic
-6. API endpoint
+Database model
 
-The backend is then verified before the frontend is connected.
+Alembic migration
 
-### Frontend development
+Pydantic schema
 
-After the backend contract is available, the frontend is implemented using React and TypeScript.
+Repository
+
+Service/business logic
+
+API endpoint
+
+The backend is verified before the frontend is connected.
+
+Frontend development
+
+After the backend contract is available, the frontend is implemented
+using React and TypeScript.
 
 Typical frontend work includes:
 
-- Pages
-- Forms
-- Dialogs
-- Tables
-- Validation
-- Loading states
-- Error handling
-- Notifications
-- API service integration
+Pages
 
-### Integration
+Forms
 
-The frontend communicates with the FastAPI backend through the API/service layer.
+Dialogs
 
-```text
+Tables
+
+Validation
+
+Loading states
+
+Error handling
+
+Notifications
+
+API service integration
+
+Integration
+
+The frontend communicates with the FastAPI backend through the
+API/service layer.
+
 React Component
       ↓
 Frontend Service
@@ -352,44 +637,42 @@ Service
 Repository
       ↓
 Database / Object Storage
-```
 
 The complete user workflow is then tested through the application.
 
----
-
-# Git Workflow
+Git Workflow
 
 The project uses Git and GitHub for version control.
 
 Typical feature completion flow:
 
-```bash
 git status
 git diff
 git add <files>
 git commit -m "Describe the change"
 git push origin main
-```
 
 Before committing, changes are reviewed to make sure that:
 
-- Only intended files are included
-- Secrets are not committed
-- Generated files are not accidentally tracked
-- The feature changes are complete
+Only intended files are included
 
----
+Secrets are not committed
 
-# Continuous Integration
+Generated files are not accidentally tracked
 
-QA Book uses **GitHub Actions** for Continuous Integration (CI).
+The feature changes are complete
 
-The workflow runs automatically when code is pushed to `main` or when a pull request targets `main`.
+The application builds successfully
+
+Continuous Integration
+
+QA Book uses GitHub Actions for Continuous Integration (CI).
+
+The workflow runs automatically when code is pushed to main or when a
+pull request targets main.
 
 Current CI pipeline:
 
-```text
 Git Push / Pull Request
           ↓
    GitHub Actions
@@ -406,75 +689,69 @@ Import App      │
     └─────┬─────┘
           ↓
        CI PASS
-```
 
-### Backend CI
+Backend CI
 
 The backend job:
 
-- Runs on Ubuntu
-- Sets up Python 3.13
-- Installs backend dependencies
-- Uses a CI test database configuration
-- Uses a CI-only dummy Gemini API key
-- Verifies that the FastAPI application imports successfully
+Runs on Ubuntu
 
-### Frontend CI
+Sets up Python
+
+Installs backend dependencies
+
+Uses CI database configuration
+
+Uses a CI-only dummy Gemini API key
+
+Verifies that the FastAPI application imports successfully
+
+Frontend CI
 
 The frontend job:
 
-- Runs on Ubuntu
-- Sets up Node.js
-- Uses npm dependency caching
-- Runs `npm ci`
-- Runs the production build using `npm run build`
+Runs on Ubuntu
 
-### Current CI scope
+Sets up Node.js
 
-CI currently validates backend application initialization and frontend production build.
+Uses npm dependency caching
 
-ESLint is not currently a CI gate because the project still contains existing lint issues that are planned to be addressed separately.
+Runs npm ci
 
----
+Runs the production build using npm run build
 
-# Getting Started
+Current CI scope
 
-## Clone Repository
+CI currently validates backend application initialization and frontend
+production build.
 
-```bash
+Getting Started
+
+Clone Repository
+
 git clone https://github.com/Rushis09/QA_Book.git
-
 cd QA_Book
-```
 
----
+Backend Setup
 
-## Backend Setup
-
-```bash
 cd apps/api
 
 python -m venv .venv
-```
 
-### Windows
+Windows
 
-```powershell
 .venv\Scripts\activate
-```
 
 Install dependencies:
 
-```bash
 pip install -r requirements.txt
-```
 
-Create a `.env` file with the required configuration.
+Create a .env file with the required configuration.
 
 Example:
 
-```env
 DATABASE_URL=YOUR_DATABASE_URL
+
 GEMINI_API_KEY=YOUR_GEMINI_API_KEY
 
 AWS_ENDPOINT_URL_S3=YOUR_S3_ENDPOINT
@@ -482,98 +759,73 @@ AWS_ACCESS_KEY_ID=YOUR_ACCESS_KEY
 AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY
 AWS_REGION=YOUR_REGION
 AWS_S3_BUCKET=YOUR_BUCKET
-```
 
 Run the backend:
 
-```bash
 uvicorn app.main:app --reload
-```
 
 Backend:
 
-```text
 http://localhost:8000
-```
 
 Swagger API documentation:
 
-```text
 http://localhost:8000/docs
-```
 
----
+Frontend Setup
 
-## Frontend Setup
-
-```bash
 cd apps/web
-
 npm ci
-```
 
-Create `.env`:
+Create .env with the API configuration required by the frontend.
 
-```env
-VITE_API_BASE_URL=http://localhost:8000
-```
+Example:
+
+VITE_PRODUCTION_API_URL=http://localhost:8000
 
 Run:
 
-```bash
 npm run dev
-```
 
 Frontend:
 
-```text
 http://localhost:5173
-```
 
 Production build:
 
-```bash
 npm run build
-```
 
----
+Deployment
 
-# Deployment
+QA Book is deployed as a production application.
 
-## Production
+Component        Platform
 
-| Component | Platform |
-|-----------|----------|
-| Frontend | Vercel |
-| Backend | Render |
-| Database | Neon PostgreSQL |
-| Object Storage | Neon Object Storage |
+Frontend         Vercel
+Backend          Render
+Database         Neon PostgreSQL
+Object Storage   S3-compatible object storage
 
 Live application:
 
-```text
 https://qa-book.vercel.app
-```
 
 Backend API:
 
-```text
 https://qabook-api.onrender.com
-```
 
 API documentation:
 
-```text
 https://qabook-api.onrender.com/docs
-```
 
----
+There is no Demo environment or Demo database in the deployed
+application. Users create individual accounts, log in, and use the
+production application according to their project access.
 
-# Development and Quality Practices
+Development and Quality Practices
 
 The project follows a layered full-stack architecture:
 
-```text
 Frontend
    ↓
 API Service Layer
@@ -585,102 +837,177 @@ Business Service Layer
 Repository Layer
    ↓
 Database / Storage
-```
 
 Development focuses on:
 
-- Separation of concerns
-- Reusable frontend components
-- Service/repository architecture
-- Database migrations with Alembic
-- API validation with Pydantic
-- Error handling
-- Functional testing
-- UI and workflow verification
-- Git-based version control
-- Automated CI validation
+Separation of concerns
 
----
+Reusable frontend components
 
-# Roadmap
+Service/repository architecture
 
-## Current Platform
+Database migrations with Alembic
 
-- Project Management
-- Requirement Management
-- Test Scenario Management
-- Test Case Management
-- Test Suite Management
-- Test Runs
-- Test Execution
-- Bug Tracking
-- Dashboard & Analytics
-- Excel Export
-- PDF Export
-- Production and Demo environments
-- AI-assisted requirement generation
-- BRD document management
-- Object storage integration
-- GitHub Actions CI
+API validation with Pydantic
 
-## Planned Improvements
+Authentication and project access control
 
-- Automated backend test suite
-- Stronger frontend linting and CI quality gates
-- Expanded AI-assisted test case generation
-- AI bug summaries
-- AI risk analysis
-- Authentication
-- Role-based access
-- Additional reporting capabilities
-- Continuous Deployment automation
+Error handling
 
----
+Functional testing
 
-# Contributing
+UI and workflow verification
+
+Integration testing
+
+Git-based version control
+
+Automated CI validation
+
+Roadmap
+
+Current Platform
+
+Individual user signup and login
+
+Project management
+
+Project workspace
+
+Requirement management
+
+Test scenario management
+
+Test case management
+
+Test suite management
+
+Test runs
+
+Test execution
+
+Bug tracking
+
+Manual bug retesting
+
+Automation project management
+
+Test case automation mapping
+
+Playwright/pytest automation generation
+
+GitHub integration
+
+GitHub Actions automation
+
+Automated test execution
+
+Automated retesting
+
+Dashboard and analytics
+
+Interactive reporting and drill-down
+
+Excel export
+
+PDF export
+
+AI-assisted QA artifact generation
+
+BRD document management
+
+Object storage integration
+
+Production cloud deployment
+
+GitHub Actions CI
+
+Planned Improvements
+
+Automated backend test suite expansion
+
+Stronger frontend linting and CI quality gates
+
+Expanded AI-assisted test generation
+
+AI bug summaries
+
+AI risk analysis
+
+Additional reporting capabilities
+
+Continuous deployment automation
+
+Further automation framework improvements
+
+Contributing
 
 If you'd like to contribute:
 
-1. Fork the repository.
-2. Create a feature branch.
-3. Develop and test the feature.
-4. Review your changes with Git.
-5. Commit the changes.
-6. Open a Pull Request.
+Fork the repository.
 
----
+Create a feature branch.
 
-# My Contribution
+Develop and test the feature.
 
-- Designed the overall QA Book product concept and workflow.
-- Defined the functional requirements and QA lifecycle.
-- Designed and implemented the database structure.
-- Developed the frontend using React, TypeScript, Vite, and Material UI.
-- Developed the backend using FastAPI, SQLAlchemy, Pydantic, and Alembic.
-- Implemented REST APIs and service/repository architecture.
-- Implemented project, requirement, scenario, test case, test suite, test run, execution, and bug management workflows.
-- Implemented AI-assisted requirement generation.
-- Implemented BRD document upload, extraction, storage, download, and deletion.
-- Integrated PostgreSQL and object storage.
-- Validated features through functional testing, UI testing, integration testing, and workflow verification.
-- Deployed the application using Vercel, Render, and Neon.
-- Implemented GitHub Actions CI for backend and frontend validation.
-- Used AI-assisted development while reviewing, testing, and validating the resulting implementation.
+Review your changes with Git.
 
----
+Commit the changes.
 
-# Author
+Open a Pull Request.
 
-**Rushikesh**
+My Contribution
+
+Designed the overall QA Book product concept and workflow.
+
+Defined the functional requirements and QA lifecycle.
+
+Designed and implemented the database structure.
+
+Developed the frontend using React, TypeScript, Vite, and Material
+UI.
+
+Developed the backend using FastAPI, SQLAlchemy, Pydantic, and
+Alembic.
+
+Implemented REST APIs and service/repository architecture.
+
+Implemented individual user authentication and project access.
+
+Implemented project, requirement, scenario, test case, test suite,
+test run, execution, and bug management workflows.
+
+Implemented manual and automated retesting workflows.
+
+Implemented AI-assisted QA artifact generation.
+
+Implemented BRD document upload, extraction, storage, download, and
+deletion.
+
+Integrated PostgreSQL and object storage.
+
+Implemented reporting, analytics, traceability, and interactive
+drill-down.
+
+Implemented GitHub Actions automation and CI integration.
+
+Validated features through functional testing, UI testing,
+integration testing, and end-to-end workflow verification.
+
+Deployed the application using Vercel, Render, and Neon.
+
+Used AI-assisted development while reviewing, testing, and
+validating the resulting implementation.
+
+Author
+
+Rushikesh
 
 GitHub:
+https://github.com/Rushis09
 
-https://github.com/Rushis09/QA_Book
-
----
-
-# License
+License
 
 This project is licensed under the MIT License.
 
-See the `LICENSE` file for details.
+See the LICENSE file for details.
