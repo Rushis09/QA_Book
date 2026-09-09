@@ -74,8 +74,12 @@ def generate(
 def recommend_test_cases(
     request: RecommendTestCasesRequest,
     db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
 ):
-    service = AITestSuiteService(db)
+    service = AITestSuiteService(
+        db=db,
+        admin=admin,
+    )
 
     try:
         response = service.recommend_test_cases(

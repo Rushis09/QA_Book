@@ -1,17 +1,24 @@
 from sqlalchemy.orm import Session
 
+from app.ai.credential_service import AICredentialService
 from app.ai.prompts.test_suite import (
     build_test_suite_recommendation_prompt,
 )
 from app.ai.service import AIService
+from app.models.admin import Admin
 from app.models.test_case import TestCase
 from app.models.test_suite import TestSuite
 
 
 class AITestSuiteService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, admin: Admin):
         self.db = db
-        self.ai_service = AIService()
+        self.admin = admin
+
+        credential_service = AICredentialService(db)
+        api_key = credential_service.get_api_key(admin=admin)
+
+        self.ai_service = AIService(api_key=api_key)
 
     def recommend_test_cases(
         self,

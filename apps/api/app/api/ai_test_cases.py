@@ -25,9 +25,12 @@ router = APIRouter(
 def generate_test_cases(
     request: GenerateTestCaseRequest,
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(get_current_admin),
 ):
-    service = AITestCaseService(db)
+    service = AITestCaseService(
+        db=db,
+        admin=admin,
+    )
 
     try:
         return service.generate_test_cases(

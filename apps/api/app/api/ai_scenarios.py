@@ -25,9 +25,12 @@ router = APIRouter(
 def generate_scenarios(
     request: GenerateScenarioRequest,
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(get_current_admin),
 ):
-    service = AIScenarioService(db)
+    service = AIScenarioService(
+        db=db,
+        admin=admin,
+    )
 
     try:
         return service.generate_scenarios(
