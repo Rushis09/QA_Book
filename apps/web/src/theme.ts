@@ -195,10 +195,14 @@ const theme = createTheme({
           padding: "9px 12px",
           fontSize: "0.76rem",
         },
-
+      
         head: {
           fontSize: "0.7rem",
           fontWeight: 650,
+          position: "sticky",
+          top: 0,
+          zIndex: 2,
+          backgroundColor: "#f8fafc",
         },
       },
     },
