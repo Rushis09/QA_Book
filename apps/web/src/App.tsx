@@ -8,6 +8,7 @@ import { useAuth } from "./contexts/AuthContext";
 
 import DashboardPage from "./pages/Dashboard/DashboardPage";
 import ProjectsPage from "./pages/Projects/ProjectsPage";
+import ProjectWorkspacePage from "./pages/Projects/ProjectWorkspacePage";
 import RequirementsPage from "./pages/Requirements/RequirementsPage";
 import TestCasesPage from "./pages/TestCases/TestCasesPage";
 import TestScenariosPage from "./pages/TestScenarios/TestScenariosPage";
@@ -22,6 +23,7 @@ import AutomationPage from "./automation/pages/AutomationPage";
 import TestExecutionsListPage from "./pages/TestExecutions/TestExecutionsListPage";
 import ReportFocusBridge from "./components/common/ReportFocusBridge";
 import SettingsPage from "./pages/Settings/SettingsPage";
+
 function NotFoundPage() {
   return <h1>404 - Page Not Found</h1>;
 }
@@ -78,6 +80,12 @@ export default function App() {
               <Route
                 path="/projects"
                 element={<ProjectsPage />}
+              />
+
+              {/* Project Workspace */}
+              <Route
+                path="/projects/:id"
+                element={<ProjectWorkspacePage />}
               />
 
               <Route
