@@ -25,9 +25,11 @@ class AIScenarioService:
         manual_description: str,
     ):
         prompt = build_scenario_prompt(
-            requirement=requirement,
-            number_of_scenarios=number_of_scenarios,
+            requirement_code=requirement.requirement_code,
+            requirement_module=requirement.module,
+            requirement_description=requirement.description,
             manual_description=manual_description,
+            number_of_scenarios=number_of_scenarios,
         )
 
         return self.ai_service.generate_json(prompt)
@@ -63,7 +65,9 @@ class AIScenarioService:
                 "Requirement is required when generate_for_all is false."
             )
 
-        requirement = self.requirement_repository.get_by_id(requirement_id)
+        requirement = self.requirement_repository.get_by_id(
+            requirement_id
+        )
 
         if not requirement:
             raise ValueError("Requirement not found.")

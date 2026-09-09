@@ -25,9 +25,12 @@ class AITestCaseService:
         manual_description: str,
     ):
         prompt = build_test_case_prompt(
-            scenario=scenario,
-            number_of_test_cases=number_of_test_cases,
+            scenario_code=scenario.scenario_code,
+            module=scenario.module,
+            scenario_title=scenario.title,
+            scenario_description=scenario.description or "",
             manual_description=manual_description,
+            number_of_test_cases=number_of_test_cases,
         )
 
         return self.ai_service.generate_json(prompt)
@@ -38,7 +41,9 @@ class AITestCaseService:
         manual_description: str,
         number_of_test_cases: int,
     ):
-        scenario = self.scenario_repository.get_by_id(scenario_id)
+        scenario = self.scenario_repository.get_by_id(
+            scenario_id
+        )
 
         if not scenario:
             raise ValueError("Test scenario not found.")
