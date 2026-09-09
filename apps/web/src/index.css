@@ -33,3 +33,27 @@ select {
   color: #ffffff;
   background: #356dff;
 }
+
+main .MuiTableContainer-root {
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+main .MuiTableContainer-root::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+main .MuiTableContainer-root::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+main .MuiTableContainer-root::-webkit-scrollbar-thumb {
+  background: #d6dee9;
+  border-radius: 10px;
+}
+
+main .MuiTableContainer-root::-webkit-scrollbar-thumb:hover {
+  background: #bdc8d6;
+}

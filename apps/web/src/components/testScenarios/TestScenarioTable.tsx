@@ -94,7 +94,6 @@ export default function TestScenarioTable({
       sx={{
         border: "1px solid #e2e8f0",
         borderRadius: 2,
-        overflow: "hidden",
         backgroundColor: "#fff",
       }}
     >

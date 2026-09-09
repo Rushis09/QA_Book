@@ -184,7 +184,6 @@ export default function RequirementTable({
         border:
           "1px solid #e4e7ec",
         borderRadius: "10px",
-        overflow: "hidden",
         backgroundColor: "#ffffff",
       }}
     >

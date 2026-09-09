@@ -203,6 +203,34 @@ const theme = createTheme({
       },
     },
 
+    MuiTableContainer: {
+      styleOverrides: {
+        root: {
+          overflowX: "auto",
+          overflowY: "visible",
+          WebkitOverflowScrolling: "touch",
+        
+          "&::-webkit-scrollbar": {
+            width: 7,
+            height: 7,
+          },
+        
+          "&::-webkit-scrollbar-track": {
+            background: "transparent",
+          },
+        
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#d6dee9",
+            borderRadius: 10,
+          },
+        
+          "&::-webkit-scrollbar-thumb:hover": {
+            backgroundColor: "#bdc8d6",
+          },
+        },
+      },
+    },
+
     MuiListItemButton: {
       styleOverrides: {
         root: {
