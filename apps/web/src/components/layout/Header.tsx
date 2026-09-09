@@ -137,9 +137,12 @@ export default function Header() {
     <>
       <AppBar
         position="static"
-        elevation={1}
+        elevation={0}
         sx={{
           flexShrink: 0,
+          bgcolor: "#ffffff",
+          color: "#344054",
+          borderBottom: "1px solid #e4e7ec",
         }}
       >
         <Toolbar
@@ -173,7 +176,6 @@ export default function Header() {
           >
             <QABookLogo
               size="md"
-              dark
             />
           </Box>
 
@@ -365,6 +367,9 @@ export default function Header() {
                     width: 32,
                     height: 32,
                     fontSize: "0.82rem",
+                    bgcolor: "#eef4ff",
+                    color: "#356dff",
+                    fontWeight: 700,
                   }}
                 >
                   {avatarLetter}
