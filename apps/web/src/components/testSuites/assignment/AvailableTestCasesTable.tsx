@@ -109,8 +109,7 @@ export default function AvailableTestCasesTable({
       component={Paper}
       elevation={0}
       sx={{
-        border:
-          "1px solid #e4e7ec",
+        border: "1px solid #e4e7ec",
         borderRadius: "10px",
         overflow: "hidden",
         backgroundColor: "#fff",
@@ -259,16 +258,23 @@ export default function AvailableTestCasesTable({
       )}
 
       {/* Table */}
-      <Table
-        size="small"
+      <Box
         sx={{
-          minWidth: 560,
-          "& .MuiTableCell-root": {
-            borderBottom:
-              "1px solid #f0f2f5",
-          },
+          maxHeight: "calc(100vh - 510px)",
+          minHeight: 260,
+          overflow: "auto",
         }}
       >
+        <Table
+          size="small"
+          stickyHeader
+          sx={{
+            minWidth: 560,
+            "& .MuiTableCell-root": {
+              borderBottom: "1px solid #f0f2f5",
+            },
+          }}
+        >
         <TableHead>
           <TableRow
             sx={{
@@ -626,6 +632,7 @@ export default function AvailableTestCasesTable({
           )}
         </TableBody>
       </Table>
+      </Box>
     </TableContainer>
   );
 }

@@ -81,38 +81,58 @@ class AITestSuiteService:
             return 0
 
         title_tokens = cls._tokenize(
-            test_case["title"]
+            test_case.get("title", "")
         )
 
         scenario_tokens = cls._tokenize(
-            test_case["scenario_title"]
+            f"""
+            {test_case.get("scenario_code", "")}
+            {test_case.get("scenario_title", "")}
+            {test_case.get("scenario_description", "")}
+            """
         )
 
         module_tokens = cls._tokenize(
-            test_case["module"]
+            test_case.get("module", "")
         )
 
         requirement_tokens = cls._tokenize(
-            test_case["requirement_code"]
+            f"""
+            {test_case.get("requirement_code", "")}
+            {test_case.get("requirement_description", "")}
+            """
+        )
+
+        expected_result_tokens = cls._tokenize(
+            test_case.get("expected_result", "")
         )
 
         score = 0
 
+        # Test case title is strong evidence of functional relevance.
         score += len(
             suite_tokens & title_tokens
-        ) * 5
+        ) * 7
 
+        # Scenario context is stronger than metadata.
         score += len(
             suite_tokens & scenario_tokens
-        ) * 4
-
-        score += len(
-            suite_tokens & module_tokens
         ) * 6
 
+        # Requirement context is also strong evidence.
         score += len(
             suite_tokens & requirement_tokens
-        ) * 3
+        ) * 5
+
+        # Module is useful, but should not dominate the decision.
+        score += len(
+            suite_tokens & module_tokens
+        ) * 4
+
+        # Expected result provides additional functional context.
+        score += len(
+            suite_tokens & expected_result_tokens
+        ) * 2
 
         return score
 
@@ -213,16 +233,28 @@ class AITestSuiteService:
                     "requirement_code": (
                         requirement.requirement_code
                     ),
+                    "requirement_description": (
+                        requirement.description or ""
+                    ),
                     "scenario_code": (
                         scenario.scenario_code
                     ),
                     "scenario_title": (
                         scenario.title
                     ),
-                    "module": test_case.module,
+                    "scenario_description": (
+                        scenario.description or ""
+                    ),
+                    "module": test_case.module or "",
                     "priority": test_case.priority,
                     "status": test_case.status,
-                    "title": test_case.title,
+                    "title": test_case.title or "",
+                    "expected_result": (
+                        test_case.expected_result or ""
+                    ),
+                    "automation_eligibility": (
+                        test_case.automation_eligibility
+                    ),
                 }
             )
 

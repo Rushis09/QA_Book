@@ -454,16 +454,15 @@ export default function TestScenariosPage() {
         secondaryActionLabel="✨ Generate with AI"
         onSecondaryAction={() => {
           if (
-            selectedRequirementIds.length !==
-            1
+            selectedRequirementIds.length === 0
           ) {
             showNotification(
-              "Please select exactly one requirement to generate scenarios.",
+              "Please select at least one requirement to generate scenarios.",
               "warning",
             );
             return;
           }
-
+        
           setOpenGenerateDialog(true);
         }}
         selectionCount={
@@ -890,8 +889,8 @@ export default function TestScenariosPage() {
         open={openGenerateDialog}
         projects={projects}
         requirements={requirements}
-        selectedRequirementId={
-          selectedRequirementIds[0]
+        selectedRequirementIds={
+          selectedRequirementIds
         }
         onClose={() =>
           setOpenGenerateDialog(false)

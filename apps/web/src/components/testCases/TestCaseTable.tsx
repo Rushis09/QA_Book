@@ -237,9 +237,10 @@ export default function TestCaseTable({
       sx={{
         border: "1px solid #e4e7ec",
         borderRadius: "10px",
-        overflowX: "auto",
-        overflowY: "hidden",
+        overflow: "auto",
         backgroundColor: "#fff",
+        maxHeight: "calc(100vh - 260px)",
+        minHeight: 280,
       }}
     >
       <Table
@@ -252,7 +253,14 @@ export default function TestCaseTable({
           },
         }}
       >
-        <TableHead>
+        <TableHead
+          sx={{
+            position: "sticky",
+            top: 0,
+            zIndex: 2,
+            backgroundColor: "#f9fafb",
+          }}
+        >
           <TableRow
             sx={{
               backgroundColor: "#f9fafb",

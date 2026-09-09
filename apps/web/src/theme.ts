@@ -195,7 +195,7 @@ const theme = createTheme({
           padding: "9px 12px",
           fontSize: "0.76rem",
         },
-      
+
         head: {
           fontSize: "0.7rem",
           fontWeight: 650,
@@ -213,21 +213,21 @@ const theme = createTheme({
           overflowX: "auto",
           overflowY: "visible",
           WebkitOverflowScrolling: "touch",
-        
+
           "&::-webkit-scrollbar": {
             width: 7,
             height: 7,
           },
-        
+
           "&::-webkit-scrollbar-track": {
             background: "transparent",
           },
-        
+
           "&::-webkit-scrollbar-thumb": {
             backgroundColor: "#d6dee9",
             borderRadius: 10,
           },
-        
+
           "&::-webkit-scrollbar-thumb:hover": {
             backgroundColor: "#bdc8d6",
           },

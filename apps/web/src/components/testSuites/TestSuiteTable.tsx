@@ -113,8 +113,10 @@ export default function TestSuiteTable({
         sx={{
           border: "1px solid #e4e7ec",
           borderRadius: "10px",
-          overflow: "hidden",
+          overflow: "auto",
           backgroundColor: "#fff",
+          maxHeight: "calc(100vh - 330px)",
+          minHeight: 260,
         }}
       >
         <Table
@@ -124,7 +126,14 @@ export default function TestSuiteTable({
             minWidth: 850,
           }}
         >
-          <TableHead>
+          <TableHead
+            sx={{
+              position: "sticky",
+              top: 0,
+              zIndex: 2,
+              backgroundColor: "#fcfcfd",
+            }}
+          >
             <TableRow
               sx={{
                 backgroundColor: "#fcfcfd",

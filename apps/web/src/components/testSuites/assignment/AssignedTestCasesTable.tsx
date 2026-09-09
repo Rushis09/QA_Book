@@ -168,16 +168,23 @@ export default function AssignedTestCasesTable({
         </Box>
       )}
 
-      <Table
-        size="small"
+      <Box
         sx={{
-          minWidth: 380,
-          "& .MuiTableCell-root": {
-            borderBottom:
-              "1px solid #f0f2f5",
-          },
+          maxHeight: "calc(100vh - 510px)",
+          minHeight: 260,
+          overflow: "auto",
         }}
       >
+        <Table
+          size="small"
+          stickyHeader
+          sx={{
+            minWidth: 380,
+            "& .MuiTableCell-root": {
+              borderBottom: "1px solid #f0f2f5",
+            },
+          }}
+        >
         <TableHead>
           <TableRow
             sx={{
@@ -457,6 +464,7 @@ export default function AssignedTestCasesTable({
           )}
         </TableBody>
       </Table>
+      </Box>
     </TableContainer>
   );
 }

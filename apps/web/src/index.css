@@ -35,8 +35,8 @@ select {
 }
 
 main .MuiTableContainer-root {
-  overflow-x: auto !important;
-  overflow-y: visible !important;
+  overflow-x: auto;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 

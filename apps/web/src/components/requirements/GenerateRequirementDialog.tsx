@@ -1,19 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   FormControl,
   FormControlLabel,
+  IconButton,
   MenuItem,
   Radio,
   RadioGroup,
   TextField,
   Typography,
 } from "@mui/material";
+
+import CloseIcon from "@mui/icons-material/Close";
+import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 
 import { aiService } from "../../services/aiService";
 import { requirementService } from "../../services/requirementService";
@@ -25,6 +32,15 @@ interface GenerateRequirementDialogProps {
   open: boolean;
   onClose: () => void;
   onGenerated: () => void;
+}
+
+interface ReviewRequirement {
+  id: string;
+  module: string;
+  priority: string;
+  status: string;
+  description: string;
+  accepted: boolean;
 }
 
 const fieldSx = {
@@ -54,6 +70,13 @@ const sourceCardSx = (selected: boolean) => ({
     backgroundColor: "#f8fbff",
   },
 });
+
+const reviewCardSx = {
+  border: "1px solid #e4e7ec",
+  borderRadius: "10px",
+  backgroundColor: "#fff",
+  p: 1.5,
+};
 
 export default function GenerateRequirementDialog({
   open,
@@ -89,6 +112,11 @@ export default function GenerateRequirementDialog({
   const [documentsLoading, setDocumentsLoading] =
     useState(false);
 
+  const [reviewMode, setReviewMode] = useState(false);
+
+  const [reviewRequirements, setReviewRequirements] =
+    useState<ReviewRequirement[]>([]);
+
   useEffect(() => {
     if (!open || !selectedProject || source !== "brd") {
       return;
@@ -104,15 +132,23 @@ export default function GenerateRequirementDialog({
           );
 
         const brdDocuments = data.filter(
-          (document) =>
-            document.file_type.toLowerCase() === "docx" ||
-            document.file_type.toLowerCase() === "pdf",
+          (document) => {
+            const fileType =
+              document.file_type.toLowerCase();
+
+            return (
+              fileType === "docx" ||
+              fileType === "pdf"
+            );
+          },
         );
 
         setDocuments(brdDocuments);
 
         if (brdDocuments.length === 1) {
-          setSelectedDocumentId(brdDocuments[0].id);
+          setSelectedDocumentId(
+            brdDocuments[0].id,
+          );
         } else {
           setSelectedDocumentId("");
         }
@@ -138,6 +174,14 @@ export default function GenerateRequirementDialog({
     source,
     showNotification,
   ]);
+
+  useEffect(() => {
+    if (!open) {
+      setReviewMode(false);
+      setReviewRequirements([]);
+      setLoading(false);
+    }
+  }, [open]);
 
   function handleSourceChange(
     value: "project" | "manual" | "brd",
@@ -200,23 +244,33 @@ export default function GenerateRequirementDialog({
               number_of_requirements: count,
             });
 
-      for (const requirement of requirements) {
-        await requirementService.createRequirement({
-          project_id: projectId,
-          module: requirement.module,
-          priority: requirement.priority,
-          status: "Draft",
-          description: requirement.description,
-        });
+      if (
+        !requirements ||
+        requirements.length === 0
+      ) {
+        showNotification(
+          "AI did not return any requirements.",
+          "warning",
+        );
+        return;
       }
 
-      showNotification(
-        `${requirements.length} requirements generated successfully.`,
-        "success",
-      );
+      const reviewItems: ReviewRequirement[] =
+        requirements.map(
+          (requirement, index) => ({
+            id: `${Date.now()}-${index}`,
+            module: requirement.module ?? "",
+            priority:
+              requirement.priority ?? "Medium",
+            status: "Draft",
+            description:
+              requirement.description ?? "",
+            accepted: true,
+          }),
+        );
 
-      onGenerated();
-      onClose();
+      setReviewRequirements(reviewItems);
+      setReviewMode(true);
     } catch (error: any) {
       console.error(error);
 
@@ -230,15 +284,662 @@ export default function GenerateRequirementDialog({
     }
   }
 
+  function updateRequirement(
+    id: string,
+    field:
+      | "module"
+      | "priority"
+      | "description",
+    value: string,
+  ) {
+    setReviewRequirements((current) =>
+      current.map((requirement) =>
+        requirement.id === id
+          ? {
+              ...requirement,
+              [field]: value,
+            }
+          : requirement,
+      ),
+    );
+  }
+
+  function toggleAccepted(id: string) {
+    setReviewRequirements((current) =>
+      current.map((requirement) =>
+        requirement.id === id
+          ? {
+              ...requirement,
+              accepted: !requirement.accepted,
+            }
+          : requirement,
+      ),
+    );
+  }
+
+  function acceptAll() {
+    setReviewRequirements((current) =>
+      current.map((requirement) => ({
+        ...requirement,
+        accepted: true,
+      })),
+    );
+  }
+
+  function rejectAll() {
+    setReviewRequirements((current) =>
+      current.map((requirement) => ({
+        ...requirement,
+        accepted: false,
+      })),
+    );
+  }
+
+  function removeRequirement(id: string) {
+    setReviewRequirements((current) =>
+      current.filter(
+        (requirement) =>
+          requirement.id !== id,
+      ),
+    );
+  }
+
+  function handleBackToGeneration() {
+    setReviewMode(false);
+  }
+
+  async function handleSaveAccepted() {
+    if (!selectedProject) {
+      showNotification(
+        "Please select a project first.",
+        "error",
+      );
+      return;
+    }
+
+    const acceptedRequirements =
+      reviewRequirements.filter(
+        (requirement) =>
+          requirement.accepted,
+      );
+
+    if (acceptedRequirements.length === 0) {
+      showNotification(
+        "Please accept at least one requirement to save.",
+        "warning",
+      );
+      return;
+    }
+
+    const invalidRequirement =
+      acceptedRequirements.find(
+        (requirement) =>
+          !requirement.module.trim() ||
+          !requirement.description.trim(),
+      );
+
+    if (invalidRequirement) {
+      showNotification(
+        "Module and description are required for every accepted requirement.",
+        "warning",
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      for (const requirement of acceptedRequirements) {
+        await requirementService.createRequirement({
+          project_id: projectId,
+          module: requirement.module.trim(),
+          priority: requirement.priority,
+          status: "Draft",
+          description:
+            requirement.description.trim(),
+        });
+      }
+
+      showNotification(
+        `${acceptedRequirements.length} requirements saved successfully.`,
+        "success",
+      );
+
+      onGenerated();
+      handleReset();
+      onClose();
+    } catch (error: any) {
+      console.error(error);
+
+      const message =
+        error?.response?.data?.detail ||
+        "Failed to save requirements.";
+
+      showNotification(message, "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleReset() {
+    setReviewMode(false);
+    setReviewRequirements([]);
+    setManualPrompt("");
+    setSelectedDocumentId("");
+  }
+
+  function handleDialogClose() {
+    if (loading) {
+      return;
+    }
+
+    handleReset();
+    onClose();
+  }
+
+  const acceptedCount = useMemo(
+    () =>
+      reviewRequirements.filter(
+        (requirement) =>
+          requirement.accepted,
+      ).length,
+    [reviewRequirements],
+  );
+
+  const rejectedCount =
+    reviewRequirements.length -
+    acceptedCount;
+
   const noBrdAvailable =
     source === "brd" &&
     !documentsLoading &&
     documents.length === 0;
 
+  if (reviewMode) {
+    return (
+      <Dialog
+        open={open}
+        onClose={handleDialogClose}
+        fullWidth
+        maxWidth="lg"
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: "14px",
+              overflow: "hidden",
+              maxHeight: "90vh",
+            },
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            px: 3,
+            pt: 2.2,
+            pb: 1.2,
+            borderBottom: "1px solid #eef2f7",
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography
+                sx={{
+                  fontSize: "1.05rem",
+                  fontWeight: 750,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                ✨ Review Generated Requirements
+              </Typography>
+
+              <Typography
+                sx={{
+                  mt: 0.45,
+                  fontSize: "0.76rem",
+                  color: "#64748b",
+                }}
+              >
+                Review, edit and select the requirements
+                you want to save.
+              </Typography>
+            </Box>
+
+            <IconButton
+              size="small"
+              onClick={handleDialogClose}
+              disabled={loading}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent
+          sx={{
+            px: 3,
+            py: 2,
+            backgroundColor: "#f8fafc",
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 1,
+              mb: 1.5,
+              flexWrap: "wrap",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                flexWrap: "wrap",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "0.78rem",
+                  fontWeight: 700,
+                  color: "#344054",
+                }}
+              >
+                {reviewRequirements.length} generated
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: "0.74rem",
+                  color: "#16a34a",
+                  fontWeight: 650,
+                }}
+              >
+                {acceptedCount} selected
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: "0.74rem",
+                  color: "#98a2b3",
+                }}
+              >
+                {rejectedCount} rejected
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                gap: 0.75,
+              }}
+            >
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={acceptAll}
+                disabled={
+                  loading ||
+                  reviewRequirements.length === 0
+                }
+                startIcon={
+                  <CheckOutlinedIcon
+                    sx={{ fontSize: 16 }}
+                  />
+                }
+                sx={{
+                  minHeight: 32,
+                  borderRadius: "8px",
+                  fontSize: "0.72rem",
+                  textTransform: "none",
+                  fontWeight: 650,
+                }}
+              >
+                Accept All
+              </Button>
+
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={rejectAll}
+                disabled={
+                  loading ||
+                  reviewRequirements.length === 0
+                }
+                sx={{
+                  minHeight: 32,
+                  borderRadius: "8px",
+                  fontSize: "0.72rem",
+                  textTransform: "none",
+                  fontWeight: 650,
+                }}
+              >
+                Reject All
+              </Button>
+            </Box>
+          </Box>
+
+          {reviewRequirements.length === 0 ? (
+            <Box
+              sx={{
+                border: "1px dashed #cbd5e1",
+                borderRadius: "10px",
+                backgroundColor: "#fff",
+                py: 5,
+                textAlign: "center",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "0.8rem",
+                  color: "#64748b",
+                }}
+              >
+                No generated requirements remain.
+              </Typography>
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.25,
+              }}
+            >
+              {reviewRequirements.map(
+                (requirement, index) => (
+                  <Box
+                    key={requirement.id}
+                    sx={{
+                      ...reviewCardSx,
+                      opacity:
+                        requirement.accepted
+                          ? 1
+                          : 0.62,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 1,
+                      }}
+                    >
+                      <Checkbox
+                        checked={
+                          requirement.accepted
+                        }
+                        onChange={() =>
+                          toggleAccepted(
+                            requirement.id,
+                          )
+                        }
+                        disabled={loading}
+                        size="small"
+                        sx={{
+                          p: 0.35,
+                          mt: 0.15,
+                        }}
+                      />
+
+                      <Box
+                        sx={{
+                          flex: 1,
+                          minWidth: 0,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent:
+                              "space-between",
+                            gap: 1,
+                            mb: 1,
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              fontSize: "0.74rem",
+                              fontWeight: 750,
+                              color: "#475467",
+                            }}
+                          >
+                            Requirement {index + 1}
+                          </Typography>
+
+                          <IconButton
+                            size="small"
+                            onClick={() =>
+                              removeRequirement(
+                                requirement.id,
+                              )
+                            }
+                            disabled={loading}
+                            sx={{
+                              width: 28,
+                              height: 28,
+                            }}
+                          >
+                            <DeleteOutlineOutlinedIcon
+                              sx={{
+                                fontSize: 17,
+                                color: "#98a2b3",
+                              }}
+                            />
+                          </IconButton>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns:
+                              "minmax(0, 1fr) 150px",
+                            gap: 1,
+                            mb: 1,
+                            "@media (max-width: 700px)":
+                              {
+                                gridTemplateColumns:
+                                  "1fr",
+                              },
+                          }}
+                        >
+                          <TextField
+                            label="Module"
+                            value={
+                              requirement.module
+                            }
+                            onChange={(event) =>
+                              updateRequirement(
+                                requirement.id,
+                                "module",
+                                event.target.value,
+                              )
+                            }
+                            disabled={loading}
+                            size="small"
+                            fullWidth
+                            sx={fieldSx}
+                          />
+
+                          <TextField
+                            select
+                            label="Priority"
+                            value={
+                              requirement.priority
+                            }
+                            onChange={(event) =>
+                              updateRequirement(
+                                requirement.id,
+                                "priority",
+                                event.target.value,
+                              )
+                            }
+                            disabled={loading}
+                            size="small"
+                            fullWidth
+                            sx={fieldSx}
+                          >
+                            {[
+                              "High",
+                              "Medium",
+                              "Low",
+                            ].map((priority) => (
+                              <MenuItem
+                                key={priority}
+                                value={priority}
+                                sx={{
+                                  fontSize:
+                                    "0.8rem",
+                                }}
+                              >
+                                {priority}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        </Box>
+
+                        <TextField
+                          label="Description"
+                          value={
+                            requirement.description
+                          }
+                          onChange={(event) =>
+                            updateRequirement(
+                              requirement.id,
+                              "description",
+                              event.target.value,
+                            )
+                          }
+                          disabled={loading}
+                          multiline
+                          minRows={3}
+                          fullWidth
+                          sx={{
+                            ...fieldSx,
+                            "& .MuiOutlinedInput-root":
+                              {
+                                ...fieldSx[
+                                  "& .MuiOutlinedInput-root"
+                                ],
+                                alignItems:
+                                  "flex-start",
+                                paddingTop: "9px",
+                              },
+                          }}
+                        />
+
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.75,
+                            mt: 0.8,
+                          }}
+                        >
+                          <EditOutlinedIcon
+                            sx={{
+                              fontSize: 14,
+                              color: "#98a2b3",
+                            }}
+                          />
+
+                          <Typography
+                            sx={{
+                              fontSize: "0.66rem",
+                              color: "#98a2b3",
+                            }}
+                          >
+                            Edit before saving if
+                            needed
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
+                ),
+              )}
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            px: 3,
+            py: 1.7,
+            borderTop: "1px solid #eef2f7",
+            gap: 1,
+          }}
+        >
+          <Button
+            onClick={handleBackToGeneration}
+            disabled={loading}
+            sx={{
+              minHeight: 34,
+              px: 1.5,
+              borderRadius: "8px",
+              fontSize: "0.76rem",
+              fontWeight: 650,
+              textTransform: "none",
+            }}
+          >
+            Back
+          </Button>
+
+          <Box sx={{ flex: 1 }} />
+
+          <Button
+            onClick={handleDialogClose}
+            disabled={loading}
+            sx={{
+              minHeight: 34,
+              px: 1.5,
+              borderRadius: "8px",
+              fontSize: "0.76rem",
+              fontWeight: 650,
+              textTransform: "none",
+            }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={handleSaveAccepted}
+            disabled={
+              loading ||
+              acceptedCount === 0
+            }
+            sx={{
+              minHeight: 34,
+              px: 1.7,
+              borderRadius: "8px",
+              fontSize: "0.76rem",
+              fontWeight: 700,
+              textTransform: "none",
+            }}
+          >
+            {loading
+              ? "Saving..."
+              : `Save ${acceptedCount} Requirements`}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleDialogClose}
       fullWidth
       maxWidth="md"
       slotProps={{
@@ -267,9 +968,13 @@ export default function GenerateRequirementDialog({
             gap: 0.8,
           }}
         >
-          <Box component="span" sx={{ fontSize: "1rem" }}>
+          <Box
+            component="span"
+            sx={{ fontSize: "1rem" }}
+          >
             ✨
           </Box>
+
           Generate Requirements with AI
         </Box>
 
@@ -281,8 +986,8 @@ export default function GenerateRequirementDialog({
             color: "#64748b",
           }}
         >
-          Generate structured QA requirements from your
-          project context, description, or BRD.
+          Generate structured QA requirements from
+          your project context, description, or BRD.
         </Typography>
       </DialogTitle>
 
@@ -329,7 +1034,9 @@ export default function GenerateRequirementDialog({
               sx={{
                 ...fieldSx,
                 "& .MuiOutlinedInput-root": {
-                  ...fieldSx["& .MuiOutlinedInput-root"],
+                  ...fieldSx[
+                    "& .MuiOutlinedInput-root"
+                  ],
                   backgroundColor: "#f8fafc",
                 },
               }}
@@ -364,10 +1071,17 @@ export default function GenerateRequirementDialog({
                 }
                 sx={{
                   gap: 1,
-                  flexWrap: { xs: "wrap", sm: "nowrap" },
+                  flexWrap: {
+                    xs: "wrap",
+                    sm: "nowrap",
+                  },
                 }}
               >
-                <Box sx={sourceCardSx(source === "project")}>
+                <Box
+                  sx={sourceCardSx(
+                    source === "project",
+                  )}
+                >
                   <FormControlLabel
                     value="project"
                     control={<Radio size="small" />}
@@ -381,6 +1095,7 @@ export default function GenerateRequirementDialog({
                         >
                           Project Description
                         </Typography>
+
                         <Typography
                           sx={{
                             fontSize: "0.68rem",
@@ -400,7 +1115,11 @@ export default function GenerateRequirementDialog({
                   />
                 </Box>
 
-                <Box sx={sourceCardSx(source === "manual")}>
+                <Box
+                  sx={sourceCardSx(
+                    source === "manual",
+                  )}
+                >
                   <FormControlLabel
                     value="manual"
                     control={<Radio size="small" />}
@@ -414,6 +1133,7 @@ export default function GenerateRequirementDialog({
                         >
                           Manual Description
                         </Typography>
+
                         <Typography
                           sx={{
                             fontSize: "0.68rem",
@@ -433,7 +1153,11 @@ export default function GenerateRequirementDialog({
                   />
                 </Box>
 
-                <Box sx={sourceCardSx(source === "brd")}>
+                <Box
+                  sx={sourceCardSx(
+                    source === "brd",
+                  )}
+                >
                   <FormControlLabel
                     value="brd"
                     control={<Radio size="small" />}
@@ -447,6 +1171,7 @@ export default function GenerateRequirementDialog({
                         >
                           Uploaded BRD
                         </Typography>
+
                         <Typography
                           sx={{
                             fontSize: "0.68rem",
@@ -478,13 +1203,17 @@ export default function GenerateRequirementDialog({
                 fullWidth
                 value={manualPrompt}
                 onChange={(event) =>
-                  setManualPrompt(event.target.value)
+                  setManualPrompt(
+                    event.target.value,
+                  )
                 }
                 placeholder="Example: Build an e-commerce website with login, cart, payment gateway, order tracking and admin dashboard."
                 sx={{
                   ...fieldSx,
                   "& .MuiOutlinedInput-root": {
-                    ...fieldSx["& .MuiOutlinedInput-root"],
+                    ...fieldSx[
+                      "& .MuiOutlinedInput-root"
+                    ],
                     alignItems: "flex-start",
                     paddingTop: "9px",
                   },
@@ -520,7 +1249,8 @@ export default function GenerateRequirementDialog({
               ) : noBrdAvailable ? (
                 <Box
                   sx={{
-                    border: "1px dashed #f1b6b6",
+                    border:
+                      "1px dashed #f1b6b6",
                     borderRadius: "9px",
                     backgroundColor: "#fff8f8",
                     px: 1.5,
@@ -533,8 +1263,8 @@ export default function GenerateRequirementDialog({
                       color: "#c62828",
                     }}
                   >
-                    No BRD documents uploaded for this
-                    project.
+                    No BRD documents uploaded for
+                    this project.
                   </Typography>
                 </Box>
               ) : (
@@ -554,7 +1284,9 @@ export default function GenerateRequirementDialog({
                     <MenuItem
                       key={document.id}
                       value={document.id}
-                      sx={{ fontSize: "0.82rem" }}
+                      sx={{
+                        fontSize: "0.82rem",
+                      }}
                     >
                       {document.document_code} -{" "}
                       {document.title}
@@ -567,7 +1299,10 @@ export default function GenerateRequirementDialog({
 
           <Box
             sx={{
-              width: { xs: "100%", sm: 180 },
+              width: {
+                xs: "100%",
+                sm: 180,
+              },
             }}
           >
             <Typography
@@ -587,7 +1322,9 @@ export default function GenerateRequirementDialog({
               select
               value={count}
               onChange={(event) =>
-                setCount(Number(event.target.value))
+                setCount(
+                  Number(event.target.value),
+                )
               }
               fullWidth
               sx={fieldSx}
@@ -596,7 +1333,9 @@ export default function GenerateRequirementDialog({
                 <MenuItem
                   key={value}
                   value={value}
-                  sx={{ fontSize: "0.82rem" }}
+                  sx={{
+                    fontSize: "0.82rem",
+                  }}
                 >
                   {value}
                 </MenuItem>
@@ -615,7 +1354,7 @@ export default function GenerateRequirementDialog({
         }}
       >
         <Button
-          onClick={onClose}
+          onClick={handleDialogClose}
           disabled={loading}
           sx={{
             minHeight: 34,
@@ -623,6 +1362,7 @@ export default function GenerateRequirementDialog({
             borderRadius: "8px",
             fontSize: "0.76rem",
             fontWeight: 650,
+            textTransform: "none",
           }}
         >
           Cancel
@@ -633,6 +1373,9 @@ export default function GenerateRequirementDialog({
           onClick={handleGenerate}
           disabled={
             loading ||
+            !selectedProject ||
+            (source === "manual" &&
+              !manualPrompt.trim()) ||
             (source === "brd" &&
               (documentsLoading ||
                 noBrdAvailable ||

@@ -480,14 +480,14 @@ export default function TestCasesPage() {
         }}
         secondaryActionLabel="✨ Generate with AI"
         onSecondaryAction={() => {
-          if (selectedScenarioIds.length !== 1) {
+          if (selectedScenarioIds.length === 0) {
             showNotification(
-              "Please select exactly one scenario to generate test cases.",
+              "Please select at least one scenario to generate test cases.",
               "warning",
             );
             return;
           }
-
+        
           setOpenGenerateDialog(true);
         }}
         selectionCount={selectedTestCaseIds.length}
@@ -930,8 +930,8 @@ export default function TestCasesPage() {
         projects={projects}
         requirements={requirements}
         scenarios={scenarios}
-        selectedScenarioId={
-          selectedScenarioIds[0] ?? 0
+        selectedScenarioIds={
+          selectedScenarioIds
         }
         onClose={() =>
           setOpenGenerateDialog(false)

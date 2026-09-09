@@ -34,6 +34,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import AssignmentHeader from "../../components/testSuites/assignment/AssignmentHeader";
 import AvailableTestCasesTable from "../../components/testSuites/assignment/AvailableTestCasesTable";
 import AssignedTestCasesTable from "../../components/testSuites/assignment/AssignedTestCasesTable";
+import AIRecommendationDialog from "../../components/testSuites/assignment/AIRecommendationDialog";
 
 import { testSuiteService } from "../../services/testSuiteService";
 import { testCaseService } from "../../services/testCaseService";
@@ -157,6 +158,9 @@ export default function AssignTestCasesPage() {
   const [aiRecommendedIds, setAiRecommendedIds] =
     useState<number[]>([]);
 
+  const [aiReviewOpen, setAiReviewOpen] =
+    useState(false);
+
   const [error, setError] =
     useState("");
 
@@ -279,19 +283,8 @@ export default function AssignTestCasesPage() {
           ),
         );
 
-      setAiRecommendedIds((previous) => [
-        ...new Set([
-          ...previous,
-          ...recommendedIds,
-        ]),
-      ]);
-
-      setSelectedIds((previous) => [
-        ...new Set([
-          ...previous,
-          ...recommendedIds,
-        ]),
-      ]);
+      setAiRecommendedIds(recommendedIds);
+      setAiReviewOpen(true);
     } catch (error) {
       console.error(error);
 
@@ -302,6 +295,19 @@ export default function AssignTestCasesPage() {
       setAiLoading(false);
     }
   }
+
+function handleAIReviewConfirm(
+  selectedRecommendationIds: number[],
+) {
+  setSelectedIds((previous) => [
+    ...new Set([
+      ...previous,
+      ...selectedRecommendationIds,
+    ]),
+  ]);
+
+  setAiReviewOpen(false);
+}
 
   async function handleSave() {
     if (!suite) {
@@ -1293,6 +1299,17 @@ export default function AssignTestCasesPage() {
           />
         </Grid>
       </Grid>
+      
+
+      <AIRecommendationDialog
+        open={aiReviewOpen}
+        testCases={filteredTestCases}
+        recommendedIds={aiRecommendedIds}
+        onClose={() =>
+          setAiReviewOpen(false)
+        }
+        onConfirm={handleAIReviewConfirm}
+      />
     </Box>
   );
 }

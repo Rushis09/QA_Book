@@ -7,10 +7,17 @@ from app.ai.credential_schemas import (
     AICredentialTestResponse,
 )
 from app.ai.schemas import (
+    BulkScenarioGenerationRequest,
+    BulkScenarioGenerationResponse,
+    BulkTestCaseGenerationRequest,
+    BulkTestCaseGenerationResponse,
     GenerateRequest,
     GenerateResponse,
     RecommendTestCasesRequest,
     RecommendTestCasesResponse,
+)
+from app.ai.test_case_service import (
+    AITestCaseService,
 )
 from app.ai.service import AIService
 from app.ai.test_suite_service import (
@@ -22,7 +29,9 @@ from app.models.admin import Admin
 from app.ai.credential_service import (
     AICredentialService,
 )
-
+from app.ai.scenario_service import (
+    AIScenarioService,
+)
 
 router = APIRouter(
     prefix="/ai",
@@ -59,6 +68,83 @@ def generate(
 
         return GenerateResponse(
             response=response,
+        )
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        )
+
+    
+@router.post(
+    "/generate-scenarios-bulk",
+    response_model=BulkScenarioGenerationResponse,
+)
+def generate_scenarios_bulk(
+    request: BulkScenarioGenerationRequest,
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    service = AIScenarioService(
+        db=db,
+        admin=admin,
+    )
+
+    try:
+        return service.generate_scenarios_bulk(
+            project_id=request.project_id,
+            requirement_ids=request.requirement_ids,
+            manual_description=(
+                request.manual_description
+            ),
+            number_of_scenarios=(
+                request.number_of_scenarios
+            ),
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        )
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        )
+
+
+@router.post(
+    "/generate-test-cases-bulk",
+    response_model=BulkTestCaseGenerationResponse,
+)
+def generate_test_cases_bulk(
+    request: BulkTestCaseGenerationRequest,
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    service = AITestCaseService(
+        db=db,
+        admin=admin,
+    )
+
+    try:
+        return service.generate_test_cases_bulk(
+            scenario_ids=request.scenario_ids,
+            manual_description=(
+                request.manual_description
+            ),
+            number_of_test_cases=(
+                request.number_of_test_cases
+            ),
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
         )
 
     except RuntimeError as error:
