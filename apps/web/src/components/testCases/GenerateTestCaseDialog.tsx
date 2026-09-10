@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -19,11 +20,13 @@ import CloseIcon from "@mui/icons-material/Close";
 import type { Project } from "../../types/project";
 import type { Requirement } from "../../types/requirement";
 import type { TestScenario } from "../../types/testScenario";
+import type { TestingType } from "../../types/testCase";
 
 import {
   aiService,
   type BulkTestCaseCandidate,
 } from "../../services/aiService";
+
 import { testCaseService } from "../../services/testCaseService";
 import { useNotification } from "../../contexts/NotificationContext";
 
@@ -37,11 +40,52 @@ interface GenerateTestCaseDialogProps {
   onGenerated: () => void;
 }
 
-interface ReviewTestCase
-  extends BulkTestCaseCandidate {
+interface ReviewTestCase extends BulkTestCaseCandidate {
   reviewId: string;
   accepted: boolean;
 }
+
+/*
+ * Automation is intentionally excluded here.
+ *
+ * Testing Type answers:
+ * "What are we testing?"
+ *
+ * Execution Method answers:
+ * "How is it executed?"
+ *
+ * Automation therefore remains an execution method,
+ * not a peer AI testing discipline.
+ */
+const TESTING_TYPES: Array<{
+  value: TestingType;
+  label: string;
+}> = [
+  {
+    value: "FUNCTIONAL",
+    label: "Functional",
+  },
+  {
+    value: "API",
+    label: "API",
+  },
+  {
+    value: "DATABASE",
+    label: "Database",
+  },
+  {
+    value: "PERFORMANCE",
+    label: "Performance",
+  },
+  {
+    value: "SECURITY",
+    label: "Security",
+  },
+  {
+    value: "ACCESSIBILITY",
+    label: "Accessibility",
+  },
+];
 
 const fieldSx = {
   "& .MuiOutlinedInput-root": {
@@ -63,6 +107,14 @@ const readOnlyFieldSx = {
   },
 };
 
+function typeLabel(value: TestingType) {
+  return (
+    TESTING_TYPES.find(
+      (item) => item.value === value,
+    )?.label ?? value
+  );
+}
+
 export default function GenerateTestCaseDialog({
   open,
   projects,
@@ -73,8 +125,13 @@ export default function GenerateTestCaseDialog({
   onGenerated,
 }: GenerateTestCaseDialogProps) {
   const [count, setCount] = useState(5);
+
   const [manualDescription, setManualDescription] =
     useState("");
+
+  const [testingTypes, setTestingTypes] =
+    useState<TestingType[]>(["FUNCTIONAL"]);
+
   const [loading, setLoading] = useState(false);
 
   const [reviewMode, setReviewMode] =
@@ -122,6 +179,10 @@ export default function GenerateTestCaseDialog({
         )
       : undefined;
 
+  /*
+   * Reset the dialog every time it is opened
+   * or the selected scenario set changes.
+   */
   useEffect(() => {
     if (!open) {
       return;
@@ -130,6 +191,7 @@ export default function GenerateTestCaseDialog({
     setReviewMode(false);
     setReviewTestCases([]);
     setManualDescription("");
+    setTestingTypes(["FUNCTIONAL"]);
   }, [open, selectedScenarioIds]);
 
   function handleClose() {
@@ -140,7 +202,26 @@ export default function GenerateTestCaseDialog({
     setReviewMode(false);
     setReviewTestCases([]);
     setManualDescription("");
+    setTestingTypes(["FUNCTIONAL"]);
+
     onClose();
+  }
+
+  function toggleTestingType(
+    testingType: TestingType,
+  ) {
+    setTestingTypes((current) => {
+      if (current.includes(testingType)) {
+        return current.filter(
+          (item) => item !== testingType,
+        );
+      }
+
+      return [
+        ...current,
+        testingType,
+      ];
+    });
   }
 
   async function handleGenerate() {
@@ -149,15 +230,29 @@ export default function GenerateTestCaseDialog({
         "Please select at least one test scenario.",
         "warning",
       );
+
+      return;
+    }
+
+    if (testingTypes.length === 0) {
+      showNotification(
+        "Please select at least one testing type.",
+        "warning",
+      );
+
       return;
     }
 
     try {
       setLoading(true);
 
+      const now = Date.now();
+
       /*
        * Single scenario:
        * Preserve the existing single-generation endpoint.
+       *
+       * The only addition is testing_types.
        */
       if (!isBulk) {
         const scenario =
@@ -174,7 +269,10 @@ export default function GenerateTestCaseDialog({
             scenario_id: scenario.id,
             manual_description:
               manualDescription,
-            number_of_test_cases: count,
+            number_of_test_cases:
+              count,
+            testing_types:
+              testingTypes,
           });
 
         const reviewItems: ReviewTestCase[] =
@@ -182,19 +280,25 @@ export default function GenerateTestCaseDialog({
             (testCase, index) => ({
               source_scenario_id:
                 scenario.id,
+
               source_scenario_code:
                 scenario.scenario_code,
-              title: testCase.title,
-              priority:
-                testCase.priority,
-              preconditions:
-                testCase.preconditions,
-              test_data:
-                testCase.test_data,
-              steps: testCase.steps,
-              expected_result:
-                testCase.expected_result,
-              reviewId: `${scenario.id}-${index}-${Date.now()}`,
+
+              /*
+               * Spread the complete new AI response.
+               *
+               * This preserves:
+               * - testing_type
+               * - execution_method
+               * - description
+               * - meta_attributes
+               * - all existing fields
+               */
+              ...testCase,
+
+              reviewId:
+                `${scenario.id}-${testCase.testing_type}-${index}-${now}`,
+
               accepted: true,
             }),
           );
@@ -216,9 +320,15 @@ export default function GenerateTestCaseDialog({
         await aiService.generateTestCasesBulk({
           scenario_ids:
             selectedScenarioIds,
+
           manual_description:
             manualDescription,
-          number_of_test_cases: count,
+
+          number_of_test_cases:
+            count,
+
+          testing_types:
+            testingTypes,
         });
 
       const reviewItems: ReviewTestCase[] =
@@ -227,7 +337,10 @@ export default function GenerateTestCaseDialog({
             result.test_cases.map(
               (testCase, index) => ({
                 ...testCase,
-                reviewId: `${result.scenario_id}-${index}-${Date.now()}`,
+
+                reviewId:
+                  `${result.scenario_id}-${testCase.testing_type}-${index}-${now}`,
+
                 accepted: true,
               }),
             ),
@@ -256,7 +369,9 @@ export default function GenerateTestCaseDialog({
       console.error(error);
 
       showNotification(
-        "Failed to generate test cases.",
+        error instanceof Error
+          ? error.message
+          : "Failed to generate test cases.",
         "error",
       );
     } finally {
@@ -279,6 +394,774 @@ export default function GenerateTestCaseDialog({
           : testCase,
       ),
     );
+  }
+
+  function updateMetaAttribute(
+    reviewId: string,
+    key: string,
+    value: unknown,
+  ) {
+    setReviewTestCases((current) =>
+      current.map((testCase) =>
+        testCase.reviewId === reviewId
+          ? {
+              ...testCase,
+              meta_attributes: {
+                ...testCase.meta_attributes,
+                [key]: value,
+              },
+            }
+          : testCase,
+      ),
+    );
+  }
+
+  function readMetaString(
+    metaAttributes: Record<string, unknown>,
+    key: string,
+    fallback = "",
+  ) {
+    const value = metaAttributes[key];
+
+    if (value === undefined || value === null) {
+      return fallback;
+    }
+
+    return String(value);
+  }
+
+  function readMetaJson(
+    metaAttributes: Record<string, unknown>,
+    key: string,
+    fallback: unknown = {},
+  ) {
+    const value = metaAttributes[key];
+
+    if (typeof value === "string") {
+      return value;
+    }
+
+    return JSON.stringify(value ?? fallback, null, 2);
+  }
+
+  function renderTypeSpecificDefinition(
+    testCase: ReviewTestCase,
+  ) {
+    const attrs = testCase.meta_attributes ?? {};
+
+    const commonFieldSx = {
+      ...fieldSx,
+    };
+
+    const setMeta = (key: string, value: unknown) => {
+      updateMetaAttribute(testCase.reviewId, key, value);
+    };
+
+    switch (testCase.testing_type) {
+      case "FUNCTIONAL":
+        return (
+          <>
+            <TextField
+              label="Environment"
+              value={readMetaString(attrs, "environment")}
+              onChange={(event) =>
+                setMeta("environment", event.target.value)
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Browser / OS"
+              value={
+                Array.isArray(attrs.browser_os)
+                  ? attrs.browser_os.join(", ")
+                  : readMetaString(attrs, "browser_os")
+              }
+              onChange={(event) =>
+                setMeta(
+                  "browser_os",
+                  event.target.value
+                    .split(",")
+                    .map((item) => item.trim())
+                    .filter(Boolean),
+                )
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+            />
+          </>
+        );
+
+      case "API":
+        return (
+          <>
+            <TextField
+              label="Endpoint URL"
+              value={readMetaString(attrs, "endpoint_url")}
+              onChange={(event) =>
+                setMeta("endpoint_url", event.target.value)
+              }
+              fullWidth
+              size="small"
+              required
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              select
+              label="HTTP Method"
+              value={readMetaString(attrs, "http_method", "GET")}
+              onChange={(event) =>
+                setMeta("http_method", event.target.value)
+              }
+              fullWidth
+              size="small"
+              required
+              sx={commonFieldSx}
+            >
+              {["GET", "POST", "PUT", "DELETE", "PATCH"].map(
+                (method) => (
+                  <MenuItem key={method} value={method}>
+                    {method}
+                  </MenuItem>
+                ),
+              )}
+            </TextField>
+
+            <TextField
+              label="Authentication"
+              value={readMetaString(attrs, "authentication")}
+              onChange={(event) =>
+                setMeta("authentication", event.target.value)
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Headers JSON"
+              value={readMetaJson(attrs, "headers")}
+              onChange={(event) =>
+                setMeta("headers", event.target.value)
+              }
+              fullWidth
+              multiline
+              minRows={3}
+              size="small"
+              sx={commonFieldSx}
+              helperText="JSON object"
+            />
+
+            <TextField
+              label="Path Parameters JSON"
+              value={readMetaJson(attrs, "path_parameters")}
+              onChange={(event) =>
+                setMeta("path_parameters", event.target.value)
+              }
+              fullWidth
+              multiline
+              minRows={3}
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Query Parameters JSON"
+              value={readMetaJson(attrs, "query_parameters")}
+              onChange={(event) =>
+                setMeta("query_parameters", event.target.value)
+              }
+              fullWidth
+              multiline
+              minRows={3}
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Request Body JSON"
+              value={readMetaJson(attrs, "request_body", null)}
+              onChange={(event) =>
+                setMeta("request_body", event.target.value)
+              }
+              fullWidth
+              multiline
+              minRows={4}
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Expected Status Code"
+              type="number"
+              value={readMetaString(
+                attrs,
+                "expected_status_code",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "expected_status_code",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Expected Response JSON"
+              value={readMetaJson(
+                attrs,
+                "expected_response",
+                null,
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "expected_response",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              multiline
+              minRows={4}
+              size="small"
+              sx={{
+                ...commonFieldSx,
+                gridColumn: "1 / -1",
+              }}
+            />
+          </>
+        );
+
+      case "DATABASE":
+        return (
+          <>
+            <TextField
+              label="Target Database"
+              value={readMetaString(attrs, "target_database")}
+              onChange={(event) =>
+                setMeta("target_database", event.target.value)
+              }
+              fullWidth
+              size="small"
+              required
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Schema Name"
+              value={readMetaString(attrs, "schema_name")}
+              onChange={(event) =>
+                setMeta("schema_name", event.target.value)
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Table Name"
+              value={readMetaString(attrs, "table_name")}
+              onChange={(event) =>
+                setMeta("table_name", event.target.value)
+              }
+              fullWidth
+              size="small"
+              required
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Prerequisite Action"
+              value={readMetaString(
+                attrs,
+                "precondition_ui_action",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "precondition_ui_action",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Verification SQL"
+              value={readMetaString(attrs, "verification_sql")}
+              onChange={(event) =>
+                setMeta("verification_sql", event.target.value)
+              }
+              fullWidth
+              multiline
+              minRows={5}
+              size="small"
+              required
+              sx={{
+                ...commonFieldSx,
+                gridColumn: "1 / -1",
+              }}
+            />
+
+            <TextField
+              label="Expected Columns"
+              value={
+                Array.isArray(attrs.expected_columns)
+                  ? attrs.expected_columns
+                      .map((item) => {
+                        const column =
+                          item as Record<string, unknown>;
+
+                        return `${String(
+                          column.column ?? "",
+                        )} = ${String(
+                          column.expected_value ?? "",
+                        )}`;
+                      })
+                      .join("\n")
+                  : readMetaString(
+                      attrs,
+                      "expected_columns",
+                    )
+              }
+              onChange={(event) =>
+                setMeta(
+                  "expected_columns",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              multiline
+              minRows={4}
+              size="small"
+              sx={{
+                ...commonFieldSx,
+                gridColumn: "1 / -1",
+              }}
+              helperText="One per line: column = expected value"
+            />
+          </>
+        );
+
+      case "PERFORMANCE":
+        return (
+          <>
+            <TextField
+              label="Performance Model"
+              value={readMetaString(
+                attrs,
+                "performance_model",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "performance_model",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+              helperText="Load, Stress, Spike, Endurance/Soak, Volume or Scalability"
+            />
+
+            <TextField
+              label="Tool"
+              value={readMetaString(attrs, "tool")}
+              onChange={(event) =>
+                setMeta("tool", event.target.value)
+              }
+              fullWidth
+              size="small"
+              required
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Virtual Users"
+              type="number"
+              value={readMetaString(
+                attrs,
+                "virtual_users",
+                "0",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "virtual_users",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              size="small"
+              required
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Arrival Rate"
+              value={readMetaString(attrs, "arrival_rate")}
+              onChange={(event) =>
+                setMeta("arrival_rate", event.target.value)
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Ramp-up (seconds)"
+              type="number"
+              value={readMetaString(
+                attrs,
+                "ramp_up_seconds",
+                "0",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "ramp_up_seconds",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              size="small"
+              required
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Duration (seconds)"
+              type="number"
+              value={readMetaString(
+                attrs,
+                "duration_seconds",
+                "0",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "duration_seconds",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              size="small"
+              required
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Target Endpoint / Operation"
+              value={readMetaString(
+                attrs,
+                "target_endpoint",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "target_endpoint",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Workload Description"
+              value={readMetaString(
+                attrs,
+                "workload_description",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "workload_description",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              multiline
+              minRows={3}
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="SLA / Benchmark JSON"
+              value={readMetaJson(attrs, "sla_benchmarks")}
+              onChange={(event) =>
+                setMeta(
+                  "sla_benchmarks",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              multiline
+              minRows={3}
+              size="small"
+              sx={{
+                ...commonFieldSx,
+                gridColumn: "1 / -1",
+              }}
+              helperText="Only enter thresholds supplied by the project/team."
+            />
+          </>
+        );
+
+      case "SECURITY":
+        return (
+          <>
+            <TextField
+              label="Vulnerability Category"
+              value={readMetaString(
+                attrs,
+                "vulnerability_category",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "vulnerability_category",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              size="small"
+              required
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Target Vector"
+              value={readMetaString(
+                attrs,
+                "target_vector",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "target_vector",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              size="small"
+              required
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Safe Representative Payload"
+              value={readMetaString(
+                attrs,
+                "attack_payload",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "attack_payload",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              multiline
+              minRows={3}
+              size="small"
+              required
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Expected Defensive Behavior"
+              value={readMetaString(
+                attrs,
+                "expected_defensive_behavior",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "expected_defensive_behavior",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              multiline
+              minRows={3}
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Severity"
+              value={readMetaString(attrs, "severity")}
+              onChange={(event) =>
+                setMeta("severity", event.target.value)
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="CWE"
+              value={readMetaString(attrs, "cwe")}
+              onChange={(event) =>
+                setMeta("cwe", event.target.value)
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="CVE"
+              value={readMetaString(attrs, "cve")}
+              onChange={(event) =>
+                setMeta("cve", event.target.value)
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+            />
+          </>
+        );
+
+      case "ACCESSIBILITY": {
+        const auditFlags =
+          (attrs.audit_flags as Record<string, unknown>) ??
+          {};
+
+        const flags = [
+          ["alt_text", "Alt text"],
+          ["contrast_ratio", "Contrast"],
+          ["tab_order", "Tab order"],
+          ["keyboard_access", "Keyboard"],
+          ["labels", "Labels"],
+        ] as const;
+
+        return (
+          <>
+            <TextField
+              label="WCAG Clause"
+              value={readMetaString(
+                attrs,
+                "wcag_clause",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "wcag_clause",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              size="small"
+              required
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Assistive Technology"
+              value={readMetaString(
+                attrs,
+                "assistive_technology",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "assistive_technology",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              size="small"
+              required
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Page / Component"
+              value={readMetaString(
+                attrs,
+                "page_component",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "page_component",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              size="small"
+              sx={commonFieldSx}
+            />
+
+            <TextField
+              label="Expected Accessible Behavior"
+              value={readMetaString(
+                attrs,
+                "expected_behavior",
+              )}
+              onChange={(event) =>
+                setMeta(
+                  "expected_behavior",
+                  event.target.value,
+                )
+              }
+              fullWidth
+              multiline
+              minRows={3}
+              size="small"
+              sx={{
+                ...commonFieldSx,
+                gridColumn: "1 / -1",
+              }}
+            />
+
+            <Box
+              sx={{
+                gridColumn: "1 / -1",
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(5, 1fr)",
+                },
+                gap: 0.5,
+                p: 1,
+                border: "1px solid #e4e7ec",
+                borderRadius: "9px",
+                backgroundColor: "#fff",
+              }}
+            >
+              {flags.map(([key, label]) => (
+                <Box key={key}>
+                  <Checkbox
+                    size="small"
+                    checked={auditFlags[key] === true}
+                    onChange={(event) =>
+                      setMeta("audit_flags", {
+                        ...auditFlags,
+                        [key]: event.target.checked,
+                      })
+                    }
+                  />
+
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: "0.7rem",
+                      color: "#344054",
+                    }}
+                  >
+                    {label}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </>
+        );
+      }
+
+      default:
+        return null;
+    }
   }
 
   function removeTestCase(
@@ -318,6 +1201,7 @@ export default function GenerateTestCaseDialog({
         "Please accept at least one test case before saving.",
         "warning",
       );
+
       return;
     }
 
@@ -338,25 +1222,59 @@ export default function GenerateTestCaseDialog({
           );
         }
 
+        /*
+         * Save the existing TestCase fields exactly
+         * as before, plus the new Testing Studio profile.
+         */
         await testCaseService.createTestCase({
           scenario_id:
             testCase.source_scenario_id,
-          module: scenario.module,
-          priority: testCase.priority,
+
+          module:
+            scenario.module,
+
+          priority:
+            testCase.priority,
+
           status: "Draft",
+
           automation_eligibility:
             "Eligible",
+
           automation_status:
             "Not Automated",
-          title: testCase.title,
-          description: null,
+
+          title:
+            testCase.title,
+
+          description:
+            testCase.description || null,
+
           preconditions:
             testCase.preconditions,
+
           test_data:
             testCase.test_data,
-          steps: testCase.steps,
+
+          steps:
+            testCase.steps,
+
           expected_result:
             testCase.expected_result,
+
+          /*
+           * New Testing Studio profile.
+           */
+          profile: {
+            testing_type:
+              testCase.testing_type,
+
+            execution_method:
+              testCase.execution_method,
+
+            meta_attributes:
+              testCase.meta_attributes,
+          },
         });
       }
 
@@ -366,12 +1284,15 @@ export default function GenerateTestCaseDialog({
       );
 
       onGenerated();
+
       handleClose();
     } catch (error) {
       console.error(error);
 
       showNotification(
-        "Failed to save generated test cases.",
+        error instanceof Error
+          ? error.message
+          : "Failed to save generated test cases.",
         "error",
       );
     } finally {
@@ -379,6 +1300,13 @@ export default function GenerateTestCaseDialog({
     }
   }
 
+  /*
+   * Group generated cases by source scenario.
+   *
+   * Testing type remains visible inside each case,
+   * so one scenario can contain Functional + API +
+   * Database etc. without losing traceability.
+   */
   const groupedReviewTestCases =
     useMemo(() => {
       const groups = new Map<
@@ -403,12 +1331,14 @@ export default function GenerateTestCaseDialog({
       return selectedScenarios.map(
         (scenario) => ({
           scenario,
+
           requirement:
             requirements.find(
               (requirement) =>
                 requirement.id ===
                 scenario.requirement_id,
             ),
+
           testCases:
             groups.get(
               scenario.id,
@@ -496,11 +1426,12 @@ export default function GenerateTestCaseDialog({
                   color: "#667085",
                 }}
               >
-                Generate structured
-                test cases from the
-                selected test
-                scenario
-                {isBulk ? "s" : ""}.
+                Generate structured,
+                discipline-specific
+                test cases while
+                keeping the selected
+                scenario as the
+                authoritative scope.
               </Typography>
             </Box>
 
@@ -512,8 +1443,7 @@ export default function GenerateTestCaseDialog({
                     fontSize:
                       "0.76rem",
                     fontWeight: 700,
-                    color:
-                      "#344054",
+                    color: "#344054",
                   }}
                 >
                   Test Scenarios
@@ -580,8 +1510,7 @@ export default function GenerateTestCaseDialog({
                     mt: 0.75,
                     fontSize:
                       "0.7rem",
-                    color:
-                      "#667085",
+                    color: "#667085",
                   }}
                 >
                   {
@@ -651,6 +1580,102 @@ export default function GenerateTestCaseDialog({
               </>
             )}
 
+            {/* ====================================================
+                TESTING TYPES
+                ==================================================== */}
+            <Box
+              sx={{
+                p: 1.5,
+                border:
+                  "1px solid #e4e7ec",
+                borderRadius:
+                  "10px",
+                backgroundColor:
+                  "#fff",
+              }}
+            >
+              <Typography
+                sx={{
+                  mb: 1,
+                  fontSize:
+                    "0.76rem",
+                  fontWeight: 700,
+                  color: "#344054",
+                }}
+              >
+                Testing Types
+              </Typography>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 0.75,
+                }}
+              >
+                {TESTING_TYPES.map(
+                  (item) => {
+                    const selected =
+                      testingTypes.includes(
+                        item.value,
+                      );
+
+                    return (
+                      <Chip
+                        key={
+                          item.value
+                        }
+                        label={
+                          item.label
+                        }
+                        variant={
+                          selected
+                            ? "filled"
+                            : "outlined"
+                        }
+                        color={
+                          selected
+                            ? "primary"
+                            : "default"
+                        }
+                        onClick={() =>
+                          toggleTestingType(
+                            item.value,
+                          )
+                        }
+                        sx={{
+                          fontSize:
+                            "0.72rem",
+                          fontWeight: 650,
+                        }}
+                      />
+                    );
+                  },
+                )}
+              </Box>
+
+              <Typography
+                sx={{
+                  mt: 0.75,
+                  fontSize:
+                    "0.68rem",
+                  color: "#667085",
+                }}
+              >
+                Select one or more
+                disciplines. Each
+                selected discipline
+                is generated independently
+                to preserve test-design
+                purity. Automation is
+                an execution method,
+                not a testing discipline.
+              </Typography>
+            </Box>
+
+            {/* ====================================================
+                ADDITIONAL INSTRUCTIONS
+                ==================================================== */}
             <TextField
               label="Additional Instructions"
               value={
@@ -658,8 +1683,7 @@ export default function GenerateTestCaseDialog({
               }
               onChange={(event) =>
                 setManualDescription(
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
               multiline
@@ -669,6 +1693,9 @@ export default function GenerateTestCaseDialog({
               placeholder="Optional guidance for the AI. The selected scenarios remain the authoritative scope."
             />
 
+            {/* ====================================================
+                GENERATION SETTINGS
+                ==================================================== */}
             <Box
               sx={{
                 mt: 0.5,
@@ -687,8 +1714,7 @@ export default function GenerateTestCaseDialog({
                   fontSize:
                     "0.76rem",
                   fontWeight: 700,
-                  color:
-                    "#344054",
+                  color: "#344054",
                 }}
               >
                 Generation Settings
@@ -696,7 +1722,7 @@ export default function GenerateTestCaseDialog({
 
               <TextField
                 select
-                label="Number of Test Cases"
+                label="Maximum Test Cases per Scenario and Type"
                 value={count}
                 onChange={(event) =>
                   setCount(
@@ -723,6 +1749,9 @@ export default function GenerateTestCaseDialog({
             </Box>
           </Box>
         ) : (
+          /* ======================================================
+             REVIEW MODE
+             ====================================================== */
           <Box
             sx={{
               display: "flex",
@@ -748,8 +1777,7 @@ export default function GenerateTestCaseDialog({
                     fontSize:
                       "0.82rem",
                     fontWeight: 700,
-                    color:
-                      "#101828",
+                    color: "#101828",
                   }}
                 >
                   Review before saving
@@ -760,8 +1788,7 @@ export default function GenerateTestCaseDialog({
                     mt: 0.25,
                     fontSize:
                       "0.72rem",
-                    color:
-                      "#667085",
+                    color: "#667085",
                   }}
                 >
                   {acceptedCount} of{" "}
@@ -958,6 +1985,36 @@ export default function GenerateTestCaseDialog({
                                 gap: 1,
                               }}
                             >
+                              {/* --------------------------------
+                                  TESTING TYPE + EXECUTION METHOD
+                                  -------------------------------- */}
+                              <Box
+                                sx={{
+                                  display:
+                                    "flex",
+                                  gap: 0.75,
+                                  flexWrap:
+                                    "wrap",
+                                }}
+                              >
+                                <Chip
+                                  label={typeLabel(
+                                    testCase.testing_type,
+                                  )}
+                                  size="small"
+                                  color="primary"
+                                  variant="outlined"
+                                />
+
+                                <Chip
+                                  label={
+                                    testCase.execution_method
+                                  }
+                                  size="small"
+                                  variant="outlined"
+                                />
+                              </Box>
+
                               <TextField
                                 label="Title"
                                 value={
@@ -1061,6 +2118,32 @@ export default function GenerateTestCaseDialog({
                               </Box>
 
                               <TextField
+                                label="Description"
+                                value={
+                                  testCase.description ??
+                                  ""
+                                }
+                                onChange={(
+                                  event,
+                                ) =>
+                                  updateTestCase(
+                                    testCase.reviewId,
+                                    "description",
+                                    event
+                                      .target
+                                      .value,
+                                  )
+                                }
+                                multiline
+                                minRows={2}
+                                size="small"
+                                fullWidth
+                                sx={
+                                  fieldSx
+                                }
+                              />
+
+                              <TextField
                                 label="Preconditions"
                                 value={
                                   testCase.preconditions
@@ -1134,8 +2217,50 @@ export default function GenerateTestCaseDialog({
                                   fieldSx
                                 }
                               />
+
+                              {/* --------------------------------
+                                  TYPE-SPECIFIC DEFINITION
+                                  -------------------------------- */}
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 1,
+                                  mt: 0.5,
+                                }}
+                              >
+                                <Typography
+                                  sx={{
+                                    fontSize: "0.74rem",
+                                    fontWeight: 700,
+                                    color: "#475467",
+                                  }}
+                                >
+                                  {typeLabel(testCase.testing_type)} Test Definition
+                                </Typography>
+                                
+                                <Box
+                                  sx={{
+                                    display: "grid",
+                                    gridTemplateColumns: {
+                                      xs: "1fr",
+                                      sm: "1fr 1fr",
+                                    },
+                                    gap: 1.25,
+                                    p: 1.25,
+                                    border: "1px solid #e4e7ec",
+                                    borderRadius: "9px",
+                                    backgroundColor: "#f8fafc",
+                                  }}
+                                >
+                                  {renderTypeSpecificDefinition(testCase)}
+                                </Box>
+                              </Box>
                             </Box>
 
+                            {/* --------------------------------
+                                EXISTING REMOVE UX PRESERVED
+                                -------------------------------- */}
                             <IconButton
                               size="small"
                               color="error"
@@ -1284,6 +2409,8 @@ export default function GenerateTestCaseDialog({
               disabled={
                 loading ||
                 selectedScenarioIds.length ===
+                  0 ||
+                testingTypes.length ===
                   0
               }
               sx={{

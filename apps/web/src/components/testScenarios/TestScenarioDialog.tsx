@@ -58,6 +58,9 @@ export default function TestScenarioDialog({
   const [titleError, setTitleError] =
     useState(false);
 
+  const [requirementError, setRequirementError] =
+    useState(false);
+
   const { showNotification } =
     useNotification();
 
@@ -74,10 +77,11 @@ export default function TestScenarioDialog({
         status: testScenario.status,
       });
     } else {
-      const requirement = requirements.find(
-        (r) =>
-          r.id === selectedRequirementId,
-      );
+      const requirement =
+        requirements.find(
+          (r) =>
+            r.id === selectedRequirementId,
+        );
 
       setFormData(
         createDefaultFormData(
@@ -88,15 +92,28 @@ export default function TestScenarioDialog({
     }
 
     setTitleError(false);
+    setRequirementError(false);
   }, [
     testScenario,
     requirements,
     selectedRequirementId,
+    open,
   ]);
 
   async function handleSave() {
+    let hasError = false;
+
+    if (!formData.requirement_id) {
+      setRequirementError(true);
+      hasError = true;
+    }
+
     if (!formData.title.trim()) {
       setTitleError(true);
+      hasError = true;
+    }
+
+    if (hasError) {
       return;
     }
 
@@ -119,10 +136,11 @@ export default function TestScenarioDialog({
   }
 
   function handleCancel() {
-    const requirement = requirements.find(
-      (r) =>
-        r.id === selectedRequirementId,
-    );
+    const requirement =
+      requirements.find(
+        (r) =>
+          r.id === selectedRequirementId,
+      );
 
     setFormData(
       createDefaultFormData(
@@ -132,6 +150,8 @@ export default function TestScenarioDialog({
     );
 
     setTitleError(false);
+    setRequirementError(false);
+
     onClose();
   }
 
@@ -155,8 +175,24 @@ export default function TestScenarioDialog({
             if (value.title.trim()) {
               setTitleError(false);
             }
+
+            if (value.requirement_id) {
+              setRequirementError(false);
+            }
           }}
         />
+
+        {requirementError && (
+          <div
+            style={{
+              color: "#b42318",
+              fontSize: "0.75rem",
+              marginTop: "-6px",
+            }}
+          >
+            Requirement is required.
+          </div>
+        )}
       </DialogContent>
 
       <DialogActions>
@@ -167,12 +203,11 @@ export default function TestScenarioDialog({
         <Button
           variant="contained"
           onClick={handleSave}
-          disabled={
-            saving ||
-            !formData.title.trim()
-          }
+          disabled={saving}
         >
-          {saving ? "Saving..." : "Save"}
+          {saving
+            ? "Saving..."
+            : "Save"}
         </Button>
       </DialogActions>
     </Dialog>

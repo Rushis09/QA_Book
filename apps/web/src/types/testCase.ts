@@ -1,3 +1,27 @@
+export type TestingType =
+  | "FUNCTIONAL"
+  | "API"
+  | "DATABASE"
+  | "PERFORMANCE"
+  | "SECURITY"
+  | "ACCESSIBILITY";
+
+export type ExecutionMethod =
+  | "MANUAL"
+  | "AUTOMATED"
+  | "EXTERNAL"
+  | "IMPORTED";
+
+export interface TestingProfile {
+  id: number;
+  test_case_id: number;
+  testing_type: TestingType;
+  execution_method: ExecutionMethod;
+  meta_attributes: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TestCaseRequirement {
   id: number;
   requirement_code: string;
@@ -27,6 +51,7 @@ export interface TestCase {
   test_data: string | null;
   steps: string | null;
   expected_result: string | null;
+  profile: TestingProfile | null;
   created_at: string;
   updated_at: string;
 }
@@ -44,4 +69,9 @@ export interface TestCaseRequest {
   test_data: string | null;
   steps: string | null;
   expected_result: string | null;
+  profile?: {
+    testing_type: TestingType;
+    execution_method: ExecutionMethod;
+    meta_attributes: Record<string, unknown>;
+  };
 }

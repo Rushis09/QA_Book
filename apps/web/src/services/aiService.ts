@@ -70,36 +70,50 @@ export interface BulkScenarioGenerationResponse {
 
 /* ---------- Test Cases ---------- */
 
+export type TestingType =
+  | "FUNCTIONAL"
+  | "API"
+  | "DATABASE"
+  | "PERFORMANCE"
+  | "SECURITY"
+  | "ACCESSIBILITY";
+
+export type ExecutionMethod =
+  | "MANUAL"
+  | "AUTOMATED"
+  | "EXTERNAL"
+  | "IMPORTED";
+
 export interface GenerateTestCaseRequest {
   scenario_id: number;
   manual_description: string;
   number_of_test_cases: number;
+  testing_types: TestingType[];
 }
 
 export interface GeneratedTestCase {
+  testing_type: TestingType;
+  execution_method: ExecutionMethod;
   title: string;
   priority: string;
+  description: string;
   preconditions: string;
   test_data: string;
   steps: string;
   expected_result: string;
+  meta_attributes: Record<string, unknown>;
 }
 
 export interface BulkTestCaseGenerationRequest {
   scenario_ids: number[];
   manual_description: string;
   number_of_test_cases: number;
+  testing_types: TestingType[];
 }
 
-export interface BulkTestCaseCandidate {
+export interface BulkTestCaseCandidate extends GeneratedTestCase {
   source_scenario_id: number;
   source_scenario_code: string;
-  title: string;
-  priority: string;
-  preconditions: string;
-  test_data: string;
-  steps: string;
-  expected_result: string;
 }
 
 export interface BulkTestCaseResult {

@@ -35,7 +35,7 @@ import { testScenarioService } from "../../services/testScenarioService";
 
 import type { Project } from "../../types/project";
 import type { Requirement } from "../../types/requirement";
-import type { TestCase } from "../../types/testCase";
+import type { TestCase, TestingType } from "../../types/testCase";
 import type { TestCaseFormData } from "../../types/testCaseForm";
 import type { TestScenario } from "../../types/testScenario";
 
@@ -128,6 +128,9 @@ export default function TestCasesPage() {
   const [selectedAutomationStatus, setSelectedAutomationStatus] =
     useState("");
 
+  const [selectedTestingType, setSelectedTestingType] =
+    useState<TestingType | "">("");
+
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("Code");
 
@@ -169,6 +172,7 @@ export default function TestCasesPage() {
       setSelectedScenarioIds([]);
       setSelectedAutomationEligibility("");
       setSelectedAutomationStatus("");
+      setSelectedTestingType("");
       setSelectedTestCaseIds([]);
       setLoading(false);
       return;
@@ -198,6 +202,7 @@ export default function TestCasesPage() {
       setSelectedScenarioIds([]);
       setSelectedAutomationEligibility("");
       setSelectedAutomationStatus("");
+      setSelectedTestingType("");
       setSelectedTestCaseIds([]);
 
       setError("");
@@ -279,6 +284,13 @@ export default function TestCasesPage() {
         testCase.automation_status ===
           selectedAutomationStatus;
 
+      const caseTestingType =
+        testCase.profile?.testing_type ?? "FUNCTIONAL";
+
+      const matchesTestingType =
+        selectedTestingType === "" ||
+        caseTestingType === selectedTestingType;
+
       const matchesSearch =
         normalizedSearch === "" ||
         [
@@ -300,6 +312,7 @@ export default function TestCasesPage() {
         matchesScenario &&
         matchesAutomationEligibility &&
         matchesAutomationStatus &&
+        matchesTestingType &&
         matchesSearch
       );
     });
@@ -307,6 +320,22 @@ export default function TestCasesPage() {
     return [...filtered].sort((a, b) => {
       if (sortBy === "Title") {
         return a.title.localeCompare(b.title);
+      }
+
+      if (sortBy === "Testing Type") {
+        return (
+          a.profile?.testing_type ?? "FUNCTIONAL"
+        ).localeCompare(
+          b.profile?.testing_type ?? "FUNCTIONAL",
+        );
+      }
+
+      if (sortBy === "Execution Method") {
+        return (
+          a.profile?.execution_method ?? "MANUAL"
+        ).localeCompare(
+          b.profile?.execution_method ?? "MANUAL",
+        );
       }
 
       if (sortBy === "Automation Status") {
@@ -336,6 +365,7 @@ export default function TestCasesPage() {
     selectedScenarioIds,
     selectedAutomationEligibility,
     selectedAutomationStatus,
+    selectedTestingType,
     search,
     sortBy,
   ]);
@@ -382,10 +412,30 @@ export default function TestCasesPage() {
   }
 
   async function handleSave(data: TestCaseFormData) {
+    const payload = {
+      scenario_id: data.scenario_id,
+      module: data.module,
+      priority: data.priority,
+      status: data.status,
+      automation_eligibility: data.automation_eligibility,
+      automation_status: data.automation_status,
+      title: data.title,
+      description: data.description || null,
+      preconditions: data.preconditions || null,
+      test_data: data.test_data || null,
+      steps: data.steps || null,
+      expected_result: data.expected_result || null,
+      profile: {
+        testing_type: data.testing_type,
+        execution_method: data.execution_method,
+        meta_attributes: data.meta_attributes,
+      },
+    };
+
     if (selectedTestCase) {
       await testCaseService.updateTestCase(
         selectedTestCase.id,
-        data,
+        payload,
       );
 
       showNotification(
@@ -393,7 +443,7 @@ export default function TestCasesPage() {
         "success",
       );
     } else {
-      await testCaseService.createTestCase(data);
+      await testCaseService.createTestCase(payload);
 
       showNotification(
         "Test case created successfully.",
@@ -464,17 +514,16 @@ export default function TestCasesPage() {
     <>
       <PageHeader
         title="Test Cases"
-      
         actionLabel="New Test Case"
         onAction={() => {
-          if (selectedScenarioIds.length !== 1) {
-            showNotification(
-              "Please select exactly one scenario to create a test case.",
-              "warning",
-            );
-            return;
-          }
-
+          /*
+           * A Test Case can now be opened without a
+           * pre-selected Scenario.
+           *
+           * If exactly one Scenario is selected on the
+           * page, it is still passed into the dialog and
+           * pre-populated.
+           */
           setSelectedTestCase(null);
           setOpenDialog(true);
         }}
@@ -487,7 +536,7 @@ export default function TestCasesPage() {
             );
             return;
           }
-        
+
           setOpenGenerateDialog(true);
         }}
         selectionCount={selectedTestCaseIds.length}
@@ -785,6 +834,58 @@ export default function TestCasesPage() {
           <FormControl
             size="small"
             sx={{
+              width: 160,
+              "& .MuiOutlinedInput-root": {
+                height: 36,
+                borderRadius: "8px",
+                backgroundColor: "#fff",
+                fontSize: "0.76rem",
+              },
+            }}
+          >
+            <InputLabel id="testing-type-label">
+              Testing Type
+            </InputLabel>
+
+            <Select
+              labelId="testing-type-label"
+              value={selectedTestingType}
+              onChange={(event) =>
+                setSelectedTestingType(
+                  event.target.value as TestingType | "",
+                )
+              }
+              input={
+                <OutlinedInput label="Testing Type" />
+              }
+            >
+              <MenuItem value="">
+                All Types
+              </MenuItem>
+              <MenuItem value="FUNCTIONAL">
+                Functional
+              </MenuItem>
+              <MenuItem value="API">
+                API
+              </MenuItem>
+              <MenuItem value="DATABASE">
+                Database
+              </MenuItem>
+              <MenuItem value="PERFORMANCE">
+                Performance
+              </MenuItem>
+              <MenuItem value="SECURITY">
+                Security
+              </MenuItem>
+              <MenuItem value="ACCESSIBILITY">
+                Accessibility
+              </MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl
+            size="small"
+            sx={{
               width: 170,
               "& .MuiOutlinedInput-root": {
                 height: 36,
@@ -894,6 +995,12 @@ export default function TestCasesPage() {
               <MenuItem value="Title">
                 Sort by: Title
               </MenuItem>
+              <MenuItem value="Testing Type">
+                Sort by: Testing Type
+              </MenuItem>
+              <MenuItem value="Execution Method">
+                Sort by: Execution Method
+              </MenuItem>
               <MenuItem value="Automation Status">
                 Sort by: Automation Status
               </MenuItem>
@@ -930,9 +1037,7 @@ export default function TestCasesPage() {
         projects={projects}
         requirements={requirements}
         scenarios={scenarios}
-        selectedScenarioIds={
-          selectedScenarioIds
-        }
+        selectedScenarioIds={selectedScenarioIds}
         onClose={() =>
           setOpenGenerateDialog(false)
         }
@@ -946,6 +1051,7 @@ export default function TestCasesPage() {
             : "New Test Case"
         }
         open={openDialog}
+        requirements={requirements}
         scenarios={scenarios}
         selectedScenarioId={
           selectedScenarioIds[0] ?? 0

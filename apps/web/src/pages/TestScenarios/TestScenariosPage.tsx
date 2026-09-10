@@ -437,17 +437,6 @@ export default function TestScenariosPage() {
         title="Test Scenarios"
         actionLabel="New Test Scenario"
         onAction={() => {
-          if (
-            selectedRequirementIds.length !==
-            1
-          ) {
-            showNotification(
-              "Please select exactly one requirement to create a test scenario.",
-              "warning",
-            );
-            return;
-          }
-
           setSelectedTestScenario(null);
           setOpenDialog(true);
         }}
@@ -460,6 +449,7 @@ export default function TestScenariosPage() {
               "Please select at least one requirement to generate scenarios.",
               "warning",
             );
+           
             return;
           }
         

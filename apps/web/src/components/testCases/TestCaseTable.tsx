@@ -306,6 +306,14 @@ export default function TestCaseTable({
               Status
             </TableCell>
 
+            <TableCell sx={{ ...headCellSx, width: "9%" }}>
+              Testing Type
+            </TableCell>
+
+            <TableCell sx={{ ...headCellSx, width: "8%" }}>
+              Execution
+            </TableCell>
+
             <TableCell sx={{ ...headCellSx, width: "8%" }}>
               Eligibility
             </TableCell>
@@ -338,7 +346,7 @@ export default function TestCaseTable({
           {testCases.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={12}
+                colSpan={14}
                 align="center"
                 sx={{
                   py: 5,
@@ -496,6 +504,48 @@ export default function TestCaseTable({
                         testCase.status,
                       )}
                     />
+                  </TableCell>
+
+                  <TableCell sx={bodyCellSx}>
+                    <StatusChip
+                      label={
+                        testCase.profile?.testing_type === "FUNCTIONAL" || !testCase.profile
+                          ? "Functional"
+                          : testCase.profile.testing_type === "API"
+                            ? "API"
+                            : testCase.profile.testing_type === "DATABASE"
+                              ? "Database"
+                              : testCase.profile.testing_type === "PERFORMANCE"
+                                ? "Performance"
+                                : testCase.profile.testing_type === "SECURITY"
+                                  ? "Security"
+                                  : "Accessibility"
+                      }
+                      styles={{
+                        backgroundColor: "#eef4ff",
+                        color: "#175cd3",
+                        borderColor: "#b2ddff",
+                      }}
+                    />
+                  </TableCell>
+
+                  <TableCell sx={bodyCellSx}>
+                    <Typography
+                      sx={{
+                        fontSize: "0.65rem",
+                        color: "#475467",
+                        fontWeight: 650,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {testCase.profile?.execution_method === "AUTOMATED"
+                        ? "Automated"
+                        : testCase.profile?.execution_method === "EXTERNAL"
+                          ? "External"
+                          : testCase.profile?.execution_method === "IMPORTED"
+                            ? "Imported"
+                            : "Manual"}
+                    </Typography>
                   </TableCell>
 
                   <TableCell sx={bodyCellSx}>
