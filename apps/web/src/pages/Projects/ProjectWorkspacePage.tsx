@@ -337,6 +337,7 @@ export default function ProjectWorkspacePage() {
     async function loadWorkspace() {
       if (!id) {
         setLoading(false);
+        setDataLoading(false);
         return;
       }
 
@@ -354,6 +355,10 @@ export default function ProjectWorkspacePage() {
         }
 
         setProject(projectData);
+
+        // The project shell is now ready. Do not keep the
+        // entire workspace blocked while reporting data loads.
+        setLoading(false);
 
         const [
           requirementsResult,
@@ -399,6 +404,50 @@ export default function ProjectWorkspacePage() {
           return;
         }
 
+        const impactCounts = getDeleteImpactCounts(
+          deleteImpactResult,
+        );
+
+        const suiteCount =
+          impactCounts.test_suites;
+
+        const documentCount =
+          documentsResult.length > 0
+            ? documentsResult.length
+            : impactCounts.documents;
+
+        // Render the workspace as soon as the core project
+        // reporting data is available. Execution/bug and
+        // automation details are deliberately loaded afterward.
+        setWorkspaceData({
+          requirements: requirementsResult,
+          scenarios:
+            scenariosResult as unknown as WorkspaceRecord[],
+          testCases:
+            testCasesResult as unknown as WorkspaceRecord[],
+          testRuns:
+            testRunsResult as unknown as WorkspaceRecord[],
+          scenarioCount:
+            scenariosResult.length,
+          testCaseCount:
+            testCasesResult.length,
+          testRunCount:
+            testRunsResult.length,
+          executions: [],
+          bugs: [],
+          suiteCount,
+          documentCount,
+          automationMappedCount: 0,
+          automationConnected: Boolean(
+            automationResult?.repository_url,
+          ),
+          github: null,
+          deleteImpactCounts: impactCounts,
+        });
+
+        setDataLoading(false);
+
+        // Expensive reporting data continues in the background.
         const executionGroups =
           await Promise.all(
             testRunsResult.map((run) =>
@@ -418,8 +467,7 @@ export default function ProjectWorkspacePage() {
         const executionIds =
           new Set(
             executions.map(
-              (execution) =>
-                execution.id,
+              (execution) => execution.id,
             ),
           );
 
@@ -443,14 +491,8 @@ export default function ProjectWorkspacePage() {
           return;
         }
 
-        let automationMappedCount =
-          0;
-
-        let github: GitHubConnectionResponse | null =
-          null;
-
-        let automationConnected =
-          false;
+        let automationMappedCount = 0;
+        let github: GitHubConnectionResponse | null = null;
 
         if (automationResult) {
           const mappings =
@@ -463,11 +505,6 @@ export default function ProjectWorkspacePage() {
           automationMappedCount =
             mappings.length;
 
-          automationConnected =
-            Boolean(
-              automationResult.repository_url,
-            );
-
           github =
             await automationService
               .getGitHubConnection(
@@ -476,41 +513,17 @@ export default function ProjectWorkspacePage() {
               .catch(() => null);
         }
 
-        const impactCounts = getDeleteImpactCounts(
-          deleteImpactResult,
-        );
+        if (cancelled) {
+          return;
+        }
 
-        const suiteCount =
-          impactCounts.test_suites;
-
-        const documentCount =
-          documentsResult.length > 0
-            ? documentsResult.length
-            : impactCounts.documents;
-
-        setWorkspaceData({
-          requirements: requirementsResult,
-          scenarios:
-            scenariosResult as unknown as WorkspaceRecord[],
-          testCases:
-            testCasesResult as unknown as WorkspaceRecord[],
-          testRuns:
-            testRunsResult as unknown as WorkspaceRecord[],
-          scenarioCount:
-            scenariosResult.length,
-          testCaseCount:
-            testCasesResult.length,
-          testRunCount:
-            testRunsResult.length,
+        setWorkspaceData((current) => ({
+          ...current,
           executions,
           bugs,
-          suiteCount,
-          documentCount,
           automationMappedCount,
-          automationConnected,
           github,
-          deleteImpactCounts: impactCounts,
-        });
+        }));
       } catch (error) {
         console.error(
           "Failed to load project workspace:",

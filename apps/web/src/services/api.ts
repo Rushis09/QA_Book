@@ -18,7 +18,28 @@ api.interceptors.request.use((config) => {
       `Bearer ${token}`;
   }
 
+  window.dispatchEvent(
+    new CustomEvent("qabook:api-loading-start"),
+  );
+
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => {
+    window.dispatchEvent(
+      new CustomEvent("qabook:api-loading-stop"),
+    );
+
+    return response;
+  },
+  (error) => {
+    window.dispatchEvent(
+      new CustomEvent("qabook:api-loading-stop"),
+    );
+
+    return Promise.reject(error);
+  },
+);
 
 export default api;

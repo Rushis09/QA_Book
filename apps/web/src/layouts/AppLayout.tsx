@@ -1,10 +1,13 @@
-import { Box } from "@mui/material";
+import { Box, LinearProgress } from "@mui/material";
 import { Outlet } from "react-router-dom";
 
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
+import { useGlobalLoading } from "../providers/AppProviders";
 
 export default function AppLayout() {
+  const { isLoading } = useGlobalLoading();
+
   return (
     <Box
       sx={{
@@ -16,6 +19,23 @@ export default function AppLayout() {
       }}
     >
       <Header />
+
+      <Box
+        sx={{
+          height: 2,
+          flexShrink: 0,
+          position: "relative",
+          zIndex: 1200,
+        }}
+      >
+        {isLoading && (
+          <LinearProgress
+            sx={{
+              height: 2,
+            }}
+          />
+        )}
+      </Box>
 
       <Box
         sx={{

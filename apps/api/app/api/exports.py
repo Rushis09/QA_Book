@@ -2,30 +2,32 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session,selectinload
+from sqlalchemy.orm import Session, selectinload
 
-from app.exports.project_exporter import ProjectExporter
 from app.db.session import get_db
+from app.exports.bug_exporter import BugExporter
 from app.exports.constants import ExportConstants
+from app.exports.project_exporter import ProjectExporter
 from app.exports.requirement_exporter import RequirementExporter
+from app.exports.scenario_exporter import ScenarioExporter
+from app.exports.test_case_exporter import TestCaseExporter
+from app.exports.test_run_exporter import TestRunExporter
+from app.exports.test_suite_exporter import TestSuiteExporter
+from app.models.bug import Bug
 from app.models.project import Project
 from app.models.requirement import Requirement
-from app.exports.scenario_exporter import ScenarioExporter
-from app.models.test_scenario import TestScenario
-from app.exports.test_case_exporter import TestCaseExporter
 from app.models.test_case import TestCase
-from app.exports.test_suite_exporter import TestSuiteExporter
-from app.models.test_suite import TestSuite
-from app.exports.test_run_exporter import TestRunExporter
-from app.models.test_run import TestRun
-from app.exports.bug_exporter import BugExporter
-from app.models.bug import Bug
 from app.models.test_execution import TestExecution
+from app.models.test_run import TestRun
+from app.models.test_scenario import TestScenario
+from app.models.test_suite import TestSuite
+
 
 router = APIRouter(
     prefix="/exports",
     tags=["Exports"],
 )
+
 
 @router.get("/project/{project_id}")
 def export_project(
@@ -53,9 +55,9 @@ def export_project(
         ),
         ExportConstants.VERSION_LABEL: ExportConstants.QDS_VERSION,
     }
-    
+
     exporter = ProjectExporter()
-    
+
     excel_file = exporter.generate(
         metadata=metadata,
         project={
@@ -94,6 +96,7 @@ def export_project(
         },
     )
 
+
 @router.get("/requirements/{project_id}")
 def export_requirements(
     project_id: int,
@@ -117,7 +120,7 @@ def export_requirements(
         .order_by(Requirement.requirement_code)
         .all()
     )
-    
+
     metadata = {
         ExportConstants.PROJECT_NAME_LABEL: project.name,
         ExportConstants.PROJECT_CODE_LABEL: project.project_code,
@@ -161,6 +164,7 @@ def export_requirements(
         },
     )
 
+
 @router.get("/scenarios/{project_id}")
 def export_test_scenarios(
     project_id: int,
@@ -180,7 +184,9 @@ def export_test_scenarios(
 
     scenarios = (
         db.query(TestScenario)
-        .options(selectinload(TestScenario.requirement))
+        .options(
+            selectinload(TestScenario.requirement)
+        )
         .join(Requirement)
         .filter(Requirement.project_id == project_id)
         .order_by(TestScenario.scenario_code)
@@ -204,7 +210,9 @@ def export_test_scenarios(
         scenarios=[
             {
                 "scenario_code": scenario.scenario_code,
-                "requirement_code": scenario.requirement.requirement_code,
+                "requirement_code": (
+                    scenario.requirement.requirement_code
+                ),
                 "module": scenario.module,
                 "title": scenario.title,
                 "priority": scenario.priority,
@@ -232,6 +240,7 @@ def export_test_scenarios(
         },
     )
 
+
 @router.get("/test-cases/{project_id}")
 def export_test_cases(
     project_id: int,
@@ -253,7 +262,8 @@ def export_test_cases(
         db.query(TestCase)
         .options(
             selectinload(TestCase.scenario)
-            .selectinload(TestScenario.requirement)
+            .selectinload(TestScenario.requirement),
+            selectinload(TestCase.testing_profile),
         )
         .join(TestScenario)
         .join(Requirement)
@@ -281,9 +291,14 @@ def export_test_cases(
                 "test_case_code": test_case.test_case_code,
                 "requirement_code": (
                     test_case.scenario.requirement.requirement_code
+                    if test_case.scenario
+                    and test_case.scenario.requirement
+                    else ""
                 ),
                 "scenario_code": (
                     test_case.scenario.scenario_code
+                    if test_case.scenario
+                    else ""
                 ),
                 "module": test_case.module,
                 "priority": test_case.priority,
@@ -293,6 +308,24 @@ def export_test_cases(
                 "test_data": test_case.test_data,
                 "steps": test_case.steps,
                 "expected_result": test_case.expected_result,
+                "profile": (
+                    {
+                        "id": test_case.testing_profile.id,
+                        "test_case_id": test_case.testing_profile.test_case_id,
+                        "testing_type": (
+                            test_case.testing_profile.testing_type
+                        ),
+                        "execution_method": (
+                            test_case.testing_profile.execution_method
+                        ),
+                        "meta_attributes": (
+                            test_case.testing_profile.meta_attributes
+                            or {}
+                        ),
+                    }
+                    if test_case.testing_profile
+                    else None
+                ),
             }
             for test_case in test_cases
         ],
@@ -314,6 +347,7 @@ def export_test_cases(
             )
         },
     )
+
 
 @router.get("/test-suites/{project_id}")
 def export_test_suites(
@@ -391,6 +425,7 @@ def export_test_suites(
         },
     )
 
+
 @router.get("/test-runs/{project_id}")
 def export_test_runs(
     project_id: int,
@@ -411,7 +446,9 @@ def export_test_runs(
     test_runs = (
         db.query(TestRun)
         .join(TestSuite)
-        .options(selectinload(TestRun.suite))
+        .options(
+            selectinload(TestRun.suite)
+        )
         .filter(TestSuite.project_id == project_id)
         .order_by(TestRun.run_code)
         .all()
@@ -441,12 +478,16 @@ def export_test_runs(
                 "environment": test_run.environment,
                 "tester": test_run.tester,
                 "start_date": (
-                    test_run.start_date.strftime("%d-%b-%Y %H:%M")
+                    test_run.start_date.strftime(
+                        "%d-%b-%Y %H:%M"
+                    )
                     if test_run.start_date
                     else ""
                 ),
                 "end_date": (
-                    test_run.end_date.strftime("%d-%b-%Y %H:%M")
+                    test_run.end_date.strftime(
+                        "%d-%b-%Y %H:%M"
+                    )
                     if test_run.end_date
                     else ""
                 ),
@@ -472,6 +513,8 @@ def export_test_runs(
             )
         },
     )
+
+
 @router.get("/bugs/{project_id}")
 def export_bugs(
     project_id: int,

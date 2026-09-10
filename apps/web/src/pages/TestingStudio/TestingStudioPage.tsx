@@ -141,6 +141,9 @@ export default function TestingStudioPage() {
   const [cases, setCases] =
     useState<StudioTestCase[]>([]);
 
+  const [casesLoading, setCasesLoading] =
+    useState(true);
+
   const [type, setType] =
     useState<TestingType>("FUNCTIONAL");
 
@@ -171,44 +174,79 @@ export default function TestingStudioPage() {
   const [evidenceFiles, setEvidenceFiles] =
     useState<File[]>([]);
 
-  async function load() {
+  async function loadProject() {
     try {
-      setLoading(true);
       setError("");
-
-      const [
-        p,
-        r,
-        s,
-        c,
-      ] = await Promise.all([
-        projectService.getProject(projectId),
-        requirementService.getRequirements(projectId),
-        testingStudioService.getScenarios(projectId),
-        testingStudioService.getTestCases(
-          projectId,
-          type,
-        ),
-      ]);
-
+      const p = await projectService.getProject(projectId);
       setProject(p);
-      setRequirements(r);
-      setScenarios(s);
-      setCases(c);
     } catch (e) {
       console.error(e);
-      setError(
-        "Failed to load Testing Studio.",
-      );
+      setError("Failed to load Testing Studio.");
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    if (projectId) {
-      load();
+  async function loadStudioData() {
+    try {
+      const [r, s] = await Promise.all([
+        requirementService.getRequirements(projectId),
+        testingStudioService.getScenarios(projectId),
+      ]);
+
+      setRequirements(r);
+      setScenarios(s);
+    } catch (e) {
+      console.error(e);
+      showNotification(
+        "Failed to load requirements or scenarios.",
+        "error",
+      );
     }
+  }
+
+  async function loadCases(nextType: TestingType = type) {
+    setCasesLoading(true);
+    try {
+      const c = await testingStudioService.getTestCases(
+        projectId,
+        nextType,
+      );
+      setCases(c);
+    } catch (e) {
+      console.error(e);
+      showNotification(
+        `Failed to load ${nextType.toLowerCase()} test cases.`,
+        "error",
+      );
+    } finally {
+      setCasesLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!projectId) {
+      return;
+    }
+
+    setLoading(true);
+    setProject(null);
+    setRequirements([]);
+    setScenarios([]);
+    setCases([]);
+    setCasesLoading(true);
+
+    void loadProject();
+    void loadStudioData();
+    void loadCases("FUNCTIONAL");
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId || type === "FUNCTIONAL") {
+      return;
+    }
+
+    void loadCases(type);
   }, [projectId, type]);
 
   const typeMeta =
@@ -364,7 +402,7 @@ export default function TestingStudioPage() {
 
       setOpen(false);
 
-      await load();
+      await loadCases(type);
     } catch (e: any) {
       console.error(e);
 
@@ -395,7 +433,7 @@ export default function TestingStudioPage() {
         item.id,
       );
 
-      await load();
+      await loadCases(type);
 
       showNotification(
         "Test case deleted.",
@@ -714,13 +752,39 @@ export default function TestingStudioPage() {
 
             <Chip
               size="small"
-              label={`${filteredCases.length} test cases`}
+              label={
+                casesLoading
+                  ? "Loading..."
+                  : `${filteredCases.length} test cases`
+              }
             />
           </Box>
 
           <Divider />
 
-          {filteredCases.length === 0 ? (
+          {casesLoading ? (
+            <Box
+              sx={{
+                minHeight: 180,
+                p: 5,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 1.2,
+              }}
+            >
+              <CircularProgress size={26} />
+              <Typography
+                sx={{
+                  fontSize: ".75rem",
+                  color: "#667085",
+                }}
+              >
+                Loading {typeMeta.label.toLowerCase()} test cases...
+              </Typography>
+            </Box>
+          ) : filteredCases.length === 0 ? (
             <Box
               sx={{
                 p: 5,

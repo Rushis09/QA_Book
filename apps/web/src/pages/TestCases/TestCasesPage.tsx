@@ -135,6 +135,7 @@ export default function TestCasesPage() {
   const [sortBy, setSortBy] = useState("Code");
 
   const [loading, setLoading] = useState(true);
+  const [casesLoading, setCasesLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -174,15 +175,22 @@ export default function TestCasesPage() {
       setSelectedAutomationStatus("");
       setSelectedTestingType("");
       setSelectedTestCaseIds([]);
+      setError("");
+      setCasesLoading(false);
       setLoading(false);
       return;
     }
 
+    const projectId = selectedProject?.id;
+
+    // Do not block the page while data loads.
+    // Keep a dedicated loading state for the Test Cases section so the
+    // page never flashes "No test cases" while the API is still loading.
+    setLoading(false);
+    setCasesLoading(true);
+    setError("");
+
     try {
-      setLoading(true);
-
-      const projectId = selectedProject?.id;
-
       const [
         testCaseData,
         scenarioData,
@@ -196,30 +204,28 @@ export default function TestCasesPage() {
       setTestCases(testCaseData);
       setScenarios(scenarioData);
       setRequirements(requirementData);
-      setProjects(workspaceProjects);
-
-      setSelectedRequirementIds([]);
-      setSelectedScenarioIds([]);
-      setSelectedAutomationEligibility("");
-      setSelectedAutomationStatus("");
-      setSelectedTestingType("");
-      setSelectedTestCaseIds([]);
-
-      setError("");
     } catch (error) {
       console.error(error);
       setError("Failed to load test cases.");
     } finally {
-      setLoading(false);
+      setCasesLoading(false);
     }
   }
 
   useEffect(() => {
-    loadData();
+    setProjects(workspaceProjects);
+
+    setSelectedRequirementIds([]);
+    setSelectedScenarioIds([]);
+    setSelectedAutomationEligibility("");
+    setSelectedAutomationStatus("");
+    setSelectedTestingType("");
+    setSelectedTestCaseIds([]);
+
+    void loadData();
   }, [
-    selectedProject,
+    selectedProject?.id,
     isAllProjects,
-    workspaceProjects,
   ]);
 
   const filteredScenarios = useMemo(() => {
@@ -1023,13 +1029,40 @@ export default function TestCasesPage() {
           </Typography>
         </Box>
 
-        <TestCaseTable
-          testCases={filteredTestCases}
-          selectedIds={selectedTestCaseIds}
-          onSelectionChange={setSelectedTestCaseIds}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+        {casesLoading ? (
+          <Box
+            sx={{
+              minHeight: 220,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 1.25,
+              border: "1px solid #e4e7ec",
+              borderRadius: "10px",
+              backgroundColor: "#fff",
+            }}
+          >
+            <CircularProgress size={28} />
+            <Typography
+              sx={{
+                fontSize: "0.76rem",
+                fontWeight: 650,
+                color: "#667085",
+              }}
+            >
+              Loading test cases...
+            </Typography>
+          </Box>
+        ) : (
+          <TestCaseTable
+            testCases={filteredTestCases}
+            selectedIds={selectedTestCaseIds}
+            onSelectionChange={setSelectedTestCaseIds}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        )}
       </PageHeader>
 
       <GenerateTestCaseDialog

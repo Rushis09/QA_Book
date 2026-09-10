@@ -108,34 +108,33 @@ export default function TestScenariosPage() {
       return;
     }
 
+    const projectId = selectedProject?.id;
+
+    setLoading(true);
+    setError("");
+    setTestScenarios([]);
+    setRequirements([]);
+    setSelectedTestScenarioIds([]);
+
     try {
-      setLoading(true);
+      const testScenarioPromise =
+        testScenarioService.getTestScenarios(projectId);
+      const requirementPromise =
+        requirementService.getRequirements(projectId);
 
-      const projectId = selectedProject?.id;
+      setLoading(false);
 
-      const [
-        testScenarioData,
-        requirementData,
-      ] = await Promise.all([
-        testScenarioService.getTestScenarios(
-          projectId,
-        ),
-        requirementService.getRequirements(
-          projectId,
-        ),
-      ]);
+      const [testScenarioData, requirementData] =
+        await Promise.all([
+          testScenarioPromise,
+          requirementPromise,
+        ]);
 
       setTestScenarios(testScenarioData);
       setRequirements(requirementData);
-      setSelectedTestScenarioIds([]);
-      setError("");
     } catch (error) {
       console.error(error);
-      setError(
-        "Failed to load test scenarios.",
-      );
-    } finally {
-      setLoading(false);
+      setError("Failed to load test scenarios.");
     }
   }
 

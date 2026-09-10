@@ -1409,8 +1409,14 @@ export default function ReportsPage() {
           ...cardSx,
           p: 1.8,
           mb: 1.7,
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
           background:
-            "linear-gradient(135deg, #ffffff 0%, #f7faff 100%)",
+            "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(247,250,255,0.98) 100%)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          boxShadow: "0 4px 14px rgba(16, 24, 40, 0.08)",
         }}
       >
         <Box

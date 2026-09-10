@@ -71,6 +71,7 @@ export default function TraceabilityTable({
         border: "1px solid #e4e7ec",
         borderRadius: "12px",
         boxShadow: "0 1px 2px rgba(16, 24, 40, 0.03)",
+        overflowX: "auto",
         overflow: "hidden",
       }}
     >
