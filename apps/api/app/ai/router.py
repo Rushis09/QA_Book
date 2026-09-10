@@ -139,6 +139,7 @@ def generate_test_cases_bulk(
             number_of_test_cases=(
                 request.number_of_test_cases
             ),
+            testing_types=request.testing_types,
         )
 
     except ValueError as error:

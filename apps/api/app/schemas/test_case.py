@@ -1,8 +1,11 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from app.testing_studio.schemas import TestingProfileCreate, TestingProfileResponse
+from app.testing_studio.schemas import (
+    TestingProfileCreate,
+    TestingProfileResponse,
+)
 
 
 class TestCaseRequirementResponse(BaseModel):
@@ -52,7 +55,12 @@ class TestCaseResponse(TestCaseBase):
     id: int
     test_case_code: str
     scenario: TestCaseScenarioResponse
-    profile: TestingProfileResponse | None = None
+
+    profile: TestingProfileResponse | None = Field(
+        default=None,
+        validation_alias="testing_profile",
+    )
+
     created_at: datetime
     updated_at: datetime
 

@@ -159,6 +159,10 @@ class BulkScenarioGenerationResponse(BaseModel):
 # Test Case Generation
 # ============================================================
 
+from typing import Any
+
+from app.testing_studio.constants import ExecutionMethod, TestingType
+
 
 class GenerateTestCaseRequest(BaseModel):
     scenario_id: int
@@ -167,15 +171,28 @@ class GenerateTestCaseRequest(BaseModel):
         ge=1,
         le=15,
     )
+    testing_types: list[TestingType] = Field(
+        default_factory=lambda: [TestingType.FUNCTIONAL],
+        min_length=1,
+        max_length=6,
+    )
 
 
 class GeneratedTestCase(BaseModel):
+    testing_type: TestingType = TestingType.FUNCTIONAL
+    execution_method: ExecutionMethod = ExecutionMethod.MANUAL
+
     title: str = Field(
         min_length=3,
     )
 
     priority: str = Field(
         pattern="^(High|Medium|Low)$",
+    )
+
+    description: str = Field(
+        default="",
+        max_length=2000,
     )
 
     preconditions: str = Field(
@@ -192,6 +209,10 @@ class GeneratedTestCase(BaseModel):
 
     expected_result: str = Field(
         min_length=5,
+    )
+
+    meta_attributes: dict[str, Any] = Field(
+        default_factory=dict,
     )
 
 
@@ -213,6 +234,12 @@ class BulkTestCaseGenerationRequest(BaseModel):
         le=15,
     )
 
+    testing_types: list[TestingType] = Field(
+        default_factory=lambda: [TestingType.FUNCTIONAL],
+        min_length=1,
+        max_length=6,
+    )
+
 
 class BulkTestCaseSource(BaseModel):
     scenario_id: int
@@ -226,12 +253,20 @@ class BulkTestCaseCandidate(BaseModel):
     source_scenario_id: int
     source_scenario_code: str
 
+    testing_type: TestingType = TestingType.FUNCTIONAL
+    execution_method: ExecutionMethod = ExecutionMethod.MANUAL
+
     title: str = Field(
         min_length=3,
     )
 
     priority: str = Field(
         pattern="^(High|Medium|Low)$",
+    )
+
+    description: str = Field(
+        default="",
+        max_length=2000,
     )
 
     preconditions: str = Field(
@@ -248,6 +283,10 @@ class BulkTestCaseCandidate(BaseModel):
 
     expected_result: str = Field(
         min_length=5,
+    )
+
+    meta_attributes: dict[str, Any] = Field(
+        default_factory=dict,
     )
 
 
@@ -275,7 +314,6 @@ class BulkTestCaseGenerationResponse(BaseModel):
     errors: list[str] = Field(
         default_factory=list,
     )
-
 
 # ============================================================
 # Test Suite AI Recommendation

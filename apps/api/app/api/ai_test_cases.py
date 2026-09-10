@@ -37,6 +37,7 @@ def generate_test_cases(
             scenario_id=request.scenario_id,
             manual_description=request.manual_description,
             number_of_test_cases=request.number_of_test_cases,
+            testing_types=request.testing_types,
         )
 
     except ValueError as error:
