@@ -26,6 +26,9 @@ from app.automation.api.framework import (
 from app.automation.api.github import router as github_router
 from app.models.password_reset_token import PasswordResetToken
 from app.models.ai_credential import AICredential
+from app.testing_studio.models import TestCaseTestingProfile, TestExecutionResultProfile
+from app.testing_studio.router import router as testing_studio_router
+from app.testing_studio.evidence import router as testing_studio_evidence_router
 
 
 # Import models so SQLAlchemy registers all ORM mappings
@@ -92,6 +95,8 @@ app.include_router(test_run_router)
 app.include_router(test_execution_router)
 app.include_router(bug_router)
 app.include_router(report_router)
+app.include_router(testing_studio_router)
+app.include_router(testing_studio_evidence_router)
 
 
 @app.get("/")

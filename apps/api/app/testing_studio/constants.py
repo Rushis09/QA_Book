@@ -1,0 +1,18 @@
+from enum import Enum
+
+
+class TestingType(str, Enum):
+    FUNCTIONAL = "FUNCTIONAL"
+    API = "API"
+    DATABASE = "DATABASE"
+    AUTOMATION = "AUTOMATION"
+    PERFORMANCE = "PERFORMANCE"
+    SECURITY = "SECURITY"
+    ACCESSIBILITY = "ACCESSIBILITY"
+
+
+class ExecutionMethod(str, Enum):
+    MANUAL = "MANUAL"
+    AUTOMATED = "AUTOMATED"
+    EXTERNAL = "EXTERNAL"
+    IMPORTED = "IMPORTED"

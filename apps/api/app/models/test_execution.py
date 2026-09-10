@@ -91,3 +91,9 @@ class TestExecution(Base):
         back_populates="execution",
         cascade="all, delete-orphan",
     )
+    result_profile = relationship(
+        "TestExecutionResultProfile",
+        back_populates="execution",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )

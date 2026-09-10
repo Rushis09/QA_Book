@@ -127,3 +127,9 @@ class TestCase(Base):
         back_populates="test_case",
         cascade="all, delete-orphan",
     )
+    testing_profile = relationship(
+        "TestCaseTestingProfile",
+        back_populates="test_case",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
