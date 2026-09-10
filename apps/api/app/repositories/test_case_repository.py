@@ -35,7 +35,8 @@ class TestCaseRepository:
                     TestCase.scenario
                 ).selectinload(
                     TestScenario.requirement
-                )
+                ),
+                selectinload(TestCase.testing_profile),
             )
         )
 
@@ -77,7 +78,8 @@ class TestCaseRepository:
                     TestCase.scenario
                 ).selectinload(
                     TestScenario.requirement
-                )
+                ),
+                selectinload(TestCase.testing_profile),
             )
             .filter(
                 Project.admin_id == admin_id
@@ -99,7 +101,8 @@ class TestCaseRepository:
                     TestCase.scenario
                 ).selectinload(
                     TestScenario.requirement
-                )
+                ),
+                selectinload(TestCase.testing_profile),
             )
             .filter(
                 TestCase.id == test_case_id

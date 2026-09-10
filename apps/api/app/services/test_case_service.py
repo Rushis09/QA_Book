@@ -10,6 +10,9 @@ from app.schemas.test_case import (
     TestCaseCreate,
     TestCaseUpdate,
 )
+from app.testing_studio.constants import ExecutionMethod, TestingType
+from app.testing_studio.models import TestCaseTestingProfile
+from app.testing_studio.schemas import validate_definition
 from app.utils.code_generator import generate_sequential_code
 
 
@@ -19,6 +22,48 @@ class TestCaseService:
         repository: TestCaseRepository,
     ):
         self.repository = repository
+
+    def _upsert_testing_profile(self, test_case: TestCase, profile_data=None):
+        """Attach the unified testing profile while preserving legacy cases."""
+        if profile_data is None:
+            # New core-created cases default to the existing Functional/Manual
+            # behavior. Existing rows without a profile remain valid legacy data.
+            lines = [line.strip() for line in (test_case.steps or "").splitlines() if line.strip()]
+            profile_data = {
+                "testing_type": TestingType.FUNCTIONAL,
+                "execution_method": ExecutionMethod.MANUAL,
+                "meta_attributes": {
+                    "environment": "",
+                    "browser_os": [],
+                    "steps": [
+                        {
+                            "step_no": index,
+                            "action": line,
+                            "test_data": "",
+                            "expected_result": "",
+                        }
+                        for index, line in enumerate(lines, 1)
+                    ],
+                    "legacy_preconditions": test_case.preconditions or "",
+                    "legacy_test_data": test_case.test_data or "",
+                    "legacy_expected_result": test_case.expected_result or "",
+                },
+            }
+
+        profile_data["meta_attributes"] = validate_definition(
+            profile_data["testing_type"],
+            profile_data.get("meta_attributes", {}),
+        )
+
+        profile = test_case.testing_profile
+        if profile is None:
+            profile = TestCaseTestingProfile(test_case_id=test_case.id)
+            self.repository.session.add(profile)
+
+        profile.testing_type = profile_data["testing_type"].value
+        profile.execution_method = profile_data["execution_method"].value
+        profile.meta_attributes = profile_data.get("meta_attributes", {})
+        return profile
 
     def create(
         self,
@@ -81,6 +126,11 @@ class TestCaseService:
         created = self.repository.create(
             test_case
         )
+        self._upsert_testing_profile(
+            created,
+            test_case_data.profile.model_dump() if test_case_data.profile else None,
+        )
+        self.repository.session.commit()
 
         return self.repository.get_by_id(
             created.id
@@ -197,6 +247,13 @@ class TestCaseService:
         )
 
         self.repository.session.commit()
+
+        if test_case_data.profile is not None:
+            self._upsert_testing_profile(
+                test_case,
+                test_case_data.profile.model_dump(),
+            )
+            self.repository.session.commit()
 
         return self.repository.get_by_id(
             test_case.id

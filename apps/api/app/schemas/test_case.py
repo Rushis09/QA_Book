@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from app.testing_studio.schemas import TestingProfileCreate, TestingProfileResponse
+
 
 class TestCaseRequirementResponse(BaseModel):
     id: int
@@ -35,6 +37,7 @@ class TestCaseBase(BaseModel):
     test_data: str | None = None
     steps: str | None = None
     expected_result: str | None = None
+    profile: TestingProfileCreate | None = None
 
 
 class TestCaseCreate(TestCaseBase):
@@ -49,6 +52,7 @@ class TestCaseResponse(TestCaseBase):
     id: int
     test_case_code: str
     scenario: TestCaseScenarioResponse
+    profile: TestingProfileResponse | None = None
     created_at: datetime
     updated_at: datetime
 
