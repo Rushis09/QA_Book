@@ -12,9 +12,18 @@ import {
 import { Link, useLocation } from "react-router-dom";
 
 import { navigationItems } from "../../routes/navigation";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function Sidebar() {
   const location = useLocation();
+  const { role } = useAuth();
+
+  const visibleNavigationItems =
+    navigationItems.filter(
+      (item) =>
+        !item.adminOnly ||
+        role === "PLATFORM_ADMIN",
+    );
 
   return (
     <Box
@@ -92,7 +101,7 @@ export default function Sidebar() {
             gap: 0.2,
           }}
         >
-          {navigationItems.map((item) => {
+          {visibleNavigationItems.map((item) => {
             const Icon = item.icon;
 
             const isActive =

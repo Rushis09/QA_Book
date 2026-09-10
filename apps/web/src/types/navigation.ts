@@ -5,4 +5,5 @@ export interface NavigationItem {
   label: string;
   path: string;
   icon: ComponentType<SvgIconProps>;
+  adminOnly?: boolean;
 }

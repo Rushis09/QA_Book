@@ -26,9 +26,14 @@ from app.automation.api.framework import (
 from app.automation.api.github import router as github_router
 from app.models.password_reset_token import PasswordResetToken
 from app.models.ai_credential import AICredential
-from app.testing_studio.models import TestCaseTestingProfile, TestExecutionResultProfile
+from app.testing_studio.models import (
+    TestCaseTestingProfile,
+    TestExecutionResultProfile,
+)
 from app.testing_studio.router import router as testing_studio_router
-from app.testing_studio.evidence import router as testing_studio_evidence_router
+from app.testing_studio.evidence import (
+    router as testing_studio_evidence_router,
+)
 
 
 # Import models so SQLAlchemy registers all ORM mappings
@@ -43,6 +48,7 @@ from app.models.test_execution import TestExecution
 from app.models.bug import Bug
 from app.models.bug_retest import BugRetest
 from app.models.admin import Admin
+
 from app.auth.router import router as auth_router
 from app.ai.router import router as ai_router
 from app.api.ai_requirements import (
@@ -51,9 +57,15 @@ from app.api.ai_requirements import (
 from app.api import ai_scenarios
 from app.api import ai_test_cases
 from app.api.documents import router as document_router
+
 from app.automation.models.automation_project import AutomationProject
-from app.automation.models.automation_test_mapping import AutomationTestMapping
+from app.automation.models.automation_test_mapping import (
+    AutomationTestMapping,
+)
 from app.automation.models.github_connection import GitHubConnection
+
+from app.administration.router import router as administration_router
+
 
 app = FastAPI(
     title="QABook API",
@@ -75,14 +87,18 @@ app.add_middleware(
 
 # Routers
 app.include_router(auth_router)
+app.include_router(administration_router)
+
 app.include_router(automation_project_router)
 app.include_router(automation_test_mapping_router)
 app.include_router(framework_router)
 app.include_router(github_router)
+
 app.include_router(ai_requirement_router)
 app.include_router(ai_scenarios.router)
 app.include_router(ai_test_cases.router)
 app.include_router(ai_router)
+
 app.include_router(exports.router)
 app.include_router(dashboard_router)
 app.include_router(project_router)
@@ -95,6 +111,7 @@ app.include_router(test_run_router)
 app.include_router(test_execution_router)
 app.include_router(bug_router)
 app.include_router(report_router)
+
 app.include_router(testing_studio_router)
 app.include_router(testing_studio_evidence_router)
 
@@ -113,6 +130,7 @@ def health():
     return {
         "status": "healthy",
     }
+
 
 def custom_openapi():
     if app.openapi_schema:

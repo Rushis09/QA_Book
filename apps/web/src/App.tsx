@@ -24,9 +24,24 @@ import AutomationPage from "./automation/pages/AutomationPage";
 import TestExecutionsListPage from "./pages/TestExecutions/TestExecutionsListPage";
 import ReportFocusBridge from "./components/common/ReportFocusBridge";
 import SettingsPage from "./pages/Settings/SettingsPage";
+import AdministrationUsersPage from "./pages/Administration/AdministrationUsersPage";
 
 function NotFoundPage() {
   return <h1>404 - Page Not Found</h1>;
+}
+
+function PlatformAdminRoute({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { role } = useAuth();
+
+  if (role !== "PLATFORM_ADMIN") {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
 }
 
 export default function App() {
@@ -157,6 +172,16 @@ export default function App() {
               <Route
                 path="/test-suites/:id/assign"
                 element={<AssignTestCasesPage />}
+              />
+
+              {/* Platform Administration */}
+              <Route
+                path="/administration/users"
+                element={
+                  <PlatformAdminRoute>
+                    <AdministrationUsersPage />
+                  </PlatformAdminRoute>
+                }
               />
             </Route>
 
