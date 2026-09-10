@@ -87,6 +87,11 @@ const workspaceTabs: WorkspaceTab[] = [
     icon: <RuleOutlinedIcon />,
   },
   {
+    value: "testing-studio",
+    label: "Testing Studio",
+    icon: <ScienceOutlinedIcon />,
+  },
+  {
     value: "test-runs",
     label: "Test Runs",
     icon: <PlayArrowOutlinedIcon />,
@@ -672,9 +677,13 @@ export default function ProjectWorkspacePage() {
         >
           <Tabs
             value={activeTab}
-            onChange={(_, value) =>
-              setActiveTab(value)
-            }
+            onChange={(_, value) => {
+              if (value === "testing-studio") {
+                navigate(`/projects/${project.id}/testing-studio`);
+                return;
+              }
+              setActiveTab(value);
+            }}
             variant="scrollable"
             scrollButtons="auto"
             sx={{

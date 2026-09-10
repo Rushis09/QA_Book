@@ -9,6 +9,7 @@ import { useAuth } from "./contexts/AuthContext";
 import DashboardPage from "./pages/Dashboard/DashboardPage";
 import ProjectsPage from "./pages/Projects/ProjectsPage";
 import ProjectWorkspacePage from "./pages/Projects/ProjectWorkspacePage";
+import TestingStudioPage from "./pages/TestingStudio/TestingStudioPage";
 import RequirementsPage from "./pages/Requirements/RequirementsPage";
 import TestCasesPage from "./pages/TestCases/TestCasesPage";
 import TestScenariosPage from "./pages/TestScenarios/TestScenariosPage";
@@ -83,6 +84,11 @@ export default function App() {
               />
 
               {/* Project Workspace */}
+              <Route
+                path="/projects/:id/testing-studio"
+                element={<TestingStudioPage />}
+              />
+
               <Route
                 path="/projects/:id"
                 element={<ProjectWorkspacePage />}
