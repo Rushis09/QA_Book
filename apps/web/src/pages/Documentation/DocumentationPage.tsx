@@ -6,6 +6,10 @@ import {
   Divider,
   Link,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
   Typography,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -16,10 +20,13 @@ import CodeIcon from "@mui/icons-material/Code";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import InsightsIcon from "@mui/icons-material/Insights";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StorageIcon from "@mui/icons-material/Storage";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const features = [
   {
@@ -82,24 +89,6 @@ const testingTypes = [
   "Accessibility Testing",
 ];
 
-const productScreenshots = [
-  { title: "Dashboard", src: "/documentation/dashboard.png.png" },
-  { title: "Projects", src: "/documentation/projects.png.png" },
-  { title: "Project Overview", src: "/documentation/project-overview.png.png" },
-  { title: "Requirements", src: "/documentation/requirements.png.png" },
-  { title: "Test Scenarios", src: "/documentation/test-scenarios.png.png" },
-  { title: "Test Cases", src: "/documentation/test-cases.png.png" },
-  { title: "Test Case Editor", src: "/documentation/test-case-editor.png.png" },
-  { title: "Test Suites", src: "/documentation/test-suites.png.png" },
-  { title: "Test Runs", src: "/documentation/test-runs.png.png" },
-  { title: "Test Executions", src: "/documentation/test-executions.png.png" },
-  { title: "Bug Reports", src: "/documentation/bug-reports.png.png" },
-  { title: "Testing Studio", src: "/documentation/testing-studio.png.png" },
-  { title: "Automation", src: "/documentation/automation.png.png" },
-  { title: "Reports Overview", src: "/documentation/reports-overview.png.png" },
-  { title: "Reports & Defects", src: "/documentation/reports-defects.png.png" },
-];
-
 const gettingStarted = [
   "Create an account or sign in to QABook.",
   "Create or open a project.",
@@ -111,8 +100,27 @@ const gettingStarted = [
   "Review project results through reports and analytics.",
 ];
 
+const walkthroughImages = [
+  { file: "dashboard.png.png", title: "Dashboard" },
+  { file: "projects.png.png", title: "Projects" },
+  { file: "project-overview.png.png", title: "Project Overview" },
+  { file: "requirements.png.png", title: "Requirements" },
+  { file: "test-scenarios.png.png", title: "Test Scenarios" },
+  { file: "test-cases.png.png", title: "Test Cases" },
+  { file: "test-case-editor.png.png", title: "Test Case Editor" },
+  { file: "test-suites.png.png", title: "Test Suites" },
+  { file: "test-runs.png.png", title: "Test Runs" },
+  { file: "test-executions.png.png", title: "Test Executions" },
+  { file: "bug-reports.png.png", title: "Bug Reports" },
+  { file: "testing-studio.png.png", title: "Testing Studio" },
+  { file: "automation.png.png", title: "Automation" },
+  { file: "reports-overview.png.png", title: "Reports Overview" },
+  { file: "reports-defects.png.png", title: "Reports & Defects" },
+];
+
 export default function DocumentationPage() {
   const navigate = useNavigate();
+  const [selectedImage, setSelectedImage] = useState<typeof walkthroughImages[number] | null>(null);
 
   return (
     <Box
@@ -237,18 +245,6 @@ export default function DocumentationPage() {
               startIcon={<GitHubIcon />}
             >
               View on GitHub
-            </Button>
-
-            <Button
-              variant="outlined"
-              size="large"
-              component="a"
-              href="https://qabook-api.onrender.com/docs"
-              target="_blank"
-              rel="noopener noreferrer"
-              startIcon={<CodeIcon />}
-            >
-              API Docs
             </Button>
           </Box>
         </Box>
@@ -713,16 +709,10 @@ export default function DocumentationPage() {
 
           <Typography
             color="text.secondary"
-            sx={{
-              mb: 4,
-              maxWidth: 900,
-              lineHeight: 1.8,
-            }}
+            sx={{ mb: 3 }}
           >
-            Explore the QABook interface through screenshots from the
-            platform. The walkthrough covers the main QA workflow from
-            project setup and requirements through test management,
-            execution, defects, automation, and reporting.
+            Explore the QABook interface through screenshots from the platform.
+            Click any screenshot to open a larger view and inspect the details.
           </Typography>
 
           <Box
@@ -733,52 +723,121 @@ export default function DocumentationPage() {
                 sm: "1fr 1fr",
                 md: "1fr 1fr 1fr",
               },
-              gap: 3,
+              gap: 2,
             }}
           >
-            {productScreenshots.map((screenshot) => (
+            {walkthroughImages.map((image) => (
               <Paper
-                key={screenshot.title}
+                key={image.file}
                 elevation={0}
+                onClick={() => setSelectedImage(image)}
                 sx={{
                   overflow: "hidden",
                   border: "1px solid",
                   borderColor: "divider",
                   borderRadius: 3,
-                  bgcolor: "#ffffff",
+                  cursor: "pointer",
+                  transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                  "&:hover": {
+                    transform: "translateY(-3px)",
+                    boxShadow: 4,
+                  },
                 }}
               >
                 <Box
                   component="img"
-                  src={screenshot.src}
-                  alt={`QABook ${screenshot.title} screen`}
+                  src={`/documentation/${image.file}`}
+                  alt={image.title}
                   loading="lazy"
                   sx={{
                     display: "block",
                     width: "100%",
-                    height: 220,
+                    height: { xs: 180, md: 190 },
                     objectFit: "cover",
                     objectPosition: "top",
-                    bgcolor: "#f1f5f9",
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
+                    bgcolor: "#fff",
                   }}
                 />
 
-                <Box sx={{ p: 2 }}>
+                <Box sx={{ px: 2, py: 1.5 }}>
                   <Typography
-                    variant="subtitle1"
-                    sx={{
-                      fontWeight: 700,
-                    }}
+                    variant="body2"
+                    sx={{ fontWeight: 700 }}
                   >
-                    {screenshot.title}
+                    {image.title}
+                  </Typography>
+
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Click to view full size
                   </Typography>
                 </Box>
               </Paper>
             ))}
           </Box>
         </Box>
+
+        <Dialog
+          open={Boolean(selectedImage)}
+          onClose={() => setSelectedImage(null)}
+          maxWidth="xl"
+          fullWidth
+          PaperProps={{
+            sx: {
+              bgcolor: "#111827",
+              borderRadius: 2,
+              overflow: "hidden",
+            },
+          }}
+        >
+          <DialogTitle
+            sx={{
+              color: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              py: 1.5,
+            }}
+          >
+            {selectedImage?.title}
+
+            <IconButton
+              onClick={() => setSelectedImage(null)}
+              aria-label="Close image preview"
+              sx={{ color: "#ffffff" }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+
+          <DialogContent
+            sx={{
+              p: { xs: 1, md: 2 },
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              bgcolor: "#111827",
+            }}
+          >
+            {selectedImage && (
+              <Box
+                component="img"
+                src={`/documentation/${selectedImage.file}`}
+                alt={selectedImage.title}
+                sx={{
+                  display: "block",
+                  maxWidth: "100%",
+                  maxHeight: "78vh",
+                  width: "auto",
+                  height: "auto",
+                  objectFit: "contain",
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Architecture */}
         <Box sx={{ pb: 8 }}>
@@ -1054,54 +1113,6 @@ export default function DocumentationPage() {
                 Organize execution evidence and testing artifacts
                 alongside QA activities.
               </Typography>
-            </Paper>
-
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 3,
-              }}
-            >
-              <CodeIcon
-                color="primary"
-                sx={{
-                  fontSize: 36,
-                  mb: 1,
-                }}
-              />
-
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  mb: 1,
-                }}
-              >
-                API Documentation
-              </Typography>
-
-              <Typography
-                color="text.secondary"
-                sx={{
-                  lineHeight: 1.7,
-                  mb: 2,
-                }}
-              >
-                Explore the QABook backend REST API through the interactive
-                Swagger documentation.
-              </Typography>
-
-              <Link
-                href="https://qabook-api.onrender.com/docs"
-                target="_blank"
-                rel="noopener noreferrer"
-                underline="hover"
-              >
-                Open API Docs
-              </Link>
             </Paper>
           </Box>
         </Box>
