@@ -784,13 +784,6 @@ export default function DocumentationPage() {
           onClose={() => setSelectedImage(null)}
           maxWidth="xl"
           fullWidth
-          PaperProps={{
-            sx: {
-              bgcolor: "#111827",
-              borderRadius: 2,
-              overflow: "hidden",
-            },
-          }}
         >
           <DialogTitle
             sx={{
