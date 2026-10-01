@@ -16,10 +16,10 @@ import CodeIcon from "@mui/icons-material/Code";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import InsightsIcon from "@mui/icons-material/Insights";
-import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StorageIcon from "@mui/icons-material/Storage";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckIcon from "@mui/icons-material/Check";
 import { useNavigate } from "react-router-dom";
 
 const features = [
@@ -463,7 +463,7 @@ export default function DocumentationPage() {
                     gap: 1.5,
                   }}
                 >
-                  <CheckCircleOutlineIcon color="primary" />
+                  <CheckIcon color="primary" />
 
                   <Typography
                     sx={{
@@ -713,7 +713,7 @@ export default function DocumentationPage() {
               }}
             >
               <Box sx={{ textAlign: "center" }}>
-                <PlayCircleOutlineIcon
+                <PlayArrowIcon
                   color="primary"
                   sx={{
                     fontSize: 56,
