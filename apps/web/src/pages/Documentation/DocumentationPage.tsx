@@ -1,68 +1,60 @@
 import {
-  ArrowBack,
-  AutoAwesome,
-  BugReport,
-  CheckCircleOutline,
-  Cloud,
-  Code,
-  Dashboard,
-  GitHub,
-  Insights,
-  PlayCircleOutline,
-  Security,
-  Speed,
-  Storage,
-  UploadFile,
-} from "@mui/icons-material";
-import {
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   Container,
   Divider,
-  Grid,
   Link,
   Paper,
-  Stack,
   Typography,
 } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import CloudIcon from "@mui/icons-material/Cloud";
+import CodeIcon from "@mui/icons-material/Code";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import GitHubIcon from "@mui/icons-material/GitHub";
+import InsightsIcon from "@mui/icons-material/Insights";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import StorageIcon from "@mui/icons-material/Storage";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { useNavigate } from "react-router-dom";
 
 const features = [
   {
-    icon: Dashboard,
+    icon: DashboardIcon,
     title: "QA Management",
     description:
       "Manage projects, requirements, test scenarios, test cases, test suites, test runs, executions, and defects in one workspace.",
   },
   {
-    icon: AutoAwesome,
+    icon: AutoAwesomeIcon,
     title: "AI-Assisted Testing",
     description:
       "Use AI-assisted workflows to generate requirements, scenarios, and test cases from project documentation and QA inputs.",
   },
   {
-    icon: Speed,
+    icon: BarChartIcon,
     title: "Testing Studio",
     description:
       "Organize testing across Functional, API, Database, Automation, Performance, Security, and Accessibility activities.",
   },
   {
-    icon: Code,
+    icon: CodeIcon,
     title: "Test Automation",
     description:
       "Create automation projects, map test cases, generate automation frameworks, and work with Playwright and pytest.",
   },
   {
-    icon: GitHub,
+    icon: GitHubIcon,
     title: "GitHub & CI/CD",
     description:
       "Connect repositories, work with GitHub Actions, execute automation through CI workflows, and synchronize execution results.",
   },
   {
-    icon: Insights,
+    icon: InsightsIcon,
     title: "Reporting & Analytics",
     description:
       "Track QA execution and project quality through dashboards, reports, analytics, and exportable results.",
@@ -79,6 +71,27 @@ const lifecycle = [
   "Execution",
   "Bugs & Retesting",
   "Reports",
+];
+
+const testingTypes = [
+  "Functional Testing",
+  "API Testing",
+  "Database Testing",
+  "Automation Testing",
+  "Performance Testing",
+  "Security Testing",
+  "Accessibility Testing",
+];
+
+const gettingStarted = [
+  "Create an account or sign in to QABook.",
+  "Create or open a project.",
+  "Add requirements and testing artifacts.",
+  "Create scenarios, test cases, suites, and test runs.",
+  "Execute tests and record results.",
+  "Track bugs and perform retesting.",
+  "Use automation and CI/CD integrations when required.",
+  "Review project results through reports and analytics.",
 ];
 
 export default function DocumentationPage() {
@@ -104,37 +117,44 @@ export default function DocumentationPage() {
         }}
       >
         <Container maxWidth="lg">
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ py: 1.5 }}
+          <Box
+            sx={{
+              py: 1.5,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
           >
             <Typography
               variant="h6"
-              fontWeight={800}
-              sx={{ letterSpacing: "-0.02em" }}
+              sx={{
+                fontWeight: 800,
+                letterSpacing: "-0.02em",
+              }}
             >
               QABook
             </Typography>
 
             <Button
-              startIcon={<ArrowBack />}
+              startIcon={<ArrowBackIcon />}
               onClick={() => navigate("/login")}
               variant="outlined"
               size="small"
             >
               Back to Login
             </Button>
-          </Stack>
+          </Box>
         </Container>
       </Box>
 
-      {/* Hero */}
       <Container maxWidth="lg">
+        {/* Hero */}
         <Box
           sx={{
-            py: { xs: 7, md: 10 },
+            py: {
+              xs: 7,
+              md: 10,
+            },
             textAlign: "center",
           }}
         >
@@ -147,9 +167,12 @@ export default function DocumentationPage() {
 
           <Typography
             variant="h2"
-            fontWeight={800}
             sx={{
-              fontSize: { xs: "2.4rem", md: "4rem" },
+              fontWeight: 800,
+              fontSize: {
+                xs: "2.4rem",
+                md: "4rem",
+              },
               letterSpacing: "-0.04em",
               mb: 2,
             }}
@@ -171,10 +194,13 @@ export default function DocumentationPage() {
             AI-assisted testing, test automation, CI/CD, and QA reporting.
           </Typography>
 
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={2}
-            justifyContent="center"
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
           >
             <Button
               variant="contained"
@@ -191,24 +217,33 @@ export default function DocumentationPage() {
               href="https://github.com/Rushis09/QA_Book"
               target="_blank"
               rel="noopener noreferrer"
-              startIcon={<GitHub />}
+              startIcon={<GitHubIcon />}
             >
               View on GitHub
             </Button>
-          </Stack>
+          </Box>
         </Box>
 
         <Divider />
 
-        {/* What is QABook */}
+        {/* Overview */}
         <Box sx={{ py: 8 }}>
-          <Typography variant="h4" fontWeight={800} gutterBottom>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              mb: 1,
+            }}
+          >
             What is QABook?
           </Typography>
 
           <Typography
             color="text.secondary"
-            sx={{ maxWidth: 900, lineHeight: 1.8 }}
+            sx={{
+              maxWidth: 900,
+              lineHeight: 1.8,
+            }}
           >
             QABook is an AI-powered QA workspace designed to bring
             requirements, test design, execution, defects, automation,
@@ -218,97 +253,153 @@ export default function DocumentationPage() {
 
           <Typography
             color="text.secondary"
-            sx={{ maxWidth: 900, lineHeight: 1.8, mt: 2 }}
+            sx={{
+              maxWidth: 900,
+              lineHeight: 1.8,
+              mt: 2,
+            }}
           >
             The platform connects the QA lifecycle so teams can move from
             requirements and test planning through execution, defect
-            management, retesting, automation, and reporting without
-            maintaining separate disconnected workflows.
+            management, retesting, automation, and reporting.
           </Typography>
         </Box>
 
         {/* Features */}
         <Box sx={{ pb: 8 }}>
-          <Typography variant="h4" fontWeight={800} gutterBottom>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              mb: 1,
+            }}
+          >
             Platform Features
           </Typography>
 
-          <Grid container spacing={3} sx={{ mt: 1 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "1fr 1fr",
+              },
+              gap: 3,
+              mt: 3,
+            }}
+          >
             {features.map((feature) => {
               const Icon = feature.icon;
 
               return (
-                <Grid key={feature.title} size={{ xs: 12, md: 6 }}>
-                  <Card
-                    elevation={0}
+                <Paper
+                  key={feature.title}
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 3,
+                  }}
+                >
+                  <Icon
+                    color="primary"
                     sx={{
-                      height: "100%",
-                      border: "1px solid",
-                      borderColor: "divider",
-                      borderRadius: 3,
+                      fontSize: 36,
+                      mb: 1,
+                    }}
+                  />
+
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 700,
+                      mb: 1,
                     }}
                   >
-                    <CardContent sx={{ p: 3 }}>
-                      <Icon color="primary" sx={{ fontSize: 36, mb: 1 }} />
+                    {feature.title}
+                  </Typography>
 
-                      <Typography variant="h6" fontWeight={700} gutterBottom>
-                        {feature.title}
-                      </Typography>
-
-                      <Typography color="text.secondary" lineHeight={1.7}>
-                        {feature.description}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                  <Typography
+                    color="text.secondary"
+                    sx={{
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    {feature.description}
+                  </Typography>
+                </Paper>
               );
             })}
-          </Grid>
+          </Box>
         </Box>
 
         {/* QA Lifecycle */}
         <Box sx={{ pb: 8 }}>
-          <Typography variant="h4" fontWeight={800} gutterBottom>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              mb: 1,
+            }}
+          >
             QA Lifecycle
           </Typography>
 
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            QABook organizes the major QA activities into a connected
+          <Typography
+            color="text.secondary"
+            sx={{ mb: 3 }}
+          >
+            QABook organizes major QA activities into a connected
             lifecycle.
           </Typography>
 
           <Paper
             elevation={0}
             sx={{
-              p: { xs: 2, md: 4 },
+              p: {
+                xs: 2,
+                md: 4,
+              },
               border: "1px solid",
               borderColor: "divider",
               borderRadius: 3,
             }}
           >
-            <Stack
-              direction={{ xs: "column", md: "row" }}
-              spacing={1.5}
-              alignItems="center"
-              justifyContent="center"
-              flexWrap="wrap"
-              useFlexGap
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 1,
+                flexWrap: "wrap",
+              }}
             >
               {lifecycle.map((item, index) => (
-                <Box key={item}>
+                <Box
+                  key={item}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
                   <Chip
                     label={item}
                     variant="outlined"
-                    sx={{ fontWeight: 600 }}
+                    sx={{
+                      fontWeight: 600,
+                    }}
                   />
 
                   {index < lifecycle.length - 1 && (
                     <Typography
-                      component="span"
                       color="text.secondary"
                       sx={{
-                        display: { xs: "none", md: "inline" },
-                        mx: 1,
+                        display: {
+                          xs: "none",
+                          md: "block",
+                        },
                       }}
                     >
                       →
@@ -316,303 +407,47 @@ export default function DocumentationPage() {
                   )}
                 </Box>
               ))}
-            </Stack>
+            </Box>
           </Paper>
         </Box>
 
         {/* Testing Studio */}
         <Box sx={{ pb: 8 }}>
-          <Typography variant="h4" fontWeight={800} gutterBottom>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              mb: 1,
+            }}
+          >
             Testing Studio
           </Typography>
 
-          <Typography color="text.secondary" sx={{ mb: 3, maxWidth: 850 }}>
+          <Typography
+            color="text.secondary"
+            sx={{
+              mb: 3,
+              maxWidth: 850,
+            }}
+          >
             Testing Studio provides a structured workspace for different
             testing disciplines and execution methods.
           </Typography>
 
-          <Grid container spacing={2}>
-            {[
-              "Functional Testing",
-              "API Testing",
-              "Database Testing",
-              "Automation Testing",
-              "Performance Testing",
-              "Security Testing",
-              "Accessibility Testing",
-            ].map((item) => (
-              <Grid key={item} size={{ xs: 12, sm: 6, md: 4 }}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: 2,
-                  }}
-                >
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <CheckCircleOutline color="primary" />
-                    <Typography fontWeight={600}>{item}</Typography>
-                  </Stack>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-
-        {/* AI */}
-        <Box sx={{ pb: 8 }}>
-          <Paper
-            elevation={0}
+          <Box
             sx={{
-              p: { xs: 3, md: 5 },
-              borderRadius: 3,
-              border: "1px solid",
-              borderColor: "divider",
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr 1fr",
+                md: "1fr 1fr 1fr",
+              },
+              gap: 2,
             }}
           >
-            <Stack direction={{ xs: "column", md: "row" }} spacing={3}>
-              <AutoAwesome
-                color="primary"
-                sx={{ fontSize: 48, flexShrink: 0 }}
-              />
-
-              <Box>
-                <Typography variant="h4" fontWeight={800} gutterBottom>
-                  AI-Assisted QA
-                </Typography>
-
-                <Typography color="text.secondary" lineHeight={1.8}>
-                  QABook includes AI-assisted workflows that can help
-                  transform project documentation and QA inputs into
-                  structured testing artifacts such as requirements,
-                  test scenarios, and test cases.
-                </Typography>
-              </Box>
-            </Stack>
-          </Paper>
-        </Box>
-
-        {/* Automation */}
-        <Box sx={{ pb: 8 }}>
-          <Typography variant="h4" fontWeight={800} gutterBottom>
-            Automation & CI/CD
-          </Typography>
-
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Card
-                elevation={0}
-                sx={{
-                  height: "100%",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 3,
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Code color="primary" sx={{ fontSize: 36, mb: 1 }} />
-                  <Typography variant="h6" fontWeight={700} gutterBottom>
-                    Automation Projects
-                  </Typography>
-                  <Typography color="text.secondary" lineHeight={1.7}>
-                    Create automation projects and map QA test cases to
-                    automation workflows.
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Card
-                elevation={0}
-                sx={{
-                  height: "100%",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 3,
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <GitHub color="primary" sx={{ fontSize: 36, mb: 1 }} />
-                  <Typography variant="h6" fontWeight={700} gutterBottom>
-                    GitHub Integration
-                  </Typography>
-                  <Typography color="text.secondary" lineHeight={1.7}>
-                    Connect repositories and integrate automation workflows
-                    with GitHub.
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Card
-                elevation={0}
-                sx={{
-                  height: "100%",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 3,
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Cloud color="primary" sx={{ fontSize: 36, mb: 1 }} />
-                  <Typography variant="h6" fontWeight={700} gutterBottom>
-                    CI Execution
-                  </Typography>
-                  <Typography color="text.secondary" lineHeight={1.7}>
-                    Work with GitHub Actions and synchronize automation
-                    execution results with QABook.
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </Box>
-
-        {/* Screenshots / Demo */}
-        <Box sx={{ pb: 8 }}>
-          <Typography variant="h4" fontWeight={800} gutterBottom>
-            Product Walkthrough
-          </Typography>
-
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Screenshots and a product demonstration can be added here to
-            showcase the QABook workflow.
-          </Typography>
-
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 6 }}>
+            {testingTypes.map((item) => (
               <Paper
-                elevation={0}
-                sx={{
-                  minHeight: 280,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "1px dashed",
-                  borderColor: "divider",
-                  borderRadius: 3,
-                  bgcolor: "#ffffff",
-                }}
-              >
-                <Stack alignItems="center" spacing={1}>
-                  <PlayCircleOutline
-                    color="primary"
-                    sx={{ fontSize: 56 }}
-                  />
-                  <Typography fontWeight={700}>
-                    Product Demo
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Demo video can be embedded here.
-                  </Typography>
-                </Stack>
-              </Paper>
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  minHeight: 280,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "1px dashed",
-                  borderColor: "divider",
-                  borderRadius: 3,
-                  bgcolor: "#ffffff",
-                }}
-              >
-                <Stack alignItems="center" spacing={1}>
-                  <Dashboard color="primary" sx={{ fontSize: 56 }} />
-                  <Typography fontWeight={700}>
-                    Product Screenshots
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    QABook screenshots can be added here.
-                  </Typography>
-                </Stack>
-              </Paper>
-            </Grid>
-          </Grid>
-        </Box>
-
-        {/* Architecture */}
-        <Box sx={{ pb: 8 }}>
-          <Typography variant="h4" fontWeight={800} gutterBottom>
-            Architecture
-          </Typography>
-
-          <Paper
-            elevation={0}
-            sx={{
-              p: { xs: 3, md: 5 },
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 3,
-            }}
-          >
-            <Stack spacing={2}>
-              <Typography fontWeight={700}>
-                Frontend — React + TypeScript + Material UI
-              </Typography>
-
-              <Typography color="text.secondary">
-                The web application provides the QABook user interface,
-                authentication flow, QA workspace, testing studio,
-                automation workflows, and reporting views.
-              </Typography>
-
-              <Divider />
-
-              <Typography fontWeight={700}>
-                Backend — FastAPI + Python
-              </Typography>
-
-              <Typography color="text.secondary">
-                The backend provides authentication, project and QA
-                management APIs, AI workflows, automation integration,
-                GitHub integration, reporting, and supporting services.
-              </Typography>
-
-              <Divider />
-
-              <Typography fontWeight={700}>
-                Data & Infrastructure
-              </Typography>
-
-              <Typography color="text.secondary">
-                QABook uses PostgreSQL-compatible database infrastructure,
-                object storage for uploaded artifacts, AI services, and
-                GitHub-based automation workflows.
-              </Typography>
-            </Stack>
-          </Paper>
-        </Box>
-
-        {/* Getting Started */}
-        <Box sx={{ pb: 8 }}>
-          <Typography variant="h4" fontWeight={800} gutterBottom>
-            Getting Started
-          </Typography>
-
-          <Stack spacing={2}>
-            {[
-              "Create an account or sign in to QABook.",
-              "Create or open a project.",
-              "Add requirements and testing artifacts.",
-              "Create scenarios, test cases, suites, and test runs.",
-              "Execute tests and record results.",
-              "Track bugs and perform retesting.",
-              "Use automation and CI/CD integrations when required.",
-              "Review project results through reports and analytics.",
-            ].map((step, index) => (
-              <Paper
-                key={step}
+                key={item}
                 elevation={0}
                 sx={{
                   p: 2,
@@ -621,153 +456,655 @@ export default function DocumentationPage() {
                   borderRadius: 2,
                 }}
               >
-                <Stack direction="row" spacing={2} alignItems="center">
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1.5,
+                  }}
+                >
+                  <CheckCircleOutlineIcon color="primary" />
+
+                  <Typography
+                    sx={{
+                      fontWeight: 600,
+                    }}
+                  >
+                    {item}
+                  </Typography>
+                </Box>
+              </Paper>
+            ))}
+          </Box>
+        </Box>
+
+        {/* AI */}
+        <Box sx={{ pb: 8 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: {
+                xs: 3,
+                md: 5,
+              },
+              borderRadius: 3,
+              border: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: {
+                  xs: "column",
+                  md: "row",
+                },
+                gap: 3,
+              }}
+            >
+              <AutoAwesomeIcon
+                color="primary"
+                sx={{
+                  fontSize: 48,
+                  flexShrink: 0,
+                }}
+              />
+
+              <Box>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 800,
+                    mb: 1,
+                  }}
+                >
+                  AI-Assisted QA
+                </Typography>
+
+                <Typography
+                  color="text.secondary"
+                  sx={{
+                    lineHeight: 1.8,
+                  }}
+                >
+                  QABook includes AI-assisted workflows that can help
+                  transform project documentation and QA inputs into
+                  structured testing artifacts such as requirements,
+                  test scenarios, and test cases.
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </Box>
+
+        {/* Automation */}
+        <Box sx={{ pb: 8 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              mb: 1,
+            }}
+          >
+            Automation & CI/CD
+          </Typography>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "1fr 1fr 1fr",
+              },
+              gap: 3,
+              mt: 3,
+            }}
+          >
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 3,
+              }}
+            >
+              <CodeIcon
+                color="primary"
+                sx={{
+                  fontSize: 36,
+                  mb: 1,
+                }}
+              />
+
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  mb: 1,
+                }}
+              >
+                Automation Projects
+              </Typography>
+
+              <Typography
+                color="text.secondary"
+                sx={{ lineHeight: 1.7 }}
+              >
+                Create automation projects and map QA test cases to
+                automation workflows.
+              </Typography>
+            </Paper>
+
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 3,
+              }}
+            >
+              <GitHubIcon
+                color="primary"
+                sx={{
+                  fontSize: 36,
+                  mb: 1,
+                }}
+              />
+
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  mb: 1,
+                }}
+              >
+                GitHub Integration
+              </Typography>
+
+              <Typography
+                color="text.secondary"
+                sx={{ lineHeight: 1.7 }}
+              >
+                Connect repositories and integrate automation workflows
+                with GitHub.
+              </Typography>
+            </Paper>
+
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 3,
+              }}
+            >
+              <CloudIcon
+                color="primary"
+                sx={{
+                  fontSize: 36,
+                  mb: 1,
+                }}
+              />
+
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  mb: 1,
+                }}
+              >
+                CI Execution
+              </Typography>
+
+              <Typography
+                color="text.secondary"
+                sx={{ lineHeight: 1.7 }}
+              >
+                Work with GitHub Actions and synchronize automation
+                execution results with QABook.
+              </Typography>
+            </Paper>
+          </Box>
+        </Box>
+
+        {/* Product Walkthrough */}
+        <Box sx={{ pb: 8 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              mb: 1,
+            }}
+          >
+            Product Walkthrough
+          </Typography>
+
+          <Typography
+            color="text.secondary"
+            sx={{ mb: 3 }}
+          >
+            Screenshots and a product demonstration can be added here to
+            showcase the QABook workflow.
+          </Typography>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "1fr 1fr",
+              },
+              gap: 3,
+            }}
+          >
+            <Paper
+              elevation={0}
+              sx={{
+                minHeight: 280,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px dashed",
+                borderColor: "divider",
+                borderRadius: 3,
+              }}
+            >
+              <Box sx={{ textAlign: "center" }}>
+                <PlayCircleOutlineIcon
+                  color="primary"
+                  sx={{
+                    fontSize: 56,
+                    mb: 1,
+                  }}
+                />
+
+                <Typography
+                  sx={{
+                    fontWeight: 700,
+                  }}
+                >
+                  Product Demo
+                </Typography>
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  Demo video can be embedded here.
+                </Typography>
+              </Box>
+            </Paper>
+
+            <Paper
+              elevation={0}
+              sx={{
+                minHeight: 280,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px dashed",
+                borderColor: "divider",
+                borderRadius: 3,
+              }}
+            >
+              <Box sx={{ textAlign: "center" }}>
+                <DashboardIcon
+                  color="primary"
+                  sx={{
+                    fontSize: 56,
+                    mb: 1,
+                  }}
+                />
+
+                <Typography
+                  sx={{
+                    fontWeight: 700,
+                  }}
+                >
+                  Product Screenshots
+                </Typography>
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  QABook screenshots can be added here.
+                </Typography>
+              </Box>
+            </Paper>
+          </Box>
+        </Box>
+
+        {/* Architecture */}
+        <Box sx={{ pb: 8 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              mb: 1,
+            }}
+          >
+            Architecture
+          </Typography>
+
+          <Paper
+            elevation={0}
+            sx={{
+              p: {
+                xs: 3,
+                md: 5,
+              },
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 3,
+            }}
+          >
+            <Box sx={{ mb: 3 }}>
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  mb: 1,
+                }}
+              >
+                Frontend — React + TypeScript + Material UI
+              </Typography>
+
+              <Typography
+                color="text.secondary"
+                sx={{ lineHeight: 1.8 }}
+              >
+                The web application provides the QABook user interface,
+                authentication flow, QA workspace, Testing Studio,
+                automation workflows, and reporting views.
+              </Typography>
+            </Box>
+
+            <Divider sx={{ mb: 3 }} />
+
+            <Box sx={{ mb: 3 }}>
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  mb: 1,
+                }}
+              >
+                Backend — FastAPI + Python
+              </Typography>
+
+              <Typography
+                color="text.secondary"
+                sx={{ lineHeight: 1.8 }}
+              >
+                The backend provides authentication, project and QA
+                management APIs, AI workflows, automation integration,
+                GitHub integration, reporting, and supporting services.
+              </Typography>
+            </Box>
+
+            <Divider sx={{ mb: 3 }} />
+
+            <Box>
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  mb: 1,
+                }}
+              >
+                Data & Infrastructure
+              </Typography>
+
+              <Typography
+                color="text.secondary"
+                sx={{ lineHeight: 1.8 }}
+              >
+                QABook uses PostgreSQL-compatible database infrastructure,
+                object storage for uploaded artifacts, AI services, and
+                GitHub-based automation workflows.
+              </Typography>
+            </Box>
+          </Paper>
+        </Box>
+
+        {/* Getting Started */}
+        <Box sx={{ pb: 8 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              mb: 1,
+            }}
+          >
+            Getting Started
+          </Typography>
+
+          <Box sx={{ mt: 3 }}>
+            {gettingStarted.map((step, index) => (
+              <Paper
+                key={step}
+                elevation={0}
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 2,
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                  }}
+                >
                   <Chip
                     label={index + 1}
                     color="primary"
-                    sx={{ minWidth: 40 }}
+                    sx={{
+                      minWidth: 40,
+                    }}
                   />
+
                   <Typography>{step}</Typography>
-                </Stack>
+                </Box>
               </Paper>
             ))}
-          </Stack>
+          </Box>
         </Box>
 
         {/* Resources */}
         <Box sx={{ pb: 10 }}>
-          <Typography variant="h4" fontWeight={800} gutterBottom>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              mb: 1,
+            }}
+          >
             Resources
           </Typography>
 
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Card
-                elevation={0}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "1fr 1fr 1fr",
+              },
+              gap: 3,
+              mt: 3,
+            }}
+          >
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 3,
+              }}
+            >
+              <GitHubIcon
+                color="primary"
                 sx={{
-                  height: "100%",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 3,
+                  fontSize: 36,
+                  mb: 1,
+                }}
+              />
+
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  mb: 1,
                 }}
               >
-                <CardContent sx={{ p: 3 }}>
-                  <GitHub color="primary" sx={{ fontSize: 36, mb: 1 }} />
+                Source Code
+              </Typography>
 
-                  <Typography variant="h6" fontWeight={700} gutterBottom>
-                    Source Code
-                  </Typography>
+              <Typography
+                color="text.secondary"
+                sx={{ mb: 2 }}
+              >
+                Explore the QABook project repository.
+              </Typography>
 
-                  <Typography color="text.secondary" sx={{ mb: 2 }}>
-                    Explore the QABook project repository.
-                  </Typography>
+              <Link
+                href="https://github.com/Rushis09/QA_Book"
+                target="_blank"
+                rel="noopener noreferrer"
+                underline="hover"
+              >
+                GitHub Repository
+              </Link>
+            </Paper>
 
-                  <Link
-                    href="https://github.com/Rushis09/QA_Book"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    underline="hover"
-                  >
-                    GitHub Repository
-                  </Link>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Card
-                elevation={0}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 3,
+              }}
+            >
+              <UploadFileIcon
+                color="primary"
                 sx={{
-                  height: "100%",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 3,
+                  fontSize: 36,
+                  mb: 1,
+                }}
+              />
+
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  mb: 1,
                 }}
               >
-                <CardContent sx={{ p: 3 }}>
-                  <UploadFile
-                    color="primary"
-                    sx={{ fontSize: 36, mb: 1 }}
-                  />
+                BRD & AI Workflows
+              </Typography>
 
-                  <Typography variant="h6" fontWeight={700} gutterBottom>
-                    BRD & AI Workflows
-                  </Typography>
+              <Typography
+                color="text.secondary"
+                sx={{ lineHeight: 1.7 }}
+              >
+                Upload supported project documentation and use
+                AI-assisted workflows to create structured QA artifacts.
+              </Typography>
+            </Paper>
 
-                  <Typography color="text.secondary">
-                    Upload supported project documentation and use
-                    AI-assisted workflows to create structured QA
-                    artifacts.
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Card
-                elevation={0}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 3,
+              }}
+            >
+              <StorageIcon
+                color="primary"
                 sx={{
-                  height: "100%",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 3,
+                  fontSize: 36,
+                  mb: 1,
+                }}
+              />
+
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  mb: 1,
                 }}
               >
-                <CardContent sx={{ p: 3 }}>
-                  <Storage color="primary" sx={{ fontSize: 36, mb: 1 }} />
+                QA Evidence
+              </Typography>
 
-                  <Typography variant="h6" fontWeight={700} gutterBottom>
-                    QA Evidence
-                  </Typography>
-
-                  <Typography color="text.secondary">
-                    Organize execution evidence and testing artifacts
-                    alongside QA activities.
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+              <Typography
+                color="text.secondary"
+                sx={{ lineHeight: 1.7 }}
+              >
+                Organize execution evidence and testing artifacts
+                alongside QA activities.
+              </Typography>
+            </Paper>
+          </Box>
         </Box>
 
         {/* Footer */}
         <Divider />
 
-        <Box sx={{ py: 4 }}>
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            justifyContent="space-between"
-            spacing={2}
+        <Box
+          sx={{
+            py: 4,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 2,
+          }}
+        >
+          <Typography
+            variant="body2"
+            color="text.secondary"
           >
-            <Typography variant="body2" color="text.secondary">
-              © 2026 QABook. All rights reserved.
-            </Typography>
+            © 2026 QABook. All rights reserved.
+          </Typography>
 
-            <Stack direction="row" spacing={2}>
-              <Link
-                component="button"
-                underline="hover"
-                onClick={() => navigate("/privacy")}
-              >
-                Privacy
-              </Link>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+            }}
+          >
+            <Link
+              component="button"
+              underline="hover"
+              onClick={() => navigate("/privacy")}
+            >
+              Privacy
+            </Link>
 
-              <Link
-                component="button"
-                underline="hover"
-                onClick={() => navigate("/terms")}
-              >
-                Terms
-              </Link>
+            <Link
+              component="button"
+              underline="hover"
+              onClick={() => navigate("/terms")}
+            >
+              Terms
+            </Link>
 
-              <Link
-                href="mailto:qabook.qa@gmail.com"
-                underline="hover"
-              >
-                Contact
-              </Link>
-            </Stack>
-          </Stack>
+            <Link
+              href="mailto:qabook.qa@gmail.com"
+              underline="hover"
+            >
+              Contact
+            </Link>
+          </Box>
         </Box>
       </Container>
     </Box>
