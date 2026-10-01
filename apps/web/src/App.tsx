@@ -5,7 +5,9 @@ import LoginPage from "./components/auth/LoginPage";
 import LandingPage from "./pages/Landing/LandingPage";
 import ResetPasswordPage from "./components/auth/ResetPasswordPage";
 import { useAuth } from "./contexts/AuthContext";
-
+import DocumentationPage from "./pages/Documentation/DocumentationPage";
+import PrivacyPage from "./pages/Privacy/PrivacyPage";
+import TermsPage from "./pages/Terms/TermsPage";
 import DashboardPage from "./pages/Dashboard/DashboardPage";
 import ProjectsPage from "./pages/Projects/ProjectsPage";
 import ProjectWorkspacePage from "./pages/Projects/ProjectWorkspacePage";
@@ -56,6 +58,21 @@ export default function App() {
         <Route
           path="/reset-password"
           element={<ResetPasswordPage />}
+        />
+
+        <Route
+          path="/documentation"
+          element={<DocumentationPage />}
+        />
+
+        <Route
+          path="/privacy"
+          element={<PrivacyPage />}
+        />
+
+        <Route
+          path="/terms"
+          element={<TermsPage />}
         />
 
         {!isAuthenticated ? (

@@ -3,6 +3,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { useNavigate } from "react-router-dom";
+
 import {
   Alert,
   Box,
@@ -37,6 +39,8 @@ import { useAuth } from "../../contexts/AuthContext";
 type AuthView = "login" | "forgot-password" | "register";
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+
   const [view, setView] = useState<AuthView>("login");
 
   const [username, setUsername] = useState("");
@@ -585,6 +589,7 @@ export default function LoginPage() {
           <Button
             variant="outlined"
             size="small"
+            onClick={() => navigate("/documentation")}
             sx={{
               textTransform: "none",
               borderRadius: 1.5,
@@ -1335,22 +1340,49 @@ export default function LoginPage() {
             }}
           >
             <Typography
+              component="a"
+              href="/privacy"
               variant="caption"
-              sx={{ cursor: "pointer" }}
+              sx={{
+                cursor: "pointer",
+                color: "inherit",
+                textDecoration: "none",
+                "&:hover": {
+                  textDecoration: "underline",
+                },
+              }}
             >
               Privacy
             </Typography>
-
+            
             <Typography
+              component="a"
+              href="/terms"
               variant="caption"
-              sx={{ cursor: "pointer" }}
+              sx={{
+                cursor: "pointer",
+                color: "inherit",
+                textDecoration: "none",
+                "&:hover": {
+                  textDecoration: "underline",
+                },
+              }}
             >
               Terms
             </Typography>
-
+            
             <Typography
+              component="a"
+              href="mailto:qabook.qa@gmail.com"
               variant="caption"
-              sx={{ cursor: "pointer" }}
+              sx={{
+                cursor: "pointer",
+                color: "inherit",
+                textDecoration: "none",
+                "&:hover": {
+                  textDecoration: "underline",
+                },
+              }}
             >
               Contact
             </Typography>
