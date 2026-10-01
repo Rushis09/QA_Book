@@ -16,7 +16,6 @@ import CodeIcon from "@mui/icons-material/Code";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import InsightsIcon from "@mui/icons-material/Insights";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StorageIcon from "@mui/icons-material/Storage";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import CheckIcon from "@mui/icons-material/Check";
@@ -81,6 +80,24 @@ const testingTypes = [
   "Performance Testing",
   "Security Testing",
   "Accessibility Testing",
+];
+
+const productScreenshots = [
+  { title: "Dashboard", src: "/documentation/dashboard.png.png" },
+  { title: "Projects", src: "/documentation/projects.png.png" },
+  { title: "Project Overview", src: "/documentation/project-overview.png.png" },
+  { title: "Requirements", src: "/documentation/requirements.png.png" },
+  { title: "Test Scenarios", src: "/documentation/test-scenarios.png.png" },
+  { title: "Test Cases", src: "/documentation/test-cases.png.png" },
+  { title: "Test Case Editor", src: "/documentation/test-case-editor.png.png" },
+  { title: "Test Suites", src: "/documentation/test-suites.png.png" },
+  { title: "Test Runs", src: "/documentation/test-runs.png.png" },
+  { title: "Test Executions", src: "/documentation/test-executions.png.png" },
+  { title: "Bug Reports", src: "/documentation/bug-reports.png.png" },
+  { title: "Testing Studio", src: "/documentation/testing-studio.png.png" },
+  { title: "Automation", src: "/documentation/automation.png.png" },
+  { title: "Reports Overview", src: "/documentation/reports-overview.png.png" },
+  { title: "Reports & Defects", src: "/documentation/reports-defects.png.png" },
 ];
 
 const gettingStarted = [
@@ -220,6 +237,18 @@ export default function DocumentationPage() {
               startIcon={<GitHubIcon />}
             >
               View on GitHub
+            </Button>
+
+            <Button
+              variant="outlined"
+              size="large"
+              component="a"
+              href="https://qabook-api.onrender.com/docs"
+              target="_blank"
+              rel="noopener noreferrer"
+              startIcon={<CodeIcon />}
+            >
+              API Docs
             </Button>
           </Box>
         </Box>
@@ -684,10 +713,16 @@ export default function DocumentationPage() {
 
           <Typography
             color="text.secondary"
-            sx={{ mb: 3 }}
+            sx={{
+              mb: 4,
+              maxWidth: 900,
+              lineHeight: 1.8,
+            }}
           >
-            Screenshots and a product demonstration can be added here to
-            showcase the QABook workflow.
+            Explore the QABook interface through screenshots from the
+            platform. The walkthrough covers the main QA workflow from
+            project setup and requirements through test management,
+            execution, defects, automation, and reporting.
           </Typography>
 
           <Box
@@ -695,86 +730,53 @@ export default function DocumentationPage() {
               display: "grid",
               gridTemplateColumns: {
                 xs: "1fr",
-                md: "1fr 1fr",
+                sm: "1fr 1fr",
+                md: "1fr 1fr 1fr",
               },
               gap: 3,
             }}
           >
-            <Paper
-              elevation={0}
-              sx={{
-                minHeight: 280,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "1px dashed",
-                borderColor: "divider",
-                borderRadius: 3,
-              }}
-            >
-              <Box sx={{ textAlign: "center" }}>
-                <PlayArrowIcon
-                  color="primary"
+            {productScreenshots.map((screenshot) => (
+              <Paper
+                key={screenshot.title}
+                elevation={0}
+                sx={{
+                  overflow: "hidden",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 3,
+                  bgcolor: "#ffffff",
+                }}
+              >
+                <Box
+                  component="img"
+                  src={screenshot.src}
+                  alt={`QABook ${screenshot.title} screen`}
+                  loading="lazy"
                   sx={{
-                    fontSize: 56,
-                    mb: 1,
+                    display: "block",
+                    width: "100%",
+                    height: 220,
+                    objectFit: "cover",
+                    objectPosition: "top",
+                    bgcolor: "#f1f5f9",
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
                   }}
                 />
 
-                <Typography
-                  sx={{
-                    fontWeight: 700,
-                  }}
-                >
-                  Product Demo
-                </Typography>
-
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Demo video can be embedded here.
-                </Typography>
-              </Box>
-            </Paper>
-
-            <Paper
-              elevation={0}
-              sx={{
-                minHeight: 280,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "1px dashed",
-                borderColor: "divider",
-                borderRadius: 3,
-              }}
-            >
-              <Box sx={{ textAlign: "center" }}>
-                <DashboardIcon
-                  color="primary"
-                  sx={{
-                    fontSize: 56,
-                    mb: 1,
-                  }}
-                />
-
-                <Typography
-                  sx={{
-                    fontWeight: 700,
-                  }}
-                >
-                  Product Screenshots
-                </Typography>
-
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  QABook screenshots can be added here.
-                </Typography>
-              </Box>
-            </Paper>
+                <Box sx={{ p: 2 }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      fontWeight: 700,
+                    }}
+                  >
+                    {screenshot.title}
+                  </Typography>
+                </Box>
+              </Paper>
+            ))}
           </Box>
         </Box>
 
@@ -1052,6 +1054,54 @@ export default function DocumentationPage() {
                 Organize execution evidence and testing artifacts
                 alongside QA activities.
               </Typography>
+            </Paper>
+
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 3,
+              }}
+            >
+              <CodeIcon
+                color="primary"
+                sx={{
+                  fontSize: 36,
+                  mb: 1,
+                }}
+              />
+
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  mb: 1,
+                }}
+              >
+                API Documentation
+              </Typography>
+
+              <Typography
+                color="text.secondary"
+                sx={{
+                  lineHeight: 1.7,
+                  mb: 2,
+                }}
+              >
+                Explore the QABook backend REST API through the interactive
+                Swagger documentation.
+              </Typography>
+
+              <Link
+                href="https://qabook-api.onrender.com/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                underline="hover"
+              >
+                Open API Docs
+              </Link>
             </Paper>
           </Box>
         </Box>
