@@ -54,6 +54,7 @@ export default function NotificationProvider({
         }}
       >
         <Alert
+          id="qabook-notification"
           severity={severity as AlertColor}
           onClose={() => setOpen(false)}
           variant="filled"
