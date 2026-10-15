@@ -1,3 +1,4 @@
+
 import {
   Button,
   Dialog,
@@ -24,8 +25,9 @@ export default function LogoutDialog({
       onClose={onClose}
       maxWidth="xs"
       fullWidth
+      aria-labelledby="logout-dialog-title"
     >
-      <DialogTitle>
+      <DialogTitle id="logout-dialog-title">
         Logout
       </DialogTitle>
 
@@ -36,11 +38,15 @@ export default function LogoutDialog({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>
+        <Button
+          id="cancel-logout-button"
+          onClick={onClose}
+        >
           Cancel
         </Button>
 
         <Button
+          id="confirm-logout-button"
           color="error"
           variant="contained"
           onClick={onLogout}

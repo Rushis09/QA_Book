@@ -1,19 +1,16 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AppBar,
-  Avatar,
   Box,
-  Divider,
+  Button,
   FormControl,
-  IconButton,
-  Menu,
   MenuItem,
   Select,
   Toolbar,
   Typography,
 } from "@mui/material";
-
 
 import LogoutIcon from "@mui/icons-material/Logout";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -27,6 +24,7 @@ import QABookLogo from "../brand/QABookLogo";
 
 export default function Header() {
   const navigate = useNavigate();
+
   const {
     projects,
     workspaceUsers,
@@ -37,54 +35,14 @@ export default function Header() {
     setSelectedUserFilter,
   } = useWorkspace();
 
-  const {
-    username,
-    role,
-    logout,
-  } = useAuth();
+  const { role, logout } = useAuth();
+  const { showNotification } = useNotification();
 
-  const { showNotification } =
-    useNotification();
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
-  const [accountMenuAnchor, setAccountMenuAnchor] =
-    useState<null | HTMLElement>(null);
+  
 
-  const [logoutOpen, setLogoutOpen] =
-    useState(false);
-
-  const accountMenuOpen =
-    Boolean(accountMenuAnchor);
-
-  const displayUsername =
-    username || "User";
-
-  const displayRole =
-    role === "PLATFORM_ADMIN"
-      ? "Platform Admin"
-      : "User";
-
-  const avatarLetter =
-    displayUsername.charAt(0).toUpperCase();
-
-  const isPlatformAdmin =
-    role === "PLATFORM_ADMIN";
-
-  function handleAccountMenuOpen(
-    event: React.MouseEvent<HTMLElement>,
-  ) {
-    setAccountMenuAnchor(
-      event.currentTarget,
-    );
-  }
-
-  function handleAccountMenuClose() {
-    setAccountMenuAnchor(null);
-  }
-
-  function handleLogoutClick() {
-    handleAccountMenuClose();
-    setLogoutOpen(true);
-  }
+  const isPlatformAdmin = role === "PLATFORM_ADMIN";
 
   function handleLogout() {
     logout();
@@ -99,9 +57,7 @@ export default function Header() {
     );
   }
 
-  async function handleUserFilterChange(
-    value: string,
-  ) {
+  async function handleUserFilterChange(value: string) {
     if (value === "none") {
       await setSelectedUserFilter("NONE");
       return;
@@ -115,17 +71,14 @@ export default function Header() {
     await setSelectedUserFilter(Number(value));
   }
 
-  function handleProjectFilterChange(
-    value: string,
-  ) {
+  function handleProjectFilterChange(value: string) {
     if (value === "all") {
       setSelectedProject(null);
       return;
     }
 
     const project = projects.find(
-      (project) =>
-        project.id === Number(value),
+      (project) => project.id === Number(value),
     );
 
     if (project) {
@@ -149,18 +102,9 @@ export default function Header() {
           sx={{
             display: "flex",
             justifyContent: "space-between",
-            minHeight: {
-              xs: 52,
-              md: 56,
-            },
-            height: {
-              xs: 52,
-              md: 56,
-            },
-            px: {
-              xs: 1.5,
-              md: 2,
-            },
+            minHeight: { xs: 52, md: 56 },
+            height: { xs: 52, md: 56 },
+            px: { xs: 1.5, md: 2 },
             gap: 2,
           }}
         >
@@ -174,9 +118,7 @@ export default function Header() {
               transformOrigin: "left center",
             }}
           >
-            <QABookLogo
-              size="md"
-            />
+            <QABookLogo size="md" />
           </Box>
 
           {/* Right side */}
@@ -184,10 +126,7 @@ export default function Header() {
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: {
-                xs: 1,
-                md: 1.75,
-              },
+              gap: { xs: 1, md: 1.75 },
               minWidth: 0,
               ml: "auto",
             }}
@@ -197,10 +136,7 @@ export default function Header() {
               sx={{
                 display: "flex",
                 alignItems: "center",
-                gap: {
-                  xs: 0.75,
-                  md: 1,
-                },
+                gap: { xs: 0.75, md: 1 },
                 minWidth: 0,
               }}
             >
@@ -224,20 +160,17 @@ export default function Header() {
                         ? "none"
                         : selectedUserFilter === "ALL"
                           ? "all"
-                          : String(
-                              selectedUserFilter,
-                            )
+                          : String(selectedUserFilter)
                     }
+                    inputProps={{
+                      "aria-label": "Workspace user filter",
+                    }}
                     sx={{
-                      minWidth: {
-                        xs: 105,
-                        md: 125,
-                      },
+                      minWidth: { xs: 105, md: 125 },
                       height: 36,
                       bgcolor: "white",
                       fontSize: "0.75rem",
                       borderRadius: "7px",
-
                       "& .MuiSelect-select": {
                         py: 0.8,
                         px: 1.2,
@@ -245,9 +178,7 @@ export default function Header() {
                     }}
                     onChange={(event) => {
                       handleUserFilterChange(
-                        String(
-                          event.target.value,
-                        ),
+                        String(event.target.value),
                       );
                     }}
                   >
@@ -259,16 +190,14 @@ export default function Header() {
                       All Users
                     </MenuItem>
 
-                    {workspaceUsers.map(
-                      (user) => (
-                        <MenuItem
-                          key={user.id}
-                          value={user.id}
-                        >
-                          {user.username}
-                        </MenuItem>
-                      ),
-                    )}
+                    {workspaceUsers.map((user) => (
+                      <MenuItem
+                        key={user.id}
+                        value={user.id}
+                      >
+                        {user.username}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               )}
@@ -290,12 +219,14 @@ export default function Header() {
                       : selectedProject?.id ?? ""
                   }
                   displayEmpty
+                  inputProps={{
+                    "aria-label": "Workspace project filter",
+                  }}
                   sx={{
                     height: 36,
                     bgcolor: "white",
                     fontSize: "0.75rem",
                     borderRadius: "7px",
-
                     "& .MuiSelect-select": {
                       py: 0.8,
                       px: 1.2,
@@ -306,9 +237,7 @@ export default function Header() {
                   }}
                   onChange={(event) => {
                     handleProjectFilterChange(
-                      String(
-                        event.target.value,
-                      ),
+                      String(event.target.value),
                     );
                   }}
                 >
@@ -316,188 +245,65 @@ export default function Header() {
                     All Projects
                   </MenuItem>
 
-                  {projects.map(
-                    (project) => (
-                      <MenuItem
-                        key={project.id}
-                        value={project.id}
-                      >
-                        {project.project_code}
-                        {" - "}
-                        {project.name}
-                      </MenuItem>
-                    ),
-                  )}
+                  {projects.map((project) => (
+                    <MenuItem
+                      key={project.id}
+                      value={project.id}
+                    >
+                      {project.project_code}
+                      {" - "}
+                      {project.name}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Box>
 
-            {/* Account */}
+            {/* Direct Settings and Logout buttons */}
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
+                gap: 1,
                 flexShrink: 0,
               }}
             >
-              <IconButton
-                onClick={
-                  handleAccountMenuOpen
-                }
+              <Button
+                id="header-settings-button"
+                aria-label="Settings"
+                startIcon={<SettingsIcon />}
+                onClick={() => navigate("/settings")}
+                variant="outlined"
                 size="small"
                 sx={{
-                  color: "inherit",
-                  p: 0.25,
-                }}
-                aria-label="Account menu"
-                aria-controls={
-                  accountMenuOpen
-                    ? "account-menu"
-                    : undefined
-                }
-                aria-haspopup="true"
-                aria-expanded={
-                  accountMenuOpen
-                    ? "true"
-                    : undefined
-                }
-              >
-                <Avatar
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    fontSize: "0.82rem",
-                    bgcolor: "#eef4ff",
-                    color: "#356dff",
-                    fontWeight: 700,
-                  }}
-                >
-                  {avatarLetter}
-                </Avatar>
-              </IconButton>
-
-              <Box
-                sx={{
-                  ml: 0.75,
-                  mr: 0.25,
-                  minWidth: 76,
+                  textTransform: "none",
+                  whiteSpace: "nowrap",
                 }}
               >
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontSize: "0.72rem",
-                    fontWeight: 600,
-                    lineHeight: 1.2,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {displayUsername}
-                </Typography>
-
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontSize: "0.58rem",
-                    opacity: 0.75,
-                    lineHeight: 1.2,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {displayRole}
-                </Typography>
-              </Box>
-            </Box>
-
-            <Menu
-              id="account-menu"
-              anchorEl={accountMenuAnchor}
-              open={accountMenuOpen}
-              onClose={handleAccountMenuClose}
-              anchorOrigin={{
-                vertical: "bottom",
-                horizontal: "right",
-              }}
-              transformOrigin={{
-                vertical: "top",
-                horizontal: "right",
-              }}
-            >
-              <Box
-                sx={{
-                  px: 1.75,
-                  py: 0.8,
-                  minWidth: 200,
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                  }}
-                >
-                  {displayUsername}
-                </Typography>
-
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{
-                    fontSize: "0.65rem",
-                  }}
-                >
-                  {displayRole}
-                </Typography>
-              </Box>
-
-              <Divider />
-
-              <MenuItem
-                onClick={() => {
-                  handleAccountMenuClose();
-                  navigate("/settings");
-                }}
-                sx={{
-                  minHeight: 36,
-                  fontSize: "0.75rem",
-                }}
-              >
-                <SettingsIcon
-                  fontSize="small"
-                  sx={{
-                    mr: 1.25,
-                    fontSize: 18,
-                  }}
-                />
-
                 Settings
-              </MenuItem>
+              </Button>
 
-              <Divider />
-
-              <MenuItem
-                onClick={handleLogoutClick}
+              <Button
+                id="header-logout-button"
+                aria-label="Open logout confirmation"
+                startIcon={<LogoutIcon />}
+                onClick={() => setLogoutOpen(true)}
+                variant="contained"
+                color="error"
+                size="small"
                 sx={{
-                  minHeight: 36,
-                  fontSize: "0.75rem",
+                  textTransform: "none",
+                  whiteSpace: "nowrap",
                 }}
               >
-                <LogoutIcon
-                  fontSize="small"
-                  sx={{
-                    mr: 1.25,
-                    fontSize: 18,
-                  }}
-                />
-
                 Logout
-              </MenuItem>
-            </Menu>
+              </Button>
+            </Box>
           </Box>
         </Toolbar>
       </AppBar>
 
+      {/* Logout confirmation */}
       <LogoutDialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
