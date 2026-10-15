@@ -98,16 +98,26 @@ export default function App() {
         ) : (
           <>
             {/* Logged-in users should not see login */}
-            <Route
-              path="/login"
-              element={<Navigate to="/" replace />}
-            />
-
-            {/* Application */}
-            <Route element={<AppLayout />}>
               <Route
-                path="/"
-                element={<DashboardPage />}
+                path="/login"
+                element={<Navigate to="/dashboard" replace />}
+              />
+
+              {/* Application */}
+              <Route element={<AppLayout />}>
+                <Route
+                  path="/"
+                  element={<Navigate to="/dashboard" replace />}
+                />
+                        
+                <Route
+                  path="/dashboard"
+                  element={<DashboardPage />}
+                />
+
+                <Route
+                  path="/dashboard"
+                  element={<DashboardPage />}
               />
 
               <Route
