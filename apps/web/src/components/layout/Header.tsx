@@ -286,6 +286,7 @@ export default function Header() {
                 />
 
                 <Typography
+                  data-testid="header-username"
                   variant="body2"
                   title={username ?? ""}
                   sx={{
