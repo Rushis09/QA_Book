@@ -14,6 +14,7 @@ import {
 
 import LogoutIcon from "@mui/icons-material/Logout";
 import SettingsIcon from "@mui/icons-material/Settings";
+import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -35,12 +36,10 @@ export default function Header() {
     setSelectedUserFilter,
   } = useWorkspace();
 
-  const { role, logout } = useAuth();
+  const { username, role, logout } = useAuth();
   const { showNotification } = useNotification();
 
   const [logoutOpen, setLogoutOpen] = useState(false);
-
-  
 
   const isPlatformAdmin = role === "PLATFORM_ADMIN";
 
@@ -259,15 +258,48 @@ export default function Header() {
               </FormControl>
             </Box>
 
-            {/* Direct Settings and Logout buttons */}
+            {/* Username, Settings and Logout */}
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
-                gap: 1,
+                gap: { xs: 0.75, md: 1 },
                 flexShrink: 0,
               }}
             >
+              {/* Logged-in username */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  minWidth: 0,
+                  maxWidth: { xs: 90, sm: 150, md: 200 },
+                }}
+              >
+                <AccountCircleOutlinedIcon
+                  fontSize="small"
+                  sx={{
+                    color: "#667085",
+                    flexShrink: 0,
+                  }}
+                />
+
+                <Typography
+                  variant="body2"
+                  title={username ?? ""}
+                  sx={{
+                    color: "#344054",
+                    fontWeight: 500,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {username ?? "User"}
+                </Typography>
+              </Box>
+
               <Button
                 id="header-settings-button"
                 aria-label="Settings"
